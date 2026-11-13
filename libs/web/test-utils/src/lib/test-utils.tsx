@@ -5,12 +5,41 @@ import type { SeasonDto } from '@nba/dtos-seasons';
 import { GameStatus, SeasonType } from '@nba/sql-games/enums';
 import type { StandingDto } from '@nba/dtos-standings';
 import type { TeamDto } from '@nba/dtos-teams';
-import { formatSeason } from '@nba/web-core';
+import { formatSeason, startSession } from '@nba/web-core';
 import { AppShell, PAGE_NAMES, type Pages } from '@nba/web-shell-components';
-import { render } from '@testing-library/react';
-import { Failure, stubApi } from './test-setup';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { Failure, firebase, stubApi } from './test-setup';
 
-export { Failure, stubApi };
+export { Failure, firebase, stubApi };
+export type { FakeUser } from './test-setup';
+
+// A Firebase error, by its code.
+export const firebaseError = (code: string) =>
+  Object.assign(new Error(`Firebase: (${code}).`), { code });
+
+// Signed in with Firebase as Dana, and with the API as `userId`.
+export const signIn = (userId = 'u1') => {
+  firebase.setUser(firebase.newUser('dana@nba.dev'));
+  startSession({ userId });
+};
+
+// The calls the fake API got with this method: [url, JSON body].
+export const callsOf = (
+  fetchMock: ReturnType<typeof stubApi>,
+  method: string,
+) =>
+  fetchMock.mock.calls
+    .filter(([, init]) => init?.method === method)
+    .map(([url, init]) => [url, init?.body && JSON.parse(`${init.body}`)]);
+
+// Types into each field, by its label.
+export const fillIn = async (fields: Record<string, string>) => {
+  for (const [label, value] of Object.entries(fields)) {
+    fireEvent.change(await screen.findByLabelText(label), {
+      target: { value },
+    });
+  }
+};
 
 // A page the spec doesn't drive: just its name, as a heading.
 const standInOf = (name: string) => () => <h1>{name}</h1>;

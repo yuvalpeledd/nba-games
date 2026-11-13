@@ -89,6 +89,11 @@ $expanded-size: 240px;
     }
   }
 
+  // Who's signed in, and Log in or Log out: at the rail's end.
+  &__account {
+    margin-block-start: auto;
+  }
+
   &__label {
     opacity: 0;
     white-space: nowrap;

@@ -28,6 +28,13 @@ import {
 } from '@nba/sql-standings';
 import { TeamPlayerDalService, TeamPlayerModule } from '@nba/sql-team-players';
 import { TeamCreateObject, TeamDalService, TeamModule } from '@nba/sql-teams';
+import {
+  UserCreateObject,
+  UserDalService,
+  UserEntity,
+  UserModule,
+} from '@nba/sql-users';
+import { Auth } from 'firebase-admin/auth';
 import { DataSource } from 'typeorm';
 import {
   generateGame,
@@ -35,11 +42,39 @@ import {
   generateSeason,
   generateStanding,
   generateTeam,
+  generateUser,
 } from './generators';
 
 export interface Reply {
   status: number;
   body: any;
+}
+
+// A user plus an ID token of their Firebase account (verified), which every guarded route takes.
+export type TestUser = UserEntity & { token: string };
+
+// A Firebase account as a test's ID token says (TestApp.identityToken).
+export interface TestIdentity {
+  uid: string;
+  email: string;
+  // True unless a test says otherwise.
+  emailVerified?: boolean;
+}
+
+const TEST_TOKEN = 'test-id-token.';
+
+// Firebase's Auth under test: an ID token is what identityToken() made (the account, as JSON), and anything else
+// is refused, as Firebase refuses an expired, forged or malformed one.
+class FakeFirebaseAuth {
+  async verifyIdToken(token: string) {
+    if (!token.startsWith(TEST_TOKEN)) {
+      throw new Error('auth/argument-error: not a test ID token');
+    }
+    const { uid, email, emailVerified }: Required<TestIdentity> = JSON.parse(
+      Buffer.from(token.slice(TEST_TOKEN.length), 'base64url').toString(),
+    );
+    return { uid, email, email_verified: emailVerified };
+  }
 }
 
 // The modules under test, as main.ts serves them (under /api, with the failure filter), over HTTP on a random port,
@@ -67,10 +102,14 @@ export class TestApp {
         GameModule,
         StandingModule,
         SeasonModule,
+        UserModule,
         ...imports,
       ],
       providers: [{ provide: APP_FILTER, useClass: FailureFilter }],
-    }).compile();
+    })
+      .overrideProvider(Auth)
+      .useValue(new FakeFirebaseAuth())
+      .compile();
     const app = moduleRef.createNestApplication({ logger: ['error'] });
     app.setGlobalPrefix('api');
     await app.listen(0);
@@ -81,11 +120,19 @@ export class TestApp {
     return this.app.get(type);
   }
 
-  // `path` is under /api: `app.call('GET', '/teams')`.
-  async call(method: string, path: string, body?: unknown): Promise<Reply> {
+  // `path` is under /api: `app.call('GET', '/teams')`. A token goes as `Authorization: Bearer <token>`.
+  async call(
+    method: string,
+    path: string,
+    body?: unknown,
+    token?: string,
+  ): Promise<Reply> {
     const response = await fetch(`${this.baseUrl}/api${path}`, {
       method,
-      headers: { 'content-type': 'application/json' },
+      headers: {
+        'content-type': 'application/json',
+        ...(token && { authorization: `Bearer ${token}` }),
+      },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
     return { status: response.status, body: await response.json() };
@@ -105,6 +152,22 @@ export class TestApp {
 
   close(): Promise<void> {
     return this.app.close();
+  }
+
+  // An ID token of the Firebase account, as the web sends it (Bearer, or in /login's and /sign-up's body).
+  identityToken({ emailVerified = true, ...identity }: TestIdentity): string {
+    const claims = { ...identity, emailVerified };
+    return `${TEST_TOKEN}${Buffer.from(JSON.stringify(claims)).toString('base64url')}`;
+  }
+
+  // The user and their account's token.
+  async createUser(overrides?: Partial<UserCreateObject>): Promise<TestUser> {
+    const user = await this.get(UserDalService).create(generateUser(overrides));
+    const token = this.identityToken({
+      uid: user.firebaseUid,
+      email: user.email,
+    });
+    return Object.assign(user, { token });
   }
 
   async createTeam(

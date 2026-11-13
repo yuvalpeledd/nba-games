@@ -4,6 +4,7 @@ import type { PlayerCreateObject } from '@nba/sql-players';
 import type { SeasonCreateObject } from '@nba/sql-seasons';
 import type { StandingCreateObject } from '@nba/sql-standings';
 import type { TeamCreateObject } from '@nba/sql-teams';
+import type { UserCreateObject } from '@nba/sql-users';
 
 // Rows shaped as the provider's, unique per call. Pass overrides only for what a test is about.
 let next = 0;
@@ -130,3 +131,13 @@ export const generateSeason = (
     ...overrides,
   };
 };
+
+// A user with a Firebase account.
+export const generateUser = (
+  overrides: Partial<UserCreateObject> = {},
+): UserCreateObject => ({
+  name: 'Test User',
+  email: `user-${unique()}@nba.dev`,
+  firebaseUid: `firebase-${unique()}`,
+  ...overrides,
+});

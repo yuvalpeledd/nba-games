@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
+import { FrontendApiAuthControllerModule } from '@nba/frontend-api-auth-controller';
 import { FailureFilter } from '@nba/frontend-api-common';
 import { FrontendApiGamesControllerModule } from '@nba/frontend-api-games-controller';
 import { FrontendApiPlayersControllerModule } from '@nba/frontend-api-players-controller';
@@ -13,6 +14,7 @@ import { AppController } from './app.controller';
   imports: [
     // The only app that runs migrations (CLAUDE.md's Database).
     SqlModule.forRoot({ runMigrations: true }),
+    FrontendApiAuthControllerModule,
     FrontendApiSeasonsControllerModule,
     FrontendApiTeamsControllerModule,
     FrontendApiPlayersControllerModule,

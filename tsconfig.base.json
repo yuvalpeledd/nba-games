@@ -25,11 +25,17 @@
         "./libs/data-fetcher/fetchers/src/index.ts"
       ],
       "@nba/dtos": ["./libs/dtos/common/src/index.ts"],
+      "@nba/dtos-auth": ["./libs/dtos/auth/src/index.ts"],
       "@nba/dtos-games": ["./libs/dtos/games/src/index.ts"],
       "@nba/dtos-players": ["./libs/dtos/players/src/index.ts"],
       "@nba/dtos-seasons": ["./libs/dtos/seasons/src/index.ts"],
       "@nba/dtos-standings": ["./libs/dtos/standings/src/index.ts"],
       "@nba/dtos-teams": ["./libs/dtos/teams/src/index.ts"],
+      "@nba/enums": ["./libs/enums/src/index.ts"],
+      "@nba/frontend-api-auth": ["./libs/frontend-api/auth/src/index.ts"],
+      "@nba/frontend-api-auth-controller": [
+        "./libs/frontend-api/controllers/auth/src/index.ts"
+      ],
       "@nba/frontend-api-common": ["./libs/frontend-api/common/src/index.ts"],
       "@nba/frontend-api-games-controller": [
         "./libs/frontend-api/controllers/games/src/index.ts"
@@ -62,11 +68,13 @@
       ],
       "@nba/sql-team-players": ["./libs/sql/tables/team-players/src/index.ts"],
       "@nba/sql-teams": ["./libs/sql/tables/teams/src/index.ts"],
+      "@nba/sql-users": ["./libs/sql/tables/users/src/index.ts"],
       "@nba/web-core": ["./libs/web/core/src/index.ts"],
       "@nba/web-dashboard-page": ["./libs/web/pages/dashboard/src/index.ts"],
       "@nba/web-design-system-components": [
         "./libs/web/components/design-system/src/index.ts"
       ],
+      "@nba/web-login-page": ["./libs/web/pages/login/src/index.ts"],
       "@nba/web-shell-components": ["./libs/web/components/shell/src/index.ts"],
       "@nba/web-standings-page": ["./libs/web/pages/standings/src/index.ts"],
       "@nba/web-table-components": ["./libs/web/components/table/src/index.ts"],

@@ -35,6 +35,17 @@ Add a section per feature as it is built; delete what turns out wrong.
   Records (`5-1`) and the streak (`W7`) are kept as its text.
   `standings` holds the latest (a row per season and team); **`standings_history`** holds each day's (a row per day, season and team, the same columns: `StandingColumns`), written together by the standings fetcher, so a team's climb can be read back (`findByTeam`) or a day's table (`findByDate`).
   A day the fetcher didn't run has no rows; a second run that day overwrites its rows.
+- **Auth** (outly's, without organizations, roles, invitations or the audit log): Firebase (Identity Platform) signs people in with email and password; the API never sees a password.
+  The web sends the account's ID token: in the body of `POST /login` and `POST /sign-up`, then as `Authorization: Bearer` on guarded routes (`AccessGuard`).
+  - `users` (uuid, `name`, `email` lower-cased and unique, `firebase_uid` unique): a row per Firebase account, made by `/sign-up` with a name.
+    `/login` answers the account's user, 404 when it has none yet (the web asks for a name, then signs up).
+  - Every account's email is verified first: an unverified one is 403 `EMAIL_NOT_VERIFIED` on every route.
+    An email another account's user has is 409 `USER_EXISTS` at sign-up.
+    A token Firebase refuses, or an account with no user, is 401.
+  - A user's email follows their account's (changed through Firebase), unless another user has it: then it stays (logged).
+  - Config (`firebaseSettings`): production needs `GOOGLE_CLOUD_PROJECT`, `FIREBASE_API_KEY` and `FIREBASE_AUTH_DOMAIN`, and refuses `FIREBASE_AUTH_EMULATOR_HOST` (the emulator's tokens are unsigned).
+    Elsewhere, without `FIREBASE_API_KEY`, it's the Auth emulator (`pnpm firebase:emulator`, project `demo-nba`).
+    `GET /firebase-config` hands the web what it needs, so one build serves every environment.
 - **Predictions:** see `docs/backlog.md` for the open questions (who predicts, and what).
   Whatever the answer, these hold:
   - A prediction locks when its game starts (`start_time`), checked on the server: a write after that is 409 `PREDICTION_LOCKED`, whatever the web shows.

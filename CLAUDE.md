@@ -40,7 +40,7 @@ Every import alias is `@nba/<name>`, in `tsconfig.base.json`.
   Its `build` runs `compile-migrations` (`tsconfig.migrations.json`) into `dist/apps/frontend-api/migrations/`, beside `main.js`, where `SqlModule` finds them
 - `apps/web-app`: React 19 + Vite SPA (MUI, React Query, React Router).
   The app is only its entry, `index.html`, `public/` and `app.tsx`; the rest is in `libs/web` (see `.claude/rules/web.md`):
-  - `libs/web/core` (`@nba/web-core`): what isn't UI: `api()`, the React Query hooks (`queries.ts`), formatting
+  - `libs/web/core` (`@nba/web-core`): what isn't UI: `api()`, the React Query hooks (`queries.ts`), the session and Firebase, formatting
   - `libs/web/components/<group>` (`@nba/web-<group>-components`): components more than one page uses, a lib per group the same pages use (the groups: `.claude/rules/web.md`)
   - `libs/web/pages/<page>` (`@nba/web-<page>-page`): a lib per page, with the components only it uses
   - `libs/web/test-utils` (`@nba/web-test-utils`): spec-only fakes and render helpers
@@ -57,7 +57,8 @@ Every import alias is `@nba/<name>`, in `tsconfig.base.json`.
 - `libs/data-fetcher/api-ninjas-client` (`@nba/data-fetcher-api-ninjas-client`): `ApiNinjasClient`, the provider's response types and mappers to our rows; `@nba/data-fetcher-api-ninjas-client/fixtures` (spec-only): its real responses
 - `libs/data-fetcher/fetchers` (`@nba/data-fetcher-fetchers`): `FetchersModule` and a `*-fetcher.service.ts` per kind of data: teams, players, standings, games (see `.claude/rules/data-fetcher.md`)
 - `libs/frontend-api/common` (`@nba/frontend-api-common`): `YupPipe`, `FailureFilter`, `logRequests`, `CloudLogger`
-- `libs/frontend-api/test-utils` (`@nba/frontend-api-test-utils`): spec-only `TestApp` (HTTP + DB + seeding) and `generate*()` test data
+- `libs/frontend-api/auth` (`@nba/frontend-api-auth`): Firebase ID tokens to users (`TokenService`, `firebaseSettings`), `AccessGuard`, `@CurrentUser()` (see Auth in `features.md`)
+- `libs/frontend-api/test-utils` (`@nba/frontend-api-test-utils`): spec-only `TestApp` (HTTP + DB + seeding, a fake Firebase `Auth`) and `generate*()` test data
 - `libs/frontend-api/controllers/<name>` (`@nba/frontend-api-<name>-controller`): one controller per lib, with its service (DAL reads → DTOs, 404s), e.g. `libs/frontend-api/controllers/games`
 
 **Dependency direction:** apps → feature libs → dal (`sql-*`) → `sql-core`.
@@ -70,6 +71,7 @@ Tag projects (`scope:web`, `scope:frontend-api`, `scope:data-fetcher`, `scope:sh
 ```bash
 pnpm install
 docker compose up -d db                            # local Postgres (see Database)
+pnpm firebase:emulator                             # Firebase's Auth emulator on :9099, which sign-in uses locally (see Auth in features.md)
 pnpm nx run-many -t serve -p frontend-api web-app  # API :3000, web :4200 (proxies /api)
 pnpm nx run data-fetcher:run                       # one fetch run against the local DB (API_NINJAS_KEY in .env: real calls, real quota)
 pnpm nx affected -t lint test build typecheck      # full check: run before handing work back
@@ -93,6 +95,8 @@ pnpm nx g @nx/nest:lib libs/<path> --name=<name> --importPath=@nba/<name> --unit
   Register its module in `apps/frontend-api/src/app/app.module.ts` and write its spec (see Testing).
 - **Read-only NBA data:** the API never writes games, teams, players or stats; only `data-fetcher` does.
   The API writes only what users own (predictions).
+- **Auth:** NBA data is open to everyone.
+  A route about the caller's own data (predictions) takes `@UseGuards(AccessGuard)` and reads them with `@CurrentUser()`.
 
 ## Testing
 
@@ -118,7 +122,8 @@ describe('GamesController', () => {
 });
 ```
 
-- Add an `auth` block (one `it()` per caller: no token 401, each refused role 403, each allowed one) once routes are guarded.
+- A guarded route's spec has an `auth` block: no token 401, a token Firebase refuses 401, an account without a user 401, an unverified email 403.
+  Callers are `app.createUser()` (a `TestUser`, with its `token`), sent as `app.call(method, path, body, user.token)`; `app.identityToken({ uid, email, emailVerified })` makes any account's token.
 - **Seeding:** `app.createTeam()`, `app.createGame(home, away, overrides)`, ... built with `generate*()` and saved through the DAL.
   Pass overrides only for what the test is about.
 - **DB state:** read it back with `app.get(<X>DalService)`.
@@ -188,7 +193,7 @@ describe('GamesController', () => {
   `data-fetcher` refuses to run while any are pending, so a job never writes to an old schema.
 - **Never drop or truncate the local DB** from scripts or verification runs: the user's own data may be there.
   Throwaway runs use their own database name and a port other than 3000, and stop only the PIDs they started.
-- Env: `DB_HOST` (localhost), `DB_PORT` (5432), `DB_NAME`, `DB_USER`, `DB_PASSWORD` (`nba`), `PORT` (3000), `WEB_DIR` (container only), and the provider's (see `data-fetcher.md`).
+- Env: `DB_HOST` (localhost), `DB_PORT` (5432), `DB_NAME`, `DB_USER`, `DB_PASSWORD` (`nba`), `PORT` (3000), `WEB_DIR` (container only), Firebase's (see Auth in `features.md`), and the provider's (see `data-fetcher.md`).
 
 ## Gotchas
 

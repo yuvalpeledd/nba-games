@@ -10,6 +10,7 @@ import { ThemeRoot } from '../theme';
 export const PAGE_NAMES = [
   'DashboardPage',
   'GamesPage',
+  'LoginPage',
   'StandingsPage',
   'TeamSinglePage',
 ] as const;
@@ -37,6 +38,8 @@ export function AppShell({ pages }: { pages: Pages }) {
               <Route path="standings" element={<pages.StandingsPage />} />
               <Route path="teams/:id" element={<pages.TeamSinglePage />} />
             </Route>
+            {/* Full-screen, without the navbar. */}
+            <Route path="login" element={<pages.LoginPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>

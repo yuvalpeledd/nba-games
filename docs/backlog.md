@@ -8,12 +8,17 @@
   - **The Postman collection's "Get Standings"** calls `basketballteams`; it should be `basketballstandings?league=nba` (the DAL follows the docs and its real response).
   - **What is "predict"?** The user picking winners (or scores, spreads) and tracking their accuracy, a model predicting outcomes from the stats, or both (the model's pick next to the user's)?
     This decides the `predictions` table and whether a `libs/model` lib exists.
-  - **Who uses it?** Only you (no auth, or one shared password), or friends competing on predictions (accounts, a leaderboard: Firebase as in outly)?
+  - **Who uses it?** Accounts are in (outly's Firebase auth).
+    Should the app be private (every page behind login), and do friends compete in groups (a leaderboard, roles)?
+  - **Firebase project:** none yet; local sign-in runs on the Auth emulator.
+    Create one (or one per environment) when it's deployed, and set `GOOGLE_CLOUD_PROJECT`, `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`.
   - **How much history?** The free plan has the current season only.
   - **Where does it run?** GCP as outly (Cloud Run for the API, a Cloud Run Job for the fetcher, Cloud SQL), or only locally for now?
 - **What may the players fetcher delete?** As built, nothing is deleted but the day's `team_players` rows it replaces: a player on no roster keeps their row with `team_id` null (their days point at them), and teams stay (everything points at them).
   Should players gone for a season be deleted, with their days?
-- Next: a first real run (`API_NINJAS_KEY` in `.env`, then `pnpm nx run data-fetcher:run`: 32 calls plus up to 50 for the games), then the web-app's next pages (games, players); auth and predictions in `frontend-api` once the questions above are answered.
+- Next: a first real run (`API_NINJAS_KEY` in `.env`, then `pnpm nx run data-fetcher:run`: 32 calls plus up to 50 for the games), then the web-app's next pages (games, players); predictions (guarded by `AccessGuard`) once the questions above are answered.
+- Auth: no profile page (changing the name, email or password), no account deletion, and the navbar shows the name only while the rail is open.
+  Add them when users ask.
 - data-fetcher: a bundle and a Cloud Run Job (and its schedule) when it's deployed; it runs from its sources for now.
   A future day that has games is never checked again until its scores are due: refresh the ones not checked in a while (`game_days.checked_on`) if schedule changes (postponements, playoff dates) must show early.
   Page with `offset` if a response ever comes back cut (one page today).
