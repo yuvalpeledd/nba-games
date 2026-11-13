@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { gameOf, teamOf } from '@nba/data-fetcher-api-ninjas-client';
@@ -57,6 +58,8 @@ const provider: Answer = (url) => {
 describe('fetchers', () => {
   let module: TestingModule;
   let fetch: jest.SpiedFunction<typeof global.fetch>;
+  let log: jest.SpiedFunction<Logger['log']>;
+  const logged = () => log.mock.calls.map(([message]) => String(message));
 
   const answerWith = (answer: Answer) =>
     fetch.mockImplementation(async (input) => {
@@ -89,6 +92,7 @@ describe('fetchers', () => {
       );
     fetch = jest.spyOn(global, 'fetch');
     answerWith(provider);
+    log = jest.spyOn(Logger.prototype, 'log');
   });
   afterEach(() => {
     jest.restoreAllMocks();
@@ -105,6 +109,10 @@ describe('fetchers', () => {
       expect(fetch.mock.calls[0][1]?.headers).toEqual({
         'X-Api-Key': 'test-key',
       });
+      expect(logged()).toEqual([
+        'Fetched 30 teams from the API: 30 added, 0 updated, 0 unchanged',
+        'Fetched 30 teams from the API: 0 added, 0 updated, 30 unchanged',
+      ]);
     });
   });
 
@@ -179,8 +187,17 @@ describe('fetchers', () => {
           ? players.filter((player) => player.player_id !== released)
           : provider(url),
       );
+      log.mockClear();
       await module.get(PlayersFetcherService).run('2026-11-13');
 
+      const rostered = 30 * players.length - 1;
+      expect(logged()).toContain(
+        `Fetched ${players.length - 1} players of nba-por from the API`,
+      );
+      expect(logged().slice(-2)).toEqual([
+        `Fetched ${rostered} players on 30 rosters from the API: 0 added, 0 updated, ${rostered} unchanged, 1 released (on no roster now)`,
+        `Rosters of 2026-11-13 (team_players): 0 added, 1 deleted, ${rostered} unchanged`,
+      ]);
       expect(
         await module
           .get(TeamPlayerDalService)
@@ -233,8 +250,13 @@ describe('fetchers', () => {
       await module.get(StandingsFetcherService).run('2026-11-12');
       winning(12);
       await module.get(StandingsFetcherService).run('2026-11-13');
+      log.mockClear();
       winning(13);
       await module.get(StandingsFetcherService).run('2026-11-13');
+      expect(logged()).toEqual([
+        'Fetched 30 standings from the API: 0 added, 1 updated, 29 unchanged; ' +
+          'history of 2026-11-13: 0 added, 1 updated, 29 unchanged',
+      ]);
 
       expect(
         (
@@ -305,6 +327,16 @@ describe('fetchers', () => {
       expect(
         await module.get(GameDalService).findByDate('2026-11-11'),
       ).toHaveLength(games.length);
+      expect(logged()).toEqual([
+        'nba-2026-27, today 2026-11-12: 174 days to check (174 never checked, 0 for scores from 2026-10-20); ' +
+          'checking 5 now (up to 5 a run): 2026-11-12, 2026-11-11, 2026-11-13, 2026-11-10, 2026-11-14',
+        '2026-11-12: fetched no games from the API',
+        `2026-11-11: fetched ${games.length} games from the API: ${games.length} added, 0 updated, 0 unchanged`,
+        '2026-11-13: fetched no games from the API',
+        '2026-11-10: fetched no games from the API',
+        '2026-11-14: fetched no games from the API',
+        `nba-2026-27: checked 5 of 174 days (0 failed, 169 left for the next run); games ${games.length} added, 0 updated, 0 unchanged`,
+      ]);
     });
 
     it('fetches again from the last day with scores to today, and nothing else the season has', async () => {

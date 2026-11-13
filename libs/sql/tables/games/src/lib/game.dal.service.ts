@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { upsertCounted, WriteCounts } from '@nba/sql-core';
 import { Between } from 'typeorm';
 import { GameCreateObject, GameEntity } from './game.entity';
 import { GameRepo } from './game.repo';
@@ -7,9 +8,9 @@ import { GameRepo } from './game.repo';
 export class GameDalService {
   constructor(private readonly repo: GameRepo) {}
 
-  // Inserts new games and overwrites known ones (by the provider's id): a score, a status, a new date.
-  async upsert(games: GameCreateObject[]): Promise<void> {
-    await this.repo.upsert(games, ['id']);
+  // Inserts new games and updates the known ones that changed (by the provider's id): a score, a status, a new date.
+  async upsert(games: GameCreateObject[]): Promise<WriteCounts> {
+    return upsertCounted(this.repo.manager, GameEntity, games, ['id']);
   }
 
   // A day's games ('YYYY-MM-DD', the league's US Eastern day), in tip-off order.

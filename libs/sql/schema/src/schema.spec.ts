@@ -82,6 +82,28 @@ describe('schema', () => {
         city: 'Moved',
       });
     });
+
+    it('counts what an upsert added and updated, and leaves an unchanged row alone', async () => {
+      const dal = module.get(TeamDalService);
+      const rows = teams.map(teamOf);
+      expect(await dal.upsert(rows)).toEqual({
+        inserted: 30,
+        updated: 0,
+        unchanged: 0,
+      });
+      const before = await dal.findById(rows[1].id);
+
+      expect(
+        await dal.upsert([{ ...rows[0], city: 'Moved' }, ...rows.slice(1)]),
+      ).toEqual({ inserted: 0, updated: 1, unchanged: 29 });
+      // updated_at moves only on a change.
+      expect((await dal.findById(rows[1].id))?.updatedAt).toEqual(
+        before?.updatedAt,
+      );
+      expect(
+        (await dal.findById(rows[0].id))?.updatedAt?.getTime(),
+      ).toBeGreaterThan(before?.updatedAt?.getTime() ?? 0);
+    });
   });
 
   describe('players', () => {

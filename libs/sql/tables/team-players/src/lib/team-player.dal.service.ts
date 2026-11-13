@@ -1,7 +1,16 @@
 import { Injectable } from '@nestjs/common';
+import { upsertCounted, WriteCounts } from '@nba/sql-core';
 import { PlayerCreateObject, PlayerEntity } from '@nba/sql-players';
 import { TeamPlayerCreateObject, TeamPlayerEntity } from './team-player.entity';
 import { TeamPlayerRepo } from './team-player.repo';
+
+// What replaceRosters did.
+export interface RostersWritten {
+  // The players fetched, and how many on a team before but on no roster now were released (team_id null).
+  players: WriteCounts & { released: number };
+  // The day's team_players rows: the new ones inserted, the ones no longer on a roster deleted.
+  teamPlayers: { inserted: number; deleted: number; unchanged: number };
+}
 
 @Injectable()
 export class TeamPlayerDalService {
@@ -9,28 +18,53 @@ export class TeamPlayerDalService {
 
   // A day's fetch of every roster, in one transaction (here: team_players points at players): the players as fetched,
   // on their team now; anyone else on a team before released (team_id null, never deleted: their days stay); and the
-  // day's rows replaced by these, so a second fetch that day leaves only what it saw. `players` must be every roster.
+  // day's rows made these, so a second fetch that day leaves only what it saw. `players` must be every roster.
   async replaceRosters(
     date: string,
     players: PlayerCreateObject[],
-  ): Promise<void> {
+  ): Promise<RostersWritten> {
     const ids = players.map((player) => player.id);
-    await this.repo.manager.transaction(async (manager) => {
-      await manager.upsert(PlayerEntity, players, ['id']);
-      await manager
+    const rows = players.flatMap(({ id, teamId }) =>
+      teamId ? [{ date, teamId, playerId: id }] : [],
+    );
+    const keys = rows.map(({ teamId, playerId }) => `${teamId}/${playerId}`);
+    return this.repo.manager.transaction(async (manager) => {
+      const written = await upsertCounted(manager, PlayerEntity, players, [
+        'id',
+      ]);
+      const released = await manager
         .createQueryBuilder()
         .update(PlayerEntity)
         .set({ teamId: null })
         .where('team_id IS NOT NULL')
         .andWhere('NOT (id = ANY(:ids))', { ids })
         .execute();
-      await manager.delete(TeamPlayerEntity, { date });
-      await manager.insert(
-        TeamPlayerEntity,
-        players.flatMap(({ id, teamId }) =>
-          teamId ? [{ date, teamId, playerId: id }] : [],
-        ),
-      );
+      const deleted = await manager
+        .createQueryBuilder()
+        .delete()
+        .from(TeamPlayerEntity)
+        .where('date = :date', { date })
+        .andWhere("NOT (team_id || '/' || player_id = ANY(:keys))", { keys })
+        .execute();
+      const inserted = rows.length
+        ? await manager
+            .createQueryBuilder()
+            .insert()
+            .into(TeamPlayerEntity)
+            .values(rows)
+            .orIgnore()
+            .returning('player_id')
+            .execute()
+        : { raw: [] };
+      const added = (inserted.raw as unknown[]).length;
+      return {
+        players: { ...written, released: released.affected ?? 0 },
+        teamPlayers: {
+          inserted: added,
+          deleted: deleted.affected ?? 0,
+          unchanged: rows.length - added,
+        },
+      };
     });
   }
 
