@@ -1,4 +1,4 @@
-import { TableCell, TableSortLabel } from '@mui/material';
+import { TableCell, TableSortLabel, Tooltip } from '@mui/material';
 import { ReactNode, useState } from 'react';
 
 // A cell's value for sorting: text, a number (times as epoch ms), or nothing.
@@ -37,23 +37,39 @@ export function useTableSort<Row, Column extends string>(
       )
     : rows;
 
-  // A column's header: its label, which sorts the rows by it. Numbers' columns are right-aligned.
-  const headCell = (column: Column, label: ReactNode, align?: 'right') => {
+  // A column's header: its label, which sorts the rows by it, and what it means on hover or focus (`hint`). Numbers'
+  // columns are right-aligned.
+  const headCell = (
+    column: Column,
+    label: ReactNode,
+    align?: 'right',
+    hint?: string,
+  ) => {
     const direction = sort?.column === column ? sort.direction : false;
+    const sortLabel = (
+      <TableSortLabel
+        active={Boolean(direction)}
+        direction={direction || 'asc'}
+        onClick={() =>
+          setSort({
+            column,
+            direction: direction === 'asc' ? 'desc' : 'asc',
+          })
+        }
+      >
+        {label}
+      </TableSortLabel>
+    );
     return (
       <TableCell key={column} sortDirection={direction} align={align}>
-        <TableSortLabel
-          active={Boolean(direction)}
-          direction={direction || 'asc'}
-          onClick={() =>
-            setSort({
-              column,
-              direction: direction === 'asc' ? 'desc' : 'asc',
-            })
-          }
-        >
-          {label}
-        </TableSortLabel>
+        {/* describeChild: the label stays the header's name, the hint its description. */}
+        {hint ? (
+          <Tooltip title={hint} describeChild>
+            {sortLabel}
+          </Tooltip>
+        ) : (
+          sortLabel
+        )}
       </TableCell>
     );
   };

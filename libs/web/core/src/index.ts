@@ -14,3 +14,4 @@ export {
   useTeams,
 } from './lib/queries';
 export { currentSeason } from './lib/seasons';
+export { statHints } from './lib/stat-hints';

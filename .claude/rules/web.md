@@ -36,6 +36,7 @@ For the web app: `apps/web-app` and its libs in `libs/web` (CLAUDE.md's Layout).
 - **Dialogs:** render only while open (`{isOpen && <PredictDialog … />}`); `fullScreen` on phones; a form dialog's submit is in `DialogActions` with `form={id}`.
 - **Every mutation ends in a toast:** success says what happened, failure goes through one shared failure toast (a known `code` says which, else "try again").
 - **Tables:** sortable by any column (`useTableSort`); numbers right-aligned (`align="right"`, which the design system sets in tabular figures) so stat columns line up.
+- **Stat labels explain themselves:** a stat's label (a header through `headCell`'s `hint`, a term in a `<Tooltip describeChild>`) shows what it means on hover, from `statHints` in core, so every page says it the same way.
 - **Stats formatting** lives in core (`formatPercentage`, `formatMinutes`, ...), one function per kind of number, so 47.3% and 34:12 read the same everywhere.
 - **Times:** show a game's `startTime` in the viewer's time zone; group schedules by its `date` (see Game times in `features.md`).
   A season is shown as `2026-27`.

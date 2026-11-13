@@ -142,6 +142,17 @@ describe('TeamSinglePage', () => {
     ).toEqual(['10-3', '76.9%', '1', '3-2', '3-2', '6-4', 'W4']);
   });
 
+  it('explains a stat on hovering its label', async () => {
+    stubApi(routes());
+    renderAt('/teams/nba-bos');
+
+    fireEvent.mouseOver(await screen.findByText('L10'));
+
+    expect((await screen.findByRole('tooltip')).textContent).toBe(
+      'Record in the last 10 games',
+    );
+  });
+
   it("lists the team's games, from its side", async () => {
     stubApi(routes());
     renderAt('/teams/nba-bos');

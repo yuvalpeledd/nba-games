@@ -17,6 +17,7 @@ import {
   formatGamesBehind,
   formatSeason,
   formatWinPct,
+  statHints,
   useSeasons,
   useStandings,
   useTeams,
@@ -103,17 +104,17 @@ export function StandingsPage() {
           <Table aria-label={`${conference} Conference standings`}>
             <TableHead>
               <TableRow>
-                {headCell('seed', '#')}
+                {headCell('seed', '#', undefined, statHints.seed)}
                 {headCell('team', 'Team')}
-                {headCell('wins', 'W', 'right')}
-                {headCell('losses', 'L', 'right')}
-                {headCell('winPct', 'PCT', 'right')}
-                {headCell('gamesBehind', 'GB', 'right')}
-                {headCell('conference', 'Conf', 'right')}
-                {headCell('home', 'Home', 'right')}
-                {headCell('away', 'Away', 'right')}
-                {headCell('last10', 'L10', 'right')}
-                {headCell('streak', 'Strk', 'right')}
+                {headCell('wins', 'W', 'right', statHints.wins)}
+                {headCell('losses', 'L', 'right', statHints.losses)}
+                {headCell('winPct', 'PCT', 'right', statHints.winPct)}
+                {headCell('gamesBehind', 'GB', 'right', statHints.gamesBehind)}
+                {headCell('conference', 'Conf', 'right', statHints.conference)}
+                {headCell('home', 'Home', 'right', statHints.home)}
+                {headCell('away', 'Away', 'right', statHints.away)}
+                {headCell('last10', 'L10', 'right', statHints.last10)}
+                {headCell('streak', 'Strk', 'right', statHints.streak)}
               </TableRow>
             </TableHead>
             <TableBody>
