@@ -61,12 +61,12 @@ describe('StandingsPage', () => {
     ).toBeTruthy();
     expect(screen.getByText('2026-27')).toBeTruthy();
     expect(
-      screen.getByRole('tab', { name: 'East' }).getAttribute('aria-selected'),
-    ).toBe('true');
+      screen.getByRole('heading', { level: 2, name: 'East' }),
+    ).toBeTruthy();
     expect(await rowsOf('Eastern Conference standings')).toEqual([
       [
         '1',
-        'Boston Celtics',
+        'Celtics',
         '10',
         '3',
         '76.9%',
@@ -79,7 +79,7 @@ describe('StandingsPage', () => {
       ],
       [
         '2',
-        'New York Knicks',
+        'Knicks',
         '9',
         '5',
         '64.3%',
@@ -90,23 +90,11 @@ describe('StandingsPage', () => {
         '7-3',
         'L2',
       ],
-      [
-        '3',
-        'Brooklyn Nets',
-        '3',
-        '10',
-        '23.1%',
-        '7',
-        '4-2',
-        '3-2',
-        '3-2',
-        '6-4',
-        'W1',
-      ],
+      ['3', 'Nets', '3', '10', '23.1%', '7', '4-2', '3-2', '3-2', '6-4', 'W1'],
     ]);
   });
 
-  it("shows the West's on its tab", async () => {
+  it("shows the West's beside the East's", async () => {
     stubApi(
       routes({
         2026: [
@@ -118,15 +106,13 @@ describe('StandingsPage', () => {
     );
     renderAt('/standings');
 
-    fireEvent.click(await screen.findByRole('tab', { name: 'West' }));
-
     expect(
       (await rowsOf('Western Conference standings')).map((row) =>
         row.slice(0, 6),
       ),
     ).toEqual([
-      ['1', 'Los Angeles Lakers', '13', '0', '100.0%', '—'],
-      ['2', 'Phoenix Suns', '7', '6', '53.8%', '6'],
+      ['1', 'Lakers', '13', '0', '100.0%', '—'],
+      ['2', 'Suns', '7', '6', '53.8%', '6'],
     ]);
   });
 
@@ -144,26 +130,15 @@ describe('StandingsPage', () => {
     const teams = async () =>
       (await rowsOf('Eastern Conference standings')).map(([, name]) => name);
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Team' }));
-    expect(await teams()).toEqual([
-      'Boston Celtics',
-      'Brooklyn Nets',
-      'New York Knicks',
-    ]);
+    const east = within(await screen.findByRole('region', { name: 'East' }));
+    fireEvent.click(east.getByRole('button', { name: 'Team' }));
+    expect(await teams()).toEqual(['Celtics', 'Knicks', 'Nets']);
     // Digits as numbers: W2, W3, W10.
-    fireEvent.click(screen.getByRole('button', { name: 'Strk' }));
-    expect(await teams()).toEqual([
-      'Brooklyn Nets',
-      'Boston Celtics',
-      'New York Knicks',
-    ]);
-    fireEvent.click(screen.getByRole('button', { name: 'L' }));
-    fireEvent.click(screen.getByRole('button', { name: 'L' }));
-    expect(await teams()).toEqual([
-      'Brooklyn Nets',
-      'New York Knicks',
-      'Boston Celtics',
-    ]);
+    fireEvent.click(east.getByRole('button', { name: 'Strk' }));
+    expect(await teams()).toEqual(['Nets', 'Celtics', 'Knicks']);
+    fireEvent.click(east.getByRole('button', { name: 'L' }));
+    fireEvent.click(east.getByRole('button', { name: 'L' }));
+    expect(await teams()).toEqual(['Nets', 'Knicks', 'Celtics']);
   });
 
   it('filters by a number, until the filters are cleared', async () => {
@@ -180,7 +155,8 @@ describe('StandingsPage', () => {
     const teams = async () =>
       (await rowsOf('Eastern Conference standings')).map(([, name]) => name);
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Add Filter' }));
+    const east = within(await screen.findByRole('region', { name: 'East' }));
+    fireEvent.click(east.getByRole('button', { name: 'Add Filter' }));
     fireEvent.click(screen.getByRole('button', { name: 'Wins' }));
     fireEvent.change(screen.getByRole('spinbutton', { name: 'Greater Than' }), {
       target: { value: '3' },
@@ -190,9 +166,9 @@ describe('StandingsPage', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Add Filter' }));
     fireEvent.click(screen.getByRole('button', { name: 'Apply Filters' }));
-    expect(await teams()).toEqual(['New York Knicks']);
+    expect(await teams()).toEqual(['Knicks']);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Add Filter' }));
+    fireEvent.click(east.getByRole('button', { name: 'Add Filter' }));
     fireEvent.click(screen.getByRole('button', { name: 'Clear All' }));
     // Applied at once; the panel stays open.
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
@@ -210,13 +186,11 @@ describe('StandingsPage', () => {
     );
   });
 
-  it("opens a team's page from its name", async () => {
+  it("opens a team's page from its nickname", async () => {
     stubApi(routes({ 2026: [standing(celtics, 1, 10, 3)] }));
     renderAt('/standings');
 
-    fireEvent.click(
-      await screen.findByRole('link', { name: 'Boston Celtics' }),
-    );
+    fireEvent.click(await screen.findByRole('link', { name: 'Celtics' }));
 
     expect(
       await screen.findByRole('heading', { level: 1, name: 'TeamSinglePage' }),
@@ -237,7 +211,7 @@ describe('StandingsPage', () => {
 
     expect(
       (await rowsOf('Eastern Conference standings')).map(([, name]) => name),
-    ).toEqual(['Boston Celtics']);
+    ).toEqual(['Celtics']);
     expect(screen.getByText('2026-27')).toBeTruthy();
   });
 

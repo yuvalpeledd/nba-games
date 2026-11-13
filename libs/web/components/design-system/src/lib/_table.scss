@@ -16,6 +16,20 @@
   font-size: 14px;
   color: text-color(primary);
 
+  // A dense table (`size="small"`), to fit beside another.
+  &.MuiTableCell-sizeSmall {
+    padding-inline: 8px 4px;
+
+    &:last-child {
+      padding-inline-end: 8px;
+    }
+
+    .MuiTableSortLabel-icon {
+      font-size: 14px;
+      margin-inline: 2px;
+    }
+  }
+
   &.MuiTableCell-paddingCheckbox {
     padding-inline: 4px;
   }
