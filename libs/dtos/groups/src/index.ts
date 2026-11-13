@@ -46,6 +46,9 @@ export interface GroupMemberPredictionDto {
 // A group's id, in a path.
 export const groupIdSchema = string().uuid('id must be a uuid').required();
 
+// A user's id, in a path.
+export const userIdSchema = string().uuid('userId must be a uuid').required();
+
 // POST /groups: the signed-in user's new group, which they own.
 export const createGroupRequestSchema = object({
   name: string()

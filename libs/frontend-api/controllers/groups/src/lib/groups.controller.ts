@@ -28,8 +28,8 @@ import { YupPipe } from '@nba/frontend-api-common';
 import type { UserEntity } from '@nba/sql-users';
 import { GroupsService } from './groups.service';
 
-// Groups of users: the ones the caller may see, one with its members' scores, their picks of a game, making one,
-// and its owner's edit, delete and games' scores.
+// Groups of users: the ones the caller may see, one with its members' scores, their picks of a game (members only),
+// making one, joining and leaving one, and its owner's edit, delete and games' scores.
 @Controller('groups')
 export class GroupsController {
   constructor(private readonly groups: GroupsService) {}
@@ -94,5 +94,22 @@ export class GroupsController {
     @Param('id', new YupPipe(groupIdSchema)) id: string,
   ): Promise<void> {
     return this.groups.delete(id, user.id);
+  }
+
+  @Post(':id/members')
+  async join(
+    @CurrentUser() user: UserEntity,
+    @Param('id', new YupPipe(groupIdSchema)) id: string,
+  ): Promise<DataResponse<GroupDto>> {
+    return { data: await this.groups.join(id, user.id) };
+  }
+
+  @Delete(':id/members/me')
+  @HttpCode(204)
+  leave(
+    @CurrentUser() user: UserEntity,
+    @Param('id', new YupPipe(groupIdSchema)) id: string,
+  ): Promise<void> {
+    return this.groups.leave(id, user.id);
   }
 }

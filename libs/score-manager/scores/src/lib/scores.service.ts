@@ -20,6 +20,15 @@ export interface GameScores {
   right: number;
 }
 
+// What scoring a member's picks in a group wrote: a row per final game they picked, `right` of them the game's score
+// there.
+export interface MemberScores {
+  groupId: string;
+  userId: string;
+  scores: number;
+  right: number;
+}
+
 @Injectable()
 export class ScoresService {
   private readonly logger = new Logger(ScoresService.name);
@@ -74,5 +83,62 @@ export class ScoresService {
       `Scored ${gameId}: ${result.scores} scores, ${result.right} right`,
     );
     return result;
+  }
+
+  // A member's every pick of a final game, scored in the group (frontend-api asks when they join, so their past
+  // games count there too); again overwrites. 404 for a user who isn't in the group.
+  async scoreMember(groupId: string, userId: string): Promise<MemberScores> {
+    const memberships = await this.members.findByUsers([userId]);
+    if (!memberships.some((membership) => membership.groupId === groupId)) {
+      throw new NotFoundException(`User ${userId} is not in group ${groupId}`);
+    }
+    const [predictions, gameScores] = await Promise.all([
+      this.predictions.findFinalByUser(userId),
+      this.groupGameScores.findByGroup(groupId),
+    ]);
+    const scoreOf = new Map(
+      gameScores.map(({ gameId, score }) => [gameId, score]),
+    );
+    const scored = predictions.map((prediction) => ({
+      gameId: prediction.gameId,
+      // findFinalByUser loads the game.
+      right: Boolean(
+        prediction.game && scorePrediction(prediction, prediction.game),
+      ),
+    }));
+    const rows = scored.map(({ gameId, right }) => ({
+      groupId,
+      userId,
+      gameId,
+      score: right ? (scoreOf.get(gameId) ?? DEFAULT_GAME_SCORE) : 0,
+    }));
+    await this.groupUserScores.upsert(rows);
+    const result = {
+      groupId,
+      userId,
+      scores: rows.length,
+      right: scored.filter(({ right }) => right).length,
+    };
+    this.logger.log(
+      `Scored ${userId} in ${groupId}: ${result.scores} scores, ${result.right} right`,
+    );
+    return result;
+  }
+
+  // Every game from `from` to `to` ('YYYY-MM-DD', both included) that's final with a winner, scored as `score` does;
+  // the rest (not played yet, canceled) are skipped.
+  // ponytail: one game at a time (a season is ~1,300); batch the reads if a whole season gets slow.
+  async scoreBetween(from: string, to: string): Promise<GameScores[]> {
+    const games = await this.games.findBetween(from, to);
+    const results: GameScores[] = [];
+    for (const game of games) {
+      if (game.status === GameStatus.FINAL && game.winnerTeamId) {
+        results.push(await this.score(game.id));
+      }
+    }
+    this.logger.log(
+      `Scored ${results.length} of ${games.length} games from ${from} to ${to}`,
+    );
+    return results;
   }
 }

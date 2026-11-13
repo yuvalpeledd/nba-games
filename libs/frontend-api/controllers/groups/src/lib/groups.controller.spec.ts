@@ -9,6 +9,10 @@ import { PredictionDalService, PredictionPick } from '@nba/sql-predictions';
 import { DataSource } from 'typeorm';
 import { FrontendApiGroupsControllerModule } from './groups.module';
 
+// GroupsService reads it once, when TestApp builds it; joining asks it (faked below).
+const SCORE_MANAGER = 'http://score-manager.test';
+process.env['SCORE_MANAGER_URL'] = SCORE_MANAGER;
+
 describe('GroupsController', () => {
   let app: TestApp;
   beforeAll(async () => {
@@ -23,14 +27,8 @@ describe('GroupsController', () => {
   });
 
   const members = () => app.get(GroupMemberDalService);
-  // ponytail: joining has no DAL yet; the specs insert memberships themselves.
   const join = (groupId: string, userId: string) =>
-    app
-      .get(DataSource)
-      .query('INSERT INTO group_members (group_id, user_id) VALUES ($1, $2)', [
-        groupId,
-        userId,
-      ]);
+    members().join(groupId, userId);
   // A group the caller owns, and one Omer owns that the caller may see.
   const mineAndOmers = async () => {
     const omer = await app.createUser({ name: 'Omer Cohen' });
@@ -588,6 +586,166 @@ describe('GroupsController', () => {
         const stranger = await app.createUser({ name: 'Stranger' });
         const { status } = await get(groupId, id, stranger.token);
         expect(status).toBe(404);
+      });
+
+      it("is 403 for a public group the caller isn't in", async () => {
+        const { id } = await game({
+          startTime: new Date('2026-11-11T23:00:00Z'),
+          status: GameStatus.FINAL,
+        });
+        await app.get(GroupDalService).update(groupId, {
+          name: 'Friday League',
+          public: true,
+        });
+        const stranger = await app.createUser({ name: 'Stranger' });
+        const { status } = await get(groupId, id, stranger.token);
+        expect(status).toBe(403);
+      });
+    });
+  });
+
+  describe('POST /groups/:id/members', () => {
+    const post = (id: string, token?: string | null) =>
+      app.call('POST', `/groups/${id}/members`, undefined, token);
+    const realFetch = global.fetch;
+    let scoreManager: jest.Mock;
+    // score-manager is fake; every other request (the specs' own calls) is real.
+    beforeEach(() => {
+      scoreManager = jest.fn(async () => new Response('{}', { status: 200 }));
+      jest
+        .spyOn(global, 'fetch')
+        .mockImplementation((input, init) =>
+          String(input).startsWith(SCORE_MANAGER)
+            ? scoreManager(String(input), init)
+            : realFetch(input, init),
+        );
+    });
+    afterEach(() => jest.restoreAllMocks());
+
+    describe('auth', () => {
+      it('refuses a caller who is not signed in', async () => {
+        const { omers } = await mineAndOmers();
+        const { status } = await post(omers.id, null);
+        expect(status).toBe(401);
+      });
+    });
+
+    describe('validation', () => {
+      it('takes only a uuid', async () => {
+        const { status, body } = await post('nope');
+        expect(status).toBe(400);
+        expect(body.message).toContain('id must be a uuid');
+      });
+    });
+
+    describe('behavior', () => {
+      it('adds the caller to a public group and asks score-manager to score their picks there', async () => {
+        const { omers } = await mineAndOmers();
+
+        const { status, body } = await post(omers.id);
+
+        expect(status).toBe(201);
+        expect(body.data).toMatchObject({
+          id: omers.id,
+          memberCount: 2,
+          isMember: true,
+        });
+        expect(scoreManager).toHaveBeenCalledTimes(1);
+        expect(scoreManager.mock.calls[0][0]).toBe(
+          `${SCORE_MANAGER}/api/groups/${omers.id}/users/${user.id}/score`,
+        );
+        expect(scoreManager.mock.calls[0][1]).toMatchObject({
+          method: 'POST',
+        });
+        expect(
+          (await members().findMembers(omers.id)).map((m) => m.userId).sort(),
+        ).toEqual([omers.ownerId, user.id].sort());
+      });
+
+      it('changes nothing for a member, and asks score-manager nothing', async () => {
+        const { mine } = await mineAndOmers();
+        const { status, body } = await post(mine.id);
+        expect(status).toBe(201);
+        expect(body.data).toMatchObject({ memberCount: 1, isMember: true });
+        expect(scoreManager).not.toHaveBeenCalled();
+      });
+
+      it('is 503 and undoes the join when score-manager fails', async () => {
+        const { omers } = await mineAndOmers();
+        scoreManager.mockResolvedValue(new Response('{}', { status: 500 }));
+
+        const { status } = await post(omers.id);
+
+        expect(status).toBe(503);
+        expect(
+          (await members().findMembers(omers.id)).map((m) => m.userId),
+        ).toEqual([omers.ownerId]);
+      });
+
+      it("is 404 for a private group the caller isn't in, and asks nothing", async () => {
+        const omer = await app.createUser({ name: 'Omer Cohen' });
+        const hidden = await members().createGroup({
+          name: 'Hidden',
+          ownerId: omer.id,
+          public: false,
+        });
+        expect((await post(hidden.id)).status).toBe(404);
+        expect(scoreManager).not.toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe('DELETE /groups/:id/members/me', () => {
+    const del = (id: string, token?: string | null) =>
+      app.call('DELETE', `/groups/${id}/members/me`, undefined, token);
+
+    describe('auth', () => {
+      it('refuses a caller who is not signed in', async () => {
+        const { omers } = await mineAndOmers();
+        const { status } = await del(omers.id, null);
+        expect(status).toBe(401);
+      });
+    });
+
+    describe('validation', () => {
+      it('takes only a uuid', async () => {
+        const { status, body } = await del('nope');
+        expect(status).toBe(400);
+        expect(body.message).toContain('id must be a uuid');
+      });
+    });
+
+    describe('behavior', () => {
+      it('takes the caller out of a group they are in', async () => {
+        const { omers } = await mineAndOmers();
+        await join(omers.id, user.id);
+
+        const { status } = await del(omers.id);
+
+        expect(status).toBe(204);
+        expect(
+          (await members().findMembers(omers.id)).map((m) => m.userId),
+        ).toEqual([omers.ownerId]);
+      });
+
+      it("is 409 for the group's owner, who stays in it", async () => {
+        const { mine } = await mineAndOmers();
+        const { status, body } = await del(mine.id);
+        expect(status).toBe(409);
+        expect(body.message).toContain("A group's owner can't leave it");
+        expect(await members().findMembers(mine.id)).toHaveLength(1);
+      });
+
+      it('is 404 once the caller left a private group', async () => {
+        const omer = await app.createUser({ name: 'Omer Cohen' });
+        const hidden = await members().createGroup({
+          name: 'Hidden',
+          ownerId: omer.id,
+          public: false,
+        });
+        await join(hidden.id, user.id);
+        expect((await del(hidden.id)).status).toBe(204);
+        expect((await del(hidden.id)).status).toBe(404);
       });
     });
   });

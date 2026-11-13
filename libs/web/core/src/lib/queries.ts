@@ -227,6 +227,28 @@ export const useSetGroupGameScore = () => {
   });
 };
 
+// The signed-in user joins a group they see, then reloads the groups.
+export const useJoinGroup = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api<GroupDto>('POST', `/groups/${id}/members`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['groups'] }),
+  });
+};
+
+// The signed-in user leaves a group, then reloads the groups; that one is dropped, not refetched (a private one would
+// be a 404).
+export const useLeaveGroup = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api<void>('DELETE', `/groups/${id}/members/me`),
+    onSuccess: (_, id) => {
+      queryClient.removeQueries({ queryKey: ['groups', id] });
+      void queryClient.invalidateQueries({ queryKey: ['groups'], exact: true });
+    },
+  });
+};
+
 // Its owner deletes a group, then reloads the groups; the deleted one is dropped, not refetched (it'd be a 404).
 export const useDeleteGroup = () => {
   const queryClient = useQueryClient();

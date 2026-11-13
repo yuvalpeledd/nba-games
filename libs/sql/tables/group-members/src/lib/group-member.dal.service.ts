@@ -92,6 +92,21 @@ export class GroupMemberDalService {
     }));
   }
 
+  // The user joins the group; already in it, nothing changes.
+  async join(groupId: string, userId: string): Promise<void> {
+    await this.repo
+      .createQueryBuilder()
+      .insert()
+      .values({ groupId, userId })
+      .orIgnore()
+      .execute();
+  }
+
+  // The user leaves the group (their scores there stay, unseen, until they join again and are scored anew).
+  async leave(groupId: string, userId: string): Promise<void> {
+    await this.repo.delete({ groupId, userId });
+  }
+
   // The memberships of these users: a row per group each is in.
   findByUsers(userIds: string[]): Promise<GroupMemberEntity[]> {
     return this.repo.find({ where: { userId: In(userIds) } });

@@ -441,4 +441,115 @@ describe('GroupSinglePage', () => {
       });
     });
   });
+
+  describe('Join and Leave', () => {
+    // Omer's public group, the signed-in user (u1) not in it.
+    const open: GroupDetailsDto = {
+      ...friday,
+      public: true,
+      isMember: false,
+      owner: { id: 'user-omer', name: 'Omer Cohen' },
+    };
+    const joined: GroupDetailsDto = {
+      ...open,
+      isMember: true,
+      memberCount: 3,
+      members: [...open.members, { id: 'u1', name: 'Yuval', score: 0 }],
+    };
+
+    it("hides the games from a user who isn't in the group, who may join it", async () => {
+      stubApi(routes(open));
+      renderAt(`/groups/${ID}`);
+
+      expect(
+        await screen.findByText(
+          "Join the group to see its games and its members' picks.",
+        ),
+      ).toBeTruthy();
+      expect(screen.queryByRole('table', { name: 'Games' })).toBeNull();
+      expect(screen.getByRole('table', { name: 'Scoreboard' })).toBeTruthy();
+      expect(screen.queryByRole('button', { name: 'Leave' })).toBeNull();
+    });
+
+    it('Join adds the user, then shows the games and says so', async () => {
+      // The group answers as joined once the POST went through.
+      let isJoined = false;
+      const fetchMock = stubApi({
+        ...routes(open),
+        get [`GET /groups/${ID}`]() {
+          return isJoined ? joined : open;
+        },
+        get [`POST /groups/${ID}/members`]() {
+          isJoined = true;
+          return joined;
+        },
+      });
+      renderAt(`/groups/${ID}`);
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Join' }));
+
+      expect(await screen.findByText('You joined Friday League')).toBeTruthy();
+      expect(await screen.findByRole('table', { name: 'Games' })).toBeTruthy();
+      expect(callsOf(fetchMock, 'POST')).toEqual([
+        [`/api/groups/${ID}/members`, undefined],
+      ]);
+      expect(screen.getByRole('button', { name: 'Leave' })).toBeTruthy();
+    });
+
+    it("says when joining didn't work", async () => {
+      stubApi(
+        routes(open, {
+          [`POST /groups/${ID}/members`]: new Failure(503, {
+            statusCode: 503,
+            message: "Couldn't join the group: try again",
+          }),
+        }),
+      );
+      renderAt(`/groups/${ID}`);
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Join' }));
+
+      expect(
+        await screen.findByText("Couldn't join the group, try again"),
+      ).toBeTruthy();
+    });
+
+    it('Leave, once confirmed, takes the user out and goes back to the groups', async () => {
+      const fetchMock = stubApi(
+        routes(joined, { [`DELETE /groups/${ID}/members/me`]: undefined }),
+      );
+      renderAt(`/groups/${ID}`);
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Leave' }));
+      fireEvent.click(
+        within(
+          await screen.findByRole('dialog', { name: 'Leave Friday League?' }),
+        ).getByRole('button', { name: 'Leave' }),
+      );
+
+      expect(
+        await screen.findByRole('heading', { level: 1, name: 'GroupsPage' }),
+      ).toBeTruthy();
+      expect(window.history.state.usr).toEqual({
+        toast: 'You left Friday League',
+      });
+      expect(callsOf(fetchMock, 'DELETE')).toEqual([
+        [`/api/groups/${ID}/members/me`, undefined],
+      ]);
+    });
+
+    it("isn't there for the group's owner", async () => {
+      stubApi(
+        routes({
+          ...friday,
+          owner: { id: 'u1', name: 'Dana Levi' },
+        }),
+      );
+      renderAt(`/groups/${ID}`);
+
+      expect(await screen.findByRole('button', { name: 'Edit' })).toBeTruthy();
+      expect(screen.queryByRole('button', { name: 'Join' })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Leave' })).toBeNull();
+    });
+  });
 });
