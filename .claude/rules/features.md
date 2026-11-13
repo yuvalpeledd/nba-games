@@ -56,15 +56,17 @@ Add a section per feature as it is built; delete what turns out wrong.
   - Scoring is a plain function in the predictions dtos lib (`scorePrediction(prediction, game)`: right, wrong, or null until the game is final with a winner), covered by its own spec, run by the web and by score-manager (see Scores).
     The web runs it: the dashboard's Predictions counts the current season's games and the caller's picks (`GET /games?season=`, `GET /predictions?season=`).
   - A game that ends without a result (`canceled`) voids its predictions instead of scoring them.
-- **Groups** (`groups`: uuid, `name` up to 100, `owner_id`, `public`, `status` `Active` or `Closed`; `group_members`: uuid, `group_id`, `user_id`, unique on both): users who play together.
+- **Groups** (`groups`: uuid, `name` up to 100, `owner_id`, `public`, `status` `Active`, `Closed` or `Deleted`, `deleted_at`; `group_members`: uuid, `group_id`, `user_id`, unique on both): users who play together.
   `POST /groups` (`{ name, public }`) makes an `Active` group the caller owns, with the caller as its first member, in one transaction (`GroupMemberDalService.createGroup`: the write spans both tables, so it's in the lower one's DAL).
   `GET /groups` answers what the caller may see: every public group, and the private ones they're in, by name, each with its owner, member count and `isMember` (the web splits them into the caller's and the public ones they're not in).
   `GET /groups/:id` (a uuid, else 400) answers one with its members by name, each with their `score` in it (the sum of their `group_user_score` rows there; the web's scoreboard); a private group the caller isn't in is 404, like a missing one, so an id gives nothing away.
   `GET /groups/:id/games/:gameId/predictions` answers each member's pick of a game, by name (`picked`, and `pick`), 404 for a group they may not see or an unknown game.
   Until the game locks (`isPredictionLocked`) `pick` is null for everyone: only who picked shows, so no one copies another's pick.
+  Its owner edits it (`PATCH /groups/:id`, `{ name, public }`, answering the group) and deletes it (`DELETE /groups/:id`, 204); anyone else who sees it is 403, and one they don't see is 404.
+  A delete is soft: `status` `Deleted` and `deleted_at` (a `@DeleteDateColumn`, so TypeORM leaves the row out of every read): a deleted group is 404 everywhere and never listed.
   Nothing joins, leaves or closes a group yet.
 - **Scores** (`group_user_score`: uuid, `group_id`, `user_id`, `game_id`, `score` int, unique on the three): what a member's prediction of a game scored in a group, 1 right or 0 wrong.
   `score-manager`'s internal `POST /api/games/:gameId/score` writes them, called by the games fetcher for every known game a run turned final (see `data-fetcher.md`): every prediction of the game with a pick, scored by `scorePrediction`, a row in each group its user is in.
   A taken-back pick (null) and a user in no group get no row; scoring a game again overwrites its rows (a corrected result).
-  An unknown game is 404; a game not final with a winner (a canceled one never is: its picks are void) is 409, and nothing is written.
+  An unknown game is 404; a game not final with a winner (a canceled one never is: its picks are void) is 409 `GAME_NOT_FINAL`, and nothing is written.
   The route has no auth: score-manager must never be reachable from outside the deployment.

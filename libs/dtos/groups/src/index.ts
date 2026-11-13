@@ -41,3 +41,7 @@ export const createGroupRequestSchema = object({
     .required('public is required'),
 });
 export type CreateGroupRequest = InferType<typeof createGroupRequestSchema>;
+
+// PATCH /groups/:id: its owner renames it or makes it public or private.
+export const updateGroupRequestSchema = createGroupRequestSchema;
+export type UpdateGroupRequest = CreateGroupRequest;

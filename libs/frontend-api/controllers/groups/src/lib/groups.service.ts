@@ -1,9 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import type {
   CreateGroupRequest,
   GroupDetailsDto,
   GroupDto,
   GroupMemberPredictionDto,
+  UpdateGroupRequest,
 } from '@nba/dtos-groups';
 import { isPredictionLocked } from '@nba/dtos-predictions';
 import { GameDalService } from '@nba/sql-games';
@@ -13,6 +18,7 @@ import {
 } from '@nba/sql-group-members';
 import { GroupUserScoreDalService } from '@nba/sql-group-user-score';
 import { PredictionDalService } from '@nba/sql-predictions';
+import { GroupDalService } from '@nba/sql-groups';
 import type { UserEntity } from '@nba/sql-users';
 
 const toGroupDto = ({
@@ -32,6 +38,7 @@ const toGroupDto = ({
 @Injectable()
 export class GroupsService {
   constructor(
+    private readonly groups: GroupDalService,
     private readonly members: GroupMemberDalService,
     private readonly scores: GroupUserScoreDalService,
     private readonly games: GameDalService,
@@ -44,7 +51,7 @@ export class GroupsService {
   }
 
   async findOne(id: string, userId: string): Promise<GroupDetailsDto> {
-    const group = await this.visibleGroup(id, userId);
+    const group = await this.visible(id, userId);
     const [members, totals] = await Promise.all([
       this.members.findMembers(id),
       this.scores.totalsByGroup(id),
@@ -65,7 +72,7 @@ export class GroupsService {
     gameId: string,
     userId: string,
   ): Promise<GroupMemberPredictionDto[]> {
-    await this.visibleGroup(id, userId);
+    await this.visible(id, userId);
     const game = await this.games.findById(gameId);
     if (!game) throw new NotFoundException(`Game ${gameId} not found`);
     const [members, predictions] = await Promise.all([
@@ -85,16 +92,6 @@ export class GroupsService {
     });
   }
 
-  // A private group the caller isn't in is a 404 too, so its id gives nothing away.
-  private async visibleGroup(
-    id: string,
-    userId: string,
-  ): Promise<GroupWithMembers> {
-    const group = await this.members.findVisibleById(id, userId);
-    if (!group) throw new NotFoundException(`Group ${id} not found`);
-    return group;
-  }
-
   // The caller owns it and is its only member.
   async create(
     owner: UserEntity,
@@ -109,5 +106,35 @@ export class GroupsService {
       memberCount: 1,
       isMember: true,
     });
+  }
+
+  // Only its owner may; a group the caller can't see (or a deleted one) is 404, as in findOne.
+  async update(
+    id: string,
+    userId: string,
+    request: UpdateGroupRequest,
+  ): Promise<GroupDto> {
+    await this.owned(id, userId);
+    await this.groups.update(id, request);
+    return toGroupDto(await this.visible(id, userId));
+  }
+
+  async delete(id: string, userId: string): Promise<void> {
+    await this.owned(id, userId);
+    await this.groups.delete(id);
+  }
+
+  // A private group the caller isn't in is a 404 too, so its id gives nothing away.
+  private async visible(id: string, userId: string): Promise<GroupWithMembers> {
+    const group = await this.members.findVisibleById(id, userId);
+    if (!group) throw new NotFoundException(`Group ${id} not found`);
+    return group;
+  }
+
+  private async owned(id: string, userId: string): Promise<void> {
+    const { group } = await this.visible(id, userId);
+    if (group.ownerId !== userId) {
+      throw new ForbiddenException('Only its owner may change a group');
+    }
   }
 }

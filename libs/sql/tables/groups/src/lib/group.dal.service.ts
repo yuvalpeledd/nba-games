@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { GroupStatus } from '../enums';
 import { GroupEntity } from './group.entity';
 import { GroupRepo } from './group.repo';
 
@@ -9,5 +10,20 @@ export class GroupDalService {
 
   findById(id: string): Promise<GroupEntity | null> {
     return this.repo.findOneBy({ id });
+  }
+
+  async update(
+    id: string,
+    changes: Pick<GroupEntity, 'name' | 'public'>,
+  ): Promise<void> {
+    await this.repo.update({ id }, changes);
+  }
+
+  // Soft: the row stays, Deleted, and no read finds it again.
+  async delete(id: string): Promise<void> {
+    await this.repo.update(
+      { id },
+      { status: GroupStatus.DELETED, deletedAt: new Date() },
+    );
   }
 }

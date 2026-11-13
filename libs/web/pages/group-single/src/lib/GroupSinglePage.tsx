@@ -1,9 +1,13 @@
+import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import {
   Box,
+  Button,
   IconButton,
   Menu,
   MenuItem,
+  Snackbar,
   Stack,
   Typography,
 } from '@mui/material';
@@ -16,24 +20,33 @@ import {
   usePredictions,
   useSeasonGames,
   useSeasons,
+  useSession,
   useTeams,
 } from '@nba/web-core';
+import { DeleteGroupDialog, GroupDialog } from '@nba/web-groups-components';
 import { GamesTable } from '@nba/web-predictions-components';
 import { PageLoader } from '@nba/web-shell-components';
 import { useState } from 'react';
-import { useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import { GroupPredictionsDialog } from './group-predictions-dialog/GroupPredictionsDialog';
 import { Scoreboard } from './scoreboard/Scoreboard';
 
-// A group (/groups/:id): what it is, its scoreboard, and the season's games, each with its members' picks a menu away.
+// A group (/groups/:id): what it is, its scoreboard, and the season's games, each with its members' picks a menu away;
+// its owner edits or deletes it (then it's back to /groups, which says so).
+// ponytail: its own snackbar, as the groups page's, until an app-wide toast exists.
 export function GroupSinglePage() {
   const { id } = useParams() as { id: string };
   const group = useGroup(id);
+  const userId = useSession()?.userId;
+  const navigate = useNavigate();
   const seasons = useSeasons();
   const season = seasons.data && currentSeason(seasons.data);
   const teams = useTeams();
   const games = useSeasonGames(season?.year);
   const predictions = usePredictions(season?.year);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
   const [menu, setMenu] = useState<{
     game: GameDto;
     anchor: HTMLElement;
@@ -62,14 +75,44 @@ export function GroupSinglePage() {
 
   return (
     <Stack spacing={3}>
-      <div>
-        <Typography variant="h1">{name}</Typography>
-        <Typography color="text.secondary">
-          {group.data.public ? 'Public' : 'Private'} · {status} · Owned by{' '}
-          {owner.name}
-          {isMember && ' · You are a member'}
-        </Typography>
-      </div>
+      <Stack
+        direction="row"
+        useFlexGap
+        sx={{
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          flexWrap: 'wrap',
+          gap: 2,
+        }}
+      >
+        <div>
+          <Typography variant="h1">{name}</Typography>
+          <Typography color="text.secondary">
+            {group.data.public ? 'Public' : 'Private'} · {status} · Owned by{' '}
+            {owner.name}
+            {isMember && ' · You are a member'}
+          </Typography>
+        </div>
+        {owner.id === userId && (
+          <Stack direction="row" spacing={1}>
+            <Button
+              variant="outlined"
+              startIcon={<EditIcon />}
+              onClick={() => setIsEditOpen(true)}
+            >
+              Edit
+            </Button>
+            <Button
+              variant="outlined"
+              color="error"
+              startIcon={<DeleteIcon />}
+              onClick={() => setIsDeleteOpen(true)}
+            >
+              Delete
+            </Button>
+          </Stack>
+        )}
+      </Stack>
       <Box component="section" aria-label="Scoreboard">
         <Typography variant="h6" component="h2">
           Scoreboard ({members.length} members)
@@ -124,6 +167,29 @@ export function GroupSinglePage() {
           onClose={() => setPredictionsOf(null)}
         />
       )}
+      {isEditOpen && (
+        <GroupDialog
+          group={group.data}
+          onClose={() => setIsEditOpen(false)}
+          toast={setToast}
+        />
+      )}
+      {isDeleteOpen && (
+        <DeleteGroupDialog
+          group={group.data}
+          onClose={() => setIsDeleteOpen(false)}
+          onDeleted={(message) =>
+            navigate('/groups', { state: { toast: message } })
+          }
+          toast={setToast}
+        />
+      )}
+      <Snackbar
+        open={toast !== null}
+        autoHideDuration={4000}
+        onClose={() => setToast(null)}
+        message={toast}
+      />
     </Stack>
   );
 }

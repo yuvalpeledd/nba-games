@@ -58,7 +58,7 @@ Every import alias is `@nba/<name>`, in `tsconfig.base.json`.
   `libs/dtos/common` (`@nba/dtos`): what they all share (`DataResponse<T>`, the common schemas)
 - `libs/data-fetcher/api-ninjas-client` (`@nba/data-fetcher-api-ninjas-client`): `ApiNinjasClient`, the provider's response types and mappers to our rows; `@nba/data-fetcher-api-ninjas-client/fixtures` (spec-only): its real responses
 - `libs/data-fetcher/fetchers` (`@nba/data-fetcher-fetchers`): `FetchersModule` and a `*-fetcher.service.ts` per kind of data: teams, players, standings, games (see `.claude/rules/data-fetcher.md`)
-- `libs/frontend-api/common` (`@nba/frontend-api-common`): `YupPipe`, `FailureFilter`, `logRequests`, `CloudLogger`
+- `libs/frontend-api/common` (`@nba/frontend-api-common`): `YupPipe`, `FailureFilter`, `logRequests`, `CloudLogger` (score-manager's too: tagged `scope:server`, which it may import)
 - `libs/frontend-api/auth` (`@nba/frontend-api-auth`): Firebase ID tokens to users (`TokenService`, `firebaseSettings`), `AccessGuard`, `@Public()`, `@CurrentUser()` (see Auth in `features.md`)
 - `libs/frontend-api/test-utils` (`@nba/frontend-api-test-utils`): spec-only `TestApp` (HTTP + DB + seeding, a fake Firebase `Auth`) and `generate*()` test data
 - `libs/frontend-api/controllers/<name>` (`@nba/frontend-api-<name>-controller`): one controller per lib, with its service (DAL reads → DTOs, 404s), e.g. `libs/frontend-api/controllers/games`
@@ -91,6 +91,7 @@ pnpm nx g @nx/nest:lib libs/<path> --name=<name> --importPath=@nba/<name> --unit
 - **No entities in responses:** controllers map entities to DTOs (`toGameDto(...)`) and never return an entity.
 - **Response shape:** always JSON.
   One object is `{ data: {...} }`, a list `{ data: [...] }` (`DataResponse<T>`).
+  A `DELETE` answers 204 with no body (`api()` and `TestApp.call()` read it as no data).
   Errors keep Nest's `{ statusCode, message }`; add a `code` (`ErrorCode` in `@nba/enums`) when the client must tell errors apart.
 - **Lists are paged** where they can grow (games, players, box scores): `?limit=&offset=` (or a date range for games), never the whole table.
 - **Where controllers go:** a new controller gets its own lib, `libs/frontend-api/controllers/<name>/`, importing the DAL modules it needs.

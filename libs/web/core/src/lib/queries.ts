@@ -11,6 +11,7 @@ import type {
   GroupDetailsDto,
   GroupDto,
   GroupMemberPredictionDto,
+  UpdateGroupRequest,
 } from '@nba/dtos-groups';
 import type { PlayerDto } from '@nba/dtos-players';
 import type { PredictionDto } from '@nba/dtos-predictions';
@@ -190,5 +191,27 @@ export const useCreateGroup = () => {
     mutationFn: (body: CreateGroupRequest) =>
       api<GroupDto>('POST', '/groups', body),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['groups'] }),
+  });
+};
+
+// Its owner renames a group or makes it public or private, then reloads the groups.
+export const useUpdateGroup = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...body }: UpdateGroupRequest & { id: string }) =>
+      api<GroupDto>('PATCH', `/groups/${id}`, body),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['groups'] }),
+  });
+};
+
+// Its owner deletes a group, then reloads the groups; the deleted one is dropped, not refetched (it'd be a 404).
+export const useDeleteGroup = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api<void>('DELETE', `/groups/${id}`),
+    onSuccess: (_, id) => {
+      queryClient.removeQueries({ queryKey: ['groups', id] });
+      void queryClient.invalidateQueries({ queryKey: ['groups'], exact: true });
+    },
   });
 };

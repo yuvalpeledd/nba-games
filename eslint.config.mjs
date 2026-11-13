@@ -30,8 +30,13 @@ export default [
               onlyDependOnLibsWithTags: ['scope:data-fetcher', 'scope:shared'],
             },
             {
+              // scope:server: frontend-api's HTTP plumbing (frontend-api-common).
               sourceTag: 'scope:score-manager',
-              onlyDependOnLibsWithTags: ['scope:score-manager', 'scope:shared'],
+              onlyDependOnLibsWithTags: [
+                'scope:score-manager',
+                'scope:shared',
+                'scope:server',
+              ],
             },
             {
               sourceTag: 'scope:shared',

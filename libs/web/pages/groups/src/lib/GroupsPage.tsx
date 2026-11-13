@@ -1,17 +1,23 @@
 import AddIcon from '@mui/icons-material/Add';
 import { Button, Snackbar, Stack, Typography } from '@mui/material';
+import type { GroupDto } from '@nba/dtos-groups';
 import { useGroups } from '@nba/web-core';
+import { DeleteGroupDialog, GroupDialog } from '@nba/web-groups-components';
 import { PageLoader } from '@nba/web-shell-components';
 import { useState } from 'react';
+import { useLocation } from 'react-router';
 import { GroupsTable } from './groups-table/GroupsTable';
-import { NewGroupDialog } from './new-group-dialog/NewGroupDialog';
 
-// The signed-in user's groups and, beside them, the public ones they're not in; New Group makes one.
+// The signed-in user's groups and, beside them, the public ones they're not in; New Group makes one, and the owner's
+// menu in My groups edits or deletes one. Opens on the toast a link's state brings (a group page's Delete).
 // ponytail: its own snackbar, as PredictionCell's and the profile page's, until an app-wide toast exists.
 export function GroupsPage() {
   const groups = useGroups();
   const [isNewOpen, setIsNewOpen] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
+  const [editing, setEditing] = useState<GroupDto | null>(null);
+  const [deleting, setDeleting] = useState<GroupDto | null>(null);
+  const linked = useLocation().state as { toast?: string } | null;
+  const [toast, setToast] = useState<string | null>(linked?.toast ?? null);
 
   return (
     <Stack spacing={3}>
@@ -36,6 +42,8 @@ export function GroupsPage() {
             label="My groups"
             groups={groups.data.filter((group) => group.isMember)}
             empty="You're in no groups yet."
+            onEdit={setEditing}
+            onDelete={setDeleting}
           />
           <GroupsTable
             label="Public groups"
@@ -47,7 +55,21 @@ export function GroupsPage() {
         </Stack>
       )}
       {isNewOpen && (
-        <NewGroupDialog onClose={() => setIsNewOpen(false)} toast={setToast} />
+        <GroupDialog onClose={() => setIsNewOpen(false)} toast={setToast} />
+      )}
+      {editing && (
+        <GroupDialog
+          group={editing}
+          onClose={() => setEditing(null)}
+          toast={setToast}
+        />
+      )}
+      {deleting && (
+        <DeleteGroupDialog
+          group={deleting}
+          onClose={() => setDeleting(null)}
+          toast={setToast}
+        />
       )}
       <Snackbar
         open={toast !== null}

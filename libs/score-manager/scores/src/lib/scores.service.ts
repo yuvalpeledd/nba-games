@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { scorePrediction } from '@nba/dtos-predictions';
+import { ErrorCode } from '@nba/enums';
 import { GameDalService, GameStatus } from '@nba/sql-games';
 import { GroupMemberDalService } from '@nba/sql-group-members';
 import { GroupUserScoreDalService } from '@nba/sql-group-user-score';
@@ -34,9 +35,11 @@ export class ScoresService {
     const game = await this.games.findById(gameId);
     if (!game) throw new NotFoundException(`Game ${gameId} not found`);
     if (game.status !== GameStatus.FINAL || !game.winnerTeamId) {
-      throw new ConflictException(
-        `Game ${gameId} has no result to score (${game.status})`,
-      );
+      throw new ConflictException({
+        statusCode: 409,
+        message: `Game ${gameId} has no result to score (${game.status})`,
+        code: ErrorCode.GAME_NOT_FINAL,
+      });
     }
     const predictions = await this.predictions.findByGame(gameId);
     const right = new Map(

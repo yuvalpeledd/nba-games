@@ -1,4 +1,5 @@
 import { INestApplication } from '@nestjs/common';
+import { ErrorCode } from '@nba/enums';
 import { Test } from '@nestjs/testing';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { testPostgresOptions } from '@nba/sql';
@@ -113,6 +114,12 @@ describe('ScoresController', () => {
     get(PredictionDalService).set({ userId, gameId: GAME_ID, pick });
 
   describe('POST /games/:gameId/score', () => {
+    it('takes a game id up to 100 characters', async () => {
+      const { status, body } = await score('x'.repeat(101));
+      expect(status).toBe(400);
+      expect(body.message).toContain('gameId must be at most 100 characters');
+    });
+
     it('is 404 for an unknown game', async () => {
       expect((await score('nba-nope')).status).toBe(404);
     });
@@ -122,7 +129,9 @@ describe('ScoresController', () => {
         await get(GameDalService).upsert([
           { ...finalGame, status, winnerTeamId: null },
         ]);
-        expect((await score(GAME_ID)).status).toBe(409);
+        const { status: code, body } = await score(GAME_ID);
+        expect(code).toBe(409);
+        expect(body.code).toBe(ErrorCode.GAME_NOT_FINAL);
       }
     });
 

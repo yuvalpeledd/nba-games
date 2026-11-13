@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Patch,
+  Post,
+} from '@nestjs/common';
 import { type DataResponse, idSchema } from '@nba/dtos';
 import {
   type CreateGroupRequest,
@@ -7,13 +16,16 @@ import {
   type GroupDto,
   groupIdSchema,
   type GroupMemberPredictionDto,
+  type UpdateGroupRequest,
+  updateGroupRequestSchema,
 } from '@nba/dtos-groups';
 import { CurrentUser } from '@nba/frontend-api-auth';
 import { YupPipe } from '@nba/frontend-api-common';
 import type { UserEntity } from '@nba/sql-users';
 import { GroupsService } from './groups.service';
 
-// Groups of users: the ones the caller may see, one with its members' scores, their picks of a game, and making one.
+// Groups of users: the ones the caller may see, one with its members' scores, their picks of a game, making one,
+// and its owner's edit and delete.
 @Controller('groups')
 export class GroupsController {
   constructor(private readonly groups: GroupsService) {}
@@ -48,5 +60,23 @@ export class GroupsController {
     @Body(new YupPipe(createGroupRequestSchema)) request: CreateGroupRequest,
   ): Promise<DataResponse<GroupDto>> {
     return { data: await this.groups.create(user, request) };
+  }
+
+  @Patch(':id')
+  async update(
+    @CurrentUser() user: UserEntity,
+    @Param('id', new YupPipe(groupIdSchema)) id: string,
+    @Body(new YupPipe(updateGroupRequestSchema)) request: UpdateGroupRequest,
+  ): Promise<DataResponse<GroupDto>> {
+    return { data: await this.groups.update(id, user.id, request) };
+  }
+
+  @Delete(':id')
+  @HttpCode(204)
+  delete(
+    @CurrentUser() user: UserEntity,
+    @Param('id', new YupPipe(groupIdSchema)) id: string,
+  ): Promise<void> {
+    return this.groups.delete(id, user.id);
   }
 }
