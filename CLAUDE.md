@@ -2,7 +2,7 @@
 
 **NBA Games** shows NBA games, teams and player statistics, and lets the user predict what will happen (see Predictions in `.claude/rules/features.md`).
 
-**Scaffolded so far:** the Nx workspace, the DAL (`libs/sql`: `teams`, `players`, `team_players`, `games`, `standings`, `seasons`) and `frontend-api` (read-only, no auth yet: seasons, teams, players, games, standings). The other apps and the other libs below are the target: when you scaffold one, follow this file, and fix it where reality differs.
+**Scaffolded so far:** the Nx workspace, the DAL (`libs/sql`: `teams`, `players`, `team_players`, `games`, `standings`, `standings_history`, `seasons`), `data-fetcher` (its app and `libs/data-fetcher`) and `frontend-api` (read-only, no auth yet: seasons, teams, players, games, standings). `web-app` and the other libs below are the target: when you scaffold one, follow this file, and fix it where reality differs.
 
 **The data comes from [API Ninjas](https://api-ninjas.com/api/nba)** (`api.api-ninjas.com/v1/basketball*`); the requests are in the user's Postman collection. See `.claude/rules/data-fetcher.md`.
 
@@ -18,7 +18,7 @@
 
 Node 24, pnpm, Nx. Every import alias is `@nba/<name>`, in `tsconfig.base.json`.
 
-- `apps/data-fetcher`: NestJS standalone app (no HTTP server), run on a schedule: one run fetches from the NBA data provider, upserts into the DB, and exits. See `.claude/rules/data-fetcher.md`
+- `apps/data-fetcher`: NestJS standalone app (no HTTP server, run from its sources), run on a schedule: one run fetches teams, players, standings and games from API Ninjas into the DB, and exits. Only `main.ts`. See `.claude/rules/data-fetcher.md`
 - `apps/frontend-api`: NestJS 11 HTTP server (webpack). Thin: bootstrap, root module, `GET /api/health`, and it serves the web build in production. Its `build` runs `compile-migrations` (`tsconfig.migrations.json`) into `dist/apps/frontend-api/migrations/`, beside `main.js`, where `SqlModule` finds them
 - `apps/web-app`: React 19 + Vite SPA (MUI, React Query, React Router). The app is only its entry, `index.html`, `public/` and `app.tsx`; the rest is in `libs/web` (see `.claude/rules/web.md`):
   - `libs/web/core` (`@nba/web-core`): what isn't UI: `api()`, the React Query hooks (`queries.ts`), formatting
@@ -29,18 +29,18 @@ Node 24, pnpm, Nx. Every import alias is `@nba/<name>`, in `tsconfig.base.json`.
   - `libs/sql/tables/<table>` (`@nba/sql-<table>`, e.g. `@nba/sql-games`): one lib per table: entity, repo, DAL service, module, and the enums only it stores
   - `libs/sql/core` (`@nba/sql-core`): `BaseAbstractEntity` (`created_at`, `updated_at`), `CreateObject`, `Venue`
   - `libs/sql/aggregates/<root>` (`@nba/sql-<root>-aggregate`): writes across tables that no table lib can make
-  - `libs/sql/database` (`@nba/sql`): `SqlModule.forRoot({ runMigrations })` (the connection; imports no table and no migration), `postgresOptions(env)` and the migrations CLI's data source
-  - `libs/sql/schema` (project `sql-schema`, imported by nothing): `schema.spec.ts`, every table against the real migrations with the provider's real responses (`__fixtures__/`)
+  - `libs/sql/database` (`@nba/sql`): `SqlModule.forRoot({ runMigrations })` (the connection; imports no table and no migration), `postgresOptions(env)`, `testPostgresOptions()` (the specs') and the migrations CLI's data source
+  - `libs/sql/schema` (project `sql-schema`, imported by nothing, tagged `scope:data-fetcher` for the client it reads): `schema.spec.ts`, every table against the real migrations with the provider's real responses (the client's fixtures)
 - `migrations/`: TypeORM migrations, outside every lib, loaded by location
 - `libs/enums` (`@nba/enums`): enums more than one table stores, or none does (no deps, web-safe)
 - `libs/dtos/<name>` (`@nba/dtos-<name>`, e.g. `@nba/dtos-games`): request/response contracts shared by the server and the web (web-safe): yup schemas, DTO types and the logic both sides run, a lib per file. `libs/dtos/common` (`@nba/dtos`): `DataResponse<T>`, `VenueDto`, `idSchema`, `daySchema`
-- `libs/decorators` (`@nba/decorators`): `@Retry()` (port from outly)
-- `libs/data-fetcher/<name>` (`@nba/data-fetcher-<name>`): the provider's client and the sync services (see `.claude/rules/data-fetcher.md`)
+- `libs/data-fetcher/api-ninjas-client` (`@nba/data-fetcher-api-ninjas-client`): `ApiNinjasClient`, the provider's response types and mappers to our rows; `@nba/data-fetcher-api-ninjas-client/fixtures` (spec-only): its real responses
+- `libs/data-fetcher/fetchers` (`@nba/data-fetcher-fetchers`): `FetchersModule` and a `*-fetcher.service.ts` per kind of data: teams, players, standings, games (see `.claude/rules/data-fetcher.md`)
 - `libs/frontend-api/common` (`@nba/frontend-api-common`): `YupPipe`, `FailureFilter`, `logRequests`, `CloudLogger`
 - `libs/frontend-api/test-utils` (`@nba/frontend-api-test-utils`): spec-only `TestApp` (HTTP + DB + seeding) and `generate*()` test data
 - `libs/frontend-api/controllers/<name>` (`@nba/frontend-api-<name>-controller`): one controller per lib, with its service (DAL reads → DTOs, 404s): seasons, teams, players, games, standings; predictions next
 
-**Dependency direction:** apps → feature libs → dal (`sql-*`) → `sql-core`. `dtos` and `enums` import nothing server-only. `frontend-api` and `data-fetcher` never import each other's libs: what both need lives in `sql-*`, `dtos-*`, `enums` or `decorators`. Tag projects (`scope:web`, `scope:frontend-api`, `scope:data-fetcher`, `scope:shared`) and enforce it in `eslint.config.mjs`'s `depConstraints`.
+**Dependency direction:** apps → feature libs → dal (`sql-*`) → `sql-core`. `dtos` and `enums` import nothing server-only. `frontend-api` and `data-fetcher` never import each other's libs: what both need lives in `sql-*`, `dtos-*` or `enums`. Tag projects (`scope:web`, `scope:frontend-api`, `scope:data-fetcher`, `scope:shared`) and enforce it in `eslint.config.mjs`'s `depConstraints`.
 
 ## Commands
 
@@ -48,9 +48,9 @@ Node 24, pnpm, Nx. Every import alias is `@nba/<name>`, in `tsconfig.base.json`.
 pnpm install
 docker compose up -d db                            # local Postgres (see Database)
 pnpm nx run-many -t serve -p frontend-api web-app  # API :3000, web :4200 (proxies /api)
-pnpm nx run data-fetcher:run                       # one fetch run against the local DB
+pnpm nx run data-fetcher:run                       # one fetch run against the local DB (API_NINJAS_KEY in .env: real calls, real quota)
 pnpm nx affected -t lint test build typecheck      # full check: run before handing work back
-pnpm nx test sql-schema                            # or frontend-api-<name>-controller / web-<page>-page / data-fetcher-<name> / ...
+pnpm nx test sql-schema                            # or data-fetcher-fetchers / frontend-api-<name>-controller / web-<page>-page / ...
 pnpm nx format:write
 pnpm nx g @nx/nest:lib libs/<path> --name=<name> --importPath=@nba/<name> --unitTestRunner=jest --no-interactive
 ```
@@ -92,14 +92,15 @@ describe('GamesController', () => {
 - Add an `auth` block (one `it()` per caller: no token 401, each refused role 403, each allowed one) once routes are guarded.
 - **Seeding:** `app.createTeam()`, `app.createGame(home, away, overrides)`, ... built with `generate*()` and saved through the DAL. Pass overrides only for what the test is about.
 - **DB state:** read it back with `app.get(<X>DalService)`. `clearDatabase()` empties every registered table; it never drops the schema.
-- **data-fetcher:** the sync services are tested against recorded provider responses (`__fixtures__/*.json`) and a real DB: run twice, assert the same rows (idempotency). Never call the real provider from a test.
+- **data-fetcher:** the fetchers run for real against the test DB with only `fetch` faked, answering with the provider's recorded responses (see Tests in `.claude/rules/data-fetcher.md`). Never call the real provider from a test.
+- **A spec that needs the DB** connects with `TypeOrmModule.forRoot(testPostgresOptions())` (`@nba/sql`), which rebuilds `nba_test` through the migrations, and empties its tables (`TRUNCATE`) before each test. `seasons` stays: its migrations load it.
 - **Web specs** sit in the lib of the page they drive and run against a fake API (`stubApi`). Find lazy content with `findBy*`, never `getBy*`.
 - **Predictions logic** (scoring, locking) is a plain function in its dtos lib with its own spec.
 
 ## Server conventions
 
 - **Logging:** Nest's `Logger`; JSON lines in production (`CloudLogger`), colored locally. Every API call gets one line when done (method, path without query, status, time). `log` for what happened, `warn` for unexpected but survived, `error` for failures, with `stackOf(error)`. Never tokens, passwords or request bodies.
-- **External calls** go through `@Retry()` from `@nba/decorators`, on the lowest-level method.
+- **External calls** have a timeout (`AbortSignal.timeout`) and no retries where a later run redoes the work (the data-fetcher). Add `@Retry()` (outly's) for the first call that can't wait for a rerun.
 - **Config from env**, read once at boot and validated; a missing required value fails the boot with its name.
 - **NBA tables are keyed by the provider's id** (`teams.id` = `nba-por`, `games.id` = `nba-20261111-bos-tor`; `standings` by `season` + `team_id`), so the fetcher writes foreign keys straight from a response and every write is `repo.upsert(rows, [key])`. Their enums' values are the provider's (`GameStatus.FINAL = 'final'`), stored as they come. A table of our own (predictions) gets a uuid.
 - One lib per table (`libs/sql/tables/<table>/`, `@nba/sql-<table>`), files in `src/lib/`:
@@ -118,7 +119,7 @@ describe('GamesController', () => {
 ## Database
 
 - **Postgres everywhere** (17): locally the `nba-db` container (`docker-compose.yml`, user, password and database `nba`, the defaults of `postgresOptions`). `synchronize` is off; schema changes are migrations.
-- **Tests use the `nba_test` database** in the same container (`scripts/db-init.sql` creates it on the volume's first start). `schema.spec.ts` drops and rebuilds it through the migrations, reverts and reruns the last one, and fails when the entities differ from the migrations (it prints the missing SQL). The specs share it, so `test` never runs two projects at once (`parallelism: false` in `nx.json`). `TestApp` sets `DB_NAME=nba_test`, runs pending migrations and truncates every table (seasons too) in `clearDatabase()`.
+- **Tests use the `nba_test` database** in the same container (`scripts/db-init.sql` creates it on the volume's first start). `schema.spec.ts` drops and rebuilds it through the migrations, reverts and reruns the last one, and fails when the entities differ from the migrations (it prints the missing SQL). The specs share it, so Nx runs the test targets one at a time (`parallelism: false` in `nx.json`), and a project keeps its DB tests in one spec file. `TestApp` connects with `testPostgresOptions()` and empties every table (seasons too) in `clearDatabase()`.
 - **Migrations:** generate against the local container, never a shared DB:
   ```bash
   pnpm typeorm:run-migrations

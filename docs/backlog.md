@@ -8,7 +8,8 @@
   - **Who uses it?** Only you (no auth, or one shared password), or friends competing on predictions (accounts, a leaderboard: Firebase as in outly)?
   - **How much history?** The free plan has the current season only.
   - **Where does it run?** GCP as outly (Cloud Run for the API, a Cloud Run Job for the fetcher, Cloud SQL), or only locally for now?
-- Next: `data-fetcher` (the API Ninjas client with the spec's mappers and yup validation, the four jobs, the app), then `web-app`; auth and predictions in `frontend-api` once the questions above are answered.
-- Port `@Retry()` from outly.
-- Scope tags: `scope:web` and `scope:data-fetcher` in `eslint.config.mjs` with their apps.
-- `GET /players` has no search by name and no total count: add them when the web's players page needs them.
+- **What may the players fetcher delete?** As built, nothing is deleted but the day's `team_players` rows it replaces: a player on no roster keeps their row with `team_id` null (their days point at them), and teams stay (everything points at them). Should players gone for a season be deleted, with their days?
+- Next: a first real run (`API_NINJAS_KEY` in `.env`, then `pnpm nx run data-fetcher:run`: 32 calls plus up to 50 for the games), then `web-app`; auth and predictions in `frontend-api` once the questions above are answered.
+- data-fetcher: a bundle and a Cloud Run Job (and its schedule) when it's deployed; it runs from its sources for now. Remember the days without games (now asked for every run) if those requests matter. Page with `offset` if a response ever comes back cut (one page today).
+- frontend-api: `GET /players` has no search by name and no total count, and `standings_history` has no route yet: add them when the web needs them.
+- Scope tags: `scope:web` in `eslint.config.mjs` with its app.

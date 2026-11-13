@@ -1,0 +1,8 @@
+{
+  "name": "data-fetcher-fetchers",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/data-fetcher/fetchers/src",
+  "projectType": "library",
+  "tags": ["scope:data-fetcher"],
+  "targets": {}
+}

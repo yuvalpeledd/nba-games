@@ -1,0 +1,25 @@
+{
+  "name": "data-fetcher",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/data-fetcher/src",
+  "projectType": "application",
+  "tags": ["scope:data-fetcher"],
+  "targets": {
+    "run": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node --env-file-if-exists=.env -r ts-node/register -r tsconfig-paths/register apps/data-fetcher/src/main.ts",
+        "env": {
+          "TS_NODE_PROJECT": "apps/data-fetcher/tsconfig.app.json",
+          "TS_NODE_BASEURL": "../.."
+        }
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc -p apps/data-fetcher/tsconfig.app.json --noEmit"
+      }
+    }
+  }
+}

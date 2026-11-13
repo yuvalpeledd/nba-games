@@ -15,11 +15,15 @@ export default [
         {
           enforceBuildableLibDependency: true,
           allow: ['^.*/eslint(\\.base)?\\.config\\.[cm]?[jt]s$'],
-          // CLAUDE.md's dependency direction. Add scope:web and scope:data-fetcher with their apps.
+          // CLAUDE.md's dependency direction. Add scope:web with its app.
           depConstraints: [
             {
               sourceTag: 'scope:frontend-api',
               onlyDependOnLibsWithTags: ['scope:frontend-api', 'scope:shared'],
+            },
+            {
+              sourceTag: 'scope:data-fetcher',
+              onlyDependOnLibsWithTags: ['scope:data-fetcher', 'scope:shared'],
             },
             {
               sourceTag: 'scope:shared',

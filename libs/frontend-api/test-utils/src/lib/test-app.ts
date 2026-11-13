@@ -8,7 +8,8 @@ import {
 import { APP_FILTER } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
 import { FailureFilter } from '@nba/frontend-api-common';
-import { SqlModule } from '@nba/sql';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { testPostgresOptions } from '@nba/sql';
 import { GameCreateObject, GameDalService, GameModule } from '@nba/sql-games';
 import {
   PlayerCreateObject,
@@ -41,11 +42,12 @@ export interface Reply {
   body: any;
 }
 
-// The specs' database (CLAUDE.md's Database), in the local container: never the dev one.
+// testPostgresOptions()' database: clearDatabase() refuses any other.
 const TEST_DB = 'nba_test';
 
 // The modules under test, as main.ts serves them (under /api, with the failure filter), over HTTP on a random port,
-// on `nba_test` with the migrations run. Every table's DAL module is loaded, for seeding and reading back.
+// on `nba_test` rebuilt through the migrations (testPostgresOptions). Every table's DAL module is loaded, for seeding
+// and reading back.
 export class TestApp {
   private constructor(
     private readonly app: INestApplication,
@@ -59,10 +61,9 @@ export class TestApp {
     if (process.env['NODE_ENV'] !== 'test') {
       throw new Error('TestApp runs only under Jest (NODE_ENV=test)');
     }
-    process.env['DB_NAME'] = TEST_DB;
     const moduleRef = await Test.createTestingModule({
       imports: [
-        SqlModule.forRoot({ runMigrations: true }),
+        TypeOrmModule.forRoot(testPostgresOptions()),
         TeamModule,
         PlayerModule,
         TeamPlayerModule,

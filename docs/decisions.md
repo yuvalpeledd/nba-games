@@ -10,6 +10,20 @@ Newest first. One entry per non-obvious choice: the decision, why, and when to r
 - **`/players/:id/teams` gives one span per team** (first to last day seen), so a player who leaves and returns shows one span across the gap. Split on gaps if a "traded on" view needs it.
 - **`SeasonDto.year`** (from `start_date`) is what `/standings?season=` and `games.season` take, so the web never parses `nba-2026-27`.
 
+## 2026-11-13: `standings_history`, and the games' scores from the last scored day
+
+- **A row per day, season and team**, as asked, with the same columns as `standings` (an abstract `StandingColumns` both extend, so the two can't drift; `standings`' table is unchanged). It points at `standings` (season and team), so `recordStandings` writes both in one transaction from its lib, as the sql libs' rule has it. A second fetch the same day overwrites the day's row. Revisit (a row only when something changed) if ~5,000 rows a season ever matters.
+- **The games' scores come from the last day with a scored game to today**, as asked, replacing the "a played day until all its games are over" rule (the entry below): one `MAX(date)` instead of a status per day, and the last scored day is fetched again too, for its late games. With no scored game yet, from the season's start. The days with no games are still fetched, for the schedule. Revisit if a game left unscored on an earlier day (a suspended one) needs its score: this rule never goes back for it.
+
+## 2026-11-13: The data-fetcher: four fetchers, a task pool for the games
+
+- **Every run runs every fetcher**, in order (teams, players, standings, games), as asked, rather than jobs picked by argument (the earlier plan): 32 calls plus the games' cap fits the free plan's hour. Revisit when one needs its own schedule (`--job` then).
+- **"Delete" is a release and a replacement**, not a deleted row: a player on no roster gets `team_id` null, and today's `team_players` are replaced by the run's fetch (so a day holds its last fetch, not both teams of a trade day, as the `team_players` entry below first had it). Players and teams stay: `team_players`, games and standings point at them. The players fetcher writes nothing unless all 30 rosters came back, since a missing one would release a whole team.
+- **The games' task pool is rebuilt from the table each run** (the days whose games aren't there or aren't over), with no queue of its own: a crash or a quota loses nothing, and a rerun picks up where it stopped. Nearest to today first, so a capped run brings what's current before the backfill. "Has its data" counts a played day's results, not just its rows, or its scores would never come.
+- **No yup on the provider's responses** (the earlier plan): the tables' NOT NULLs, enums and foreign keys already refuse a missing or unknown value, and the response types are checked against real responses. Revisit if a nullable field arrives null when it shouldn't.
+- **No retries:** every fetch is redone by the next run. **No bundle yet:** the app runs from its sources (ts-node), like the migrations CLI; webpack and a Cloud Run Job come with deployment.
+- **The specs share `nba_test`**, so Nx runs test targets one at a time (`parallelism: false`): simpler than a database per project, while the suite takes seconds.
+
 ## 2026-11-13: `seasons`, loaded by migrations
 
 - **A table of seasons with their dates**, as asked, loaded by a data migration per season (2026-27: 2026-10-20 to 2027-04-11), apart from the table's own migration, so a season's dates are reviewed like code and every database gets the same rows. The provider has no seasons endpoint.
