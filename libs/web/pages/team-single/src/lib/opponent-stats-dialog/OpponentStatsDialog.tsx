@@ -27,7 +27,7 @@ import {
   useHeadToHead,
 } from '@nba/web-core';
 import { PageLoader } from '@nba/web-shell-components';
-import { useTableSort } from '@nba/web-table-components';
+import { useTableFilters, useTableSort } from '@nba/web-table-components';
 
 // A final from the team's side.
 const sideOf = (game: GameDto, teamId: string) => {
@@ -91,7 +91,25 @@ export function OpponentStatsDialog({
         Date.parse(game.startTime) < Date.parse(before),
     )
     .map((game) => sideOf(game, teamId));
-  const { rows, headCell } = useTableSort(sides, {
+  const filtered = useTableFilters(sides, {
+    season: {
+      label: 'Season',
+      type: 'select',
+      value: (row) => formatSeason(row.game.season),
+    },
+    time: { label: 'Time', type: 'date', value: (row) => row.game.startTime },
+    where: {
+      label: 'Where',
+      type: 'select',
+      value: (row) => (row.isHome ? 'Home' : 'Away'),
+    },
+    result: {
+      label: 'Result',
+      type: 'select',
+      value: (row) => (row.won ? 'W' : 'L'),
+    },
+  });
+  const { rows, headCell } = useTableSort(filtered.rows, {
     season: (row) => row.game.season,
     time: (row) => row.game.startTime,
     where: (row) => (row.isHome ? 'Home' : 'Away'),
@@ -134,6 +152,7 @@ export function OpponentStatsDialog({
                 ),
               )}
             </Stack>
+            {filtered.filterBar}
             <TableContainer>
               <Table aria-label="Previous games">
                 <TableHead>

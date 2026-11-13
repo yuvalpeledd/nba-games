@@ -129,6 +129,35 @@ describe('GamesPage', () => {
     ]);
   });
 
+  it('filters by any of the checked values, or none, until the filter is removed', async () => {
+    renderAt('/games?date=2026-11-12');
+    const homes = async () => (await rows()).map(([, , home]) => home);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Add Filter' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Home' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Boston Celtics' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add Filter' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Apply Filters' }));
+    expect(await homes()).toEqual(['Boston Celtics']);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add Filter' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Home/ }));
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Filter by' }));
+    fireEvent.click(
+      screen.getByRole('option', { name: 'none of the selected' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Add Filter' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Apply Filters' }));
+    expect(await homes()).toEqual(['Golden State Warriors']);
+
+    fireEvent.click(
+      within(
+        screen.getByRole('button', { name: 'Home is not Boston Celtics' }),
+      ).getByTestId('CancelIcon'),
+    );
+    expect(await homes()).toHaveLength(2);
+  });
+
   it("says so when they can't be loaded", async () => {
     stubApi({ 'GET /teams': teams });
     renderAt('/games?date=2026-11-12');

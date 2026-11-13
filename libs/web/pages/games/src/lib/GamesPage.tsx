@@ -16,7 +16,7 @@ import {
 import { GameStatus } from '@nba/sql-games/enums';
 import { formatTime, useGames, useTeams } from '@nba/web-core';
 import { PageLoader } from '@nba/web-shell-components';
-import { useTableSort } from '@nba/web-table-components';
+import { useTableFilters, useTableSort } from '@nba/web-table-components';
 import { Link as RouterLink, useSearchParams } from 'react-router';
 
 const statusLabels: Record<GameStatus, string> = {
@@ -56,24 +56,40 @@ export function GamesPage() {
   const games = useGames(date);
   const nameOf = (id: string) =>
     teams.data?.find((team) => team.id === id)?.name ?? id;
-  const { rows, headCell } = useTableSort(
-    (games.data ?? []).map((game) => ({
-      game,
-      away: nameOf(game.awayTeamId),
-      home: nameOf(game.homeTeamId),
-      played: game.awayScore !== null && game.homeScore !== null,
-    })),
-    {
-      time: (row) => row.game.startTime,
-      away: (row) => row.away,
-      home: (row) => row.home,
-      score: (row) =>
+  const dayRows = (games.data ?? []).map((game) => ({
+    game,
+    away: nameOf(game.awayTeamId),
+    home: nameOf(game.homeTeamId),
+    played: game.awayScore !== null && game.homeScore !== null,
+  }));
+  // No Time: every game is on the day.
+  const filtered = useTableFilters(dayRows, {
+    away: { label: 'Away', type: 'select', value: (row) => row.away },
+    home: { label: 'Home', type: 'select', value: (row) => row.home },
+    score: {
+      label: 'Total Points',
+      type: 'number',
+      value: (row) =>
         row.played
           ? (row.game.awayScore as number) + (row.game.homeScore as number)
           : null,
-      status: (row) => statusLabels[row.game.status],
     },
-  );
+    status: {
+      label: 'Status',
+      type: 'select',
+      value: (row) => statusLabels[row.game.status],
+    },
+  });
+  const { rows, headCell } = useTableSort(filtered.rows, {
+    time: (row) => row.game.startTime,
+    away: (row) => row.away,
+    home: (row) => row.home,
+    score: (row) =>
+      row.played
+        ? (row.game.awayScore as number) + (row.game.homeScore as number)
+        : null,
+    status: (row) => statusLabels[row.game.status],
+  });
   const goTo = (next: string) => setParams({ date: next });
 
   return (
@@ -102,35 +118,38 @@ export function GamesPage() {
       </Stack>
       {!games.data || !teams.data ? (
         <PageLoader error={games.isError || teams.isError} />
-      ) : rows.length === 0 ? (
+      ) : dayRows.length === 0 ? (
         <Typography color="text.secondary">No games this day.</Typography>
       ) : (
-        <TableContainer>
-          <Table aria-label="Games">
-            <TableHead>
-              <TableRow>
-                {headCell('time', 'Time')}
-                {headCell('away', 'Away')}
-                {headCell('home', 'Home')}
-                {headCell('score', 'Score', 'right')}
-                {headCell('status', 'Status')}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {rows.map(({ game, away, home, played }) => (
-                <TableRow key={game.id}>
-                  <TableCell>{formatTime(game.startTime)}</TableCell>
-                  <TeamCell id={game.awayTeamId} name={away} />
-                  <TeamCell id={game.homeTeamId} name={home} />
-                  <TableCell align="right">
-                    {played ? `${game.awayScore}-${game.homeScore}` : 'N/A'}
-                  </TableCell>
-                  <TableCell>{statusLabels[game.status]}</TableCell>
+        <Stack spacing={2}>
+          {filtered.filterBar}
+          <TableContainer>
+            <Table aria-label="Games">
+              <TableHead>
+                <TableRow>
+                  {headCell('time', 'Time')}
+                  {headCell('away', 'Away')}
+                  {headCell('home', 'Home')}
+                  {headCell('score', 'Score', 'right')}
+                  {headCell('status', 'Status')}
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+              </TableHead>
+              <TableBody>
+                {rows.map(({ game, away, home, played }) => (
+                  <TableRow key={game.id}>
+                    <TableCell>{formatTime(game.startTime)}</TableCell>
+                    <TeamCell id={game.awayTeamId} name={away} />
+                    <TeamCell id={game.homeTeamId} name={home} />
+                    <TableCell align="right">
+                      {played ? `${game.awayScore}-${game.homeScore}` : 'N/A'}
+                    </TableCell>
+                    <TableCell>{statusLabels[game.status]}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Stack>
       )}
     </Stack>
   );

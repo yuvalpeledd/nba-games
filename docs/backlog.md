@@ -23,4 +23,5 @@
   A future day that has games is never checked again until its scores are due: refresh the ones not checked in a while (`game_days.checked_on`) if schedule changes (postponements, playoff dates) must show early.
   Page with `offset` if a response ever comes back cut (one page today).
 - frontend-api: `GET /players` has no search by name and no total count, and `standings_history` has no route yet: add them when the web needs them.
+- web-app: table filters aren't in the URL (portal's are), and dates have only portal's Date Range mode (no Dynamic Range or Specific Date), no quick filters and no header funnel.
 - web-app: the dashboard only says hello; the standings tab and season aren't in the URL (back from elsewhere opens the current season's East), nor is a team page's tab; a team page shows only the current season (no season picker) and its players don't link to a player page yet.
