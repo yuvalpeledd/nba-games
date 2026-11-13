@@ -12,6 +12,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Tooltip,
   Typography,
   useMediaQuery,
   useTheme,
@@ -19,9 +20,10 @@ import {
 import type { GameDto } from '@nba/dtos-games';
 import { GameStatus } from '@nba/sql-games/enums';
 import {
-  formatDay,
   formatSeason,
+  formatTime,
   formatWinPct,
+  statHints,
   useHeadToHead,
 } from '@nba/web-core';
 import { PageLoader } from '@nba/web-shell-components';
@@ -45,18 +47,23 @@ const sideOf = (game: GameDto, teamId: string) => {
 
 type Side = ReturnType<typeof sideOf>;
 
-// Games played and the share won, at home or away.
-const recordOf = (sides: Side[], isHome: boolean): [string, string][] => {
+// Games played and the share won, at home or away: label, value, hint.
+const recordOf = (
+  sides: Side[],
+  isHome: boolean,
+): [string, string, string][] => {
   const played = sides.filter((side) => side.isHome === isHome);
-  const where = isHome ? 'Home' : 'Away';
   const wins = played.filter((side) => side.won).length;
-  return [
-    [`${where} games`, String(played.length)],
-    [
-      `${where} win rate`,
-      played.length ? formatWinPct(wins / played.length) : '—',
-    ],
-  ];
+  const winRate = played.length ? formatWinPct(wins / played.length) : '—';
+  return isHome
+    ? [
+        ['Home games', String(played.length), statHints.homeGames],
+        ['Home win rate', winRate, statHints.homeWinRate],
+      ]
+    : [
+        ['Away games', String(played.length), statHints.awayGames],
+        ['Away win rate', winRate, statHints.awayWinRate],
+      ];
 };
 
 // The team's finals against an opponent, every season: its record at home and away, then each game, newest first.
@@ -80,7 +87,7 @@ export function OpponentStatsDialog({
     .reverse();
   const { rows, headCell } = useTableSort(sides, {
     season: (row) => row.game.season,
-    date: (row) => row.game.startTime,
+    time: (row) => row.game.startTime,
     where: (row) => (row.isHome ? 'Home' : 'Away'),
     result: (row) => row.margin,
   });
@@ -103,15 +110,17 @@ export function OpponentStatsDialog({
               sx={{ m: 0, flexWrap: 'wrap', columnGap: 4, rowGap: 2 }}
             >
               {[...recordOf(sides, true), ...recordOf(sides, false)].map(
-                ([label, value]) => (
+                ([label, value, hint]) => (
                   <Box key={label}>
-                    <Typography
-                      component="dt"
-                      variant="caption"
-                      color="text.secondary"
-                    >
-                      {label}
-                    </Typography>
+                    <Tooltip title={hint} describeChild>
+                      <Typography
+                        component="dt"
+                        variant="caption"
+                        color="text.secondary"
+                      >
+                        {label}
+                      </Typography>
+                    </Tooltip>
                     <Typography component="dd" sx={{ m: 0 }}>
                       {value}
                     </Typography>
@@ -124,18 +133,27 @@ export function OpponentStatsDialog({
                 <TableHead>
                   <TableRow>
                     {headCell('season', 'Season')}
-                    {headCell('date', 'Date')}
+                    {headCell('time', 'Time')}
                     {headCell('where', 'Where')}
                     {headCell('result', 'Result', 'right')}
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {rows.map(({ game, isHome, result }) => (
+                  {rows.map(({ game, isHome, won, result }) => (
                     <TableRow key={game.id}>
                       <TableCell>{formatSeason(game.season)}</TableCell>
-                      <TableCell>{formatDay(game.date)}</TableCell>
+                      <TableCell>{formatTime(game.startTime)}</TableCell>
                       <TableCell>{isHome ? 'Home' : 'Away'}</TableCell>
-                      <TableCell align="right">{result}</TableCell>
+                      <TableCell align="right">
+                        {/* On its own element: the design system colors every cell. */}
+                        <Typography
+                          component="span"
+                          variant="inherit"
+                          color={won ? 'success' : 'error'}
+                        >
+                          {result}
+                        </Typography>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

@@ -1,9 +1,10 @@
-import { Box, Stack, Tab, Tabs, Typography } from '@mui/material';
+import { Box, Stack, Tab, Tabs, Tooltip, Typography } from '@mui/material';
 import type { StandingDto } from '@nba/dtos-standings';
 import {
   currentSeason,
   formatSeason,
   formatWinPct,
+  statHints,
   useSeasons,
   useStandings,
   useTeams,
@@ -14,15 +15,15 @@ import { useParams } from 'react-router';
 import { TeamGames } from './team-games/TeamGames';
 import { TeamPlayers } from './team-players/TeamPlayers';
 
-// The team's line in the season's standings.
-const statsOf = (standing: StandingDto): [string, string][] => [
-  ['Record', `${standing.wins}-${standing.losses}`],
-  ['PCT', formatWinPct(standing.winPct)],
-  ['Seed', String(standing.conferenceRank)],
-  ['Home', standing.homeRecord],
-  ['Away', standing.awayRecord],
-  ['L10', standing.last10],
-  ['Streak', standing.streak],
+// The team's line in the season's standings: each stat's label, value and what it means.
+const statsOf = (standing: StandingDto): [string, string, string][] => [
+  ['Record', `${standing.wins}-${standing.losses}`, statHints.record],
+  ['PCT', formatWinPct(standing.winPct), statHints.winPct],
+  ['Seed', String(standing.conferenceRank), statHints.seed],
+  ['Home', standing.homeRecord, statHints.home],
+  ['Away', standing.awayRecord, statHints.away],
+  ['L10', standing.last10, statHints.last10],
+  ['Streak', standing.streak, statHints.streak],
 ];
 
 // A team (/teams/:id): what we know of it, its current season's standing, and tabs for its games and its roster.
@@ -66,15 +67,17 @@ export function TeamSinglePage() {
             direction="row"
             sx={{ m: 0, flexWrap: 'wrap', columnGap: 4, rowGap: 2 }}
           >
-            {statsOf(standing).map(([label, value]) => (
+            {statsOf(standing).map(([label, value, hint]) => (
               <Box key={label}>
-                <Typography
-                  component="dt"
-                  variant="caption"
-                  color="text.secondary"
-                >
-                  {label}
-                </Typography>
+                <Tooltip title={hint} describeChild>
+                  <Typography
+                    component="dt"
+                    variant="caption"
+                    color="text.secondary"
+                  >
+                    {label}
+                  </Typography>
+                </Tooltip>
                 <Typography component="dd" sx={{ m: 0 }}>
                   {value}
                 </Typography>

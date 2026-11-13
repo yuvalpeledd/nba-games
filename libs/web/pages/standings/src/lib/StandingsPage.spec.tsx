@@ -166,6 +166,17 @@ describe('StandingsPage', () => {
     ]);
   });
 
+  it('explains a stat on hovering its header', async () => {
+    stubApi(routes({ 2026: [standing(celtics, 1, 10, 3)] }));
+    renderAt('/standings');
+
+    fireEvent.mouseOver(await screen.findByRole('button', { name: 'GB' }));
+
+    expect((await screen.findByRole('tooltip')).textContent).toMatch(
+      /^Games behind the conference's leader/,
+    );
+  });
+
   it("opens a team's page from its name", async () => {
     stubApi(routes({ 2026: [standing(celtics, 1, 10, 3)] }));
     renderAt('/standings');

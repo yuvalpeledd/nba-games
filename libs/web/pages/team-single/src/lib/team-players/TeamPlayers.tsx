@@ -7,7 +7,7 @@ import {
   TableRow,
   Typography,
 } from '@mui/material';
-import { formatHeight, useTeamPlayers } from '@nba/web-core';
+import { formatHeight, statHints, useTeamPlayers } from '@nba/web-core';
 import { PageLoader } from '@nba/web-shell-components';
 import { useTableSort } from '@nba/web-table-components';
 
@@ -33,12 +33,12 @@ export function TeamPlayers({ teamId }: { teamId: string }) {
       <Table aria-label="Players">
         <TableHead>
           <TableRow>
-            {headCell('number', '#', 'right')}
+            {headCell('number', '#', 'right', statHints.jerseyNumber)}
             {headCell('name', 'Player')}
-            {headCell('position', 'Pos')}
-            {headCell('height', 'Ht', 'right')}
-            {headCell('weight', 'Wt', 'right')}
-            {headCell('experience', 'Exp', 'right')}
+            {headCell('position', 'Pos', undefined, statHints.position)}
+            {headCell('height', 'Ht', 'right', statHints.height)}
+            {headCell('weight', 'Wt', 'right', statHints.weight)}
+            {headCell('experience', 'Exp', 'right', statHints.experience)}
             {headCell('college', 'College')}
           </TableRow>
         </TableHead>

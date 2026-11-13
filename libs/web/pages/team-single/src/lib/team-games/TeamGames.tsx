@@ -4,6 +4,7 @@ import {
   Link,
   Menu,
   MenuItem,
+  Stack,
   Table,
   TableBody,
   TableCell,
@@ -13,8 +14,8 @@ import {
   Typography,
 } from '@mui/material';
 import type { GameDto } from '@nba/dtos-games';
-import { GameStatus, SeasonType } from '@nba/sql-games/enums';
-import { formatDay, formatTime, useTeamGames } from '@nba/web-core';
+import { GameStatus } from '@nba/sql-games/enums';
+import { formatTime, useTeamGames } from '@nba/web-core';
 import { PageLoader } from '@nba/web-shell-components';
 import { useTableSort } from '@nba/web-table-components';
 import { useState } from 'react';
@@ -28,33 +29,8 @@ interface OpponentOf {
   opponent: string;
 }
 
-// What sets a game apart from the regular season's; null for those.
-const typeLabels: Record<SeasonType, string | null> = {
-  [SeasonType.PRESEASON]: 'Preseason',
-  [SeasonType.REGULAR]: null,
-  [SeasonType.CUP_FINAL]: 'Cup Final',
-  [SeasonType.PLAY_IN]: 'Play-In',
-  [SeasonType.CONFERENCE_TOURNAMENT]: 'Tournament',
-  [SeasonType.POSTSEASON]: 'Playoffs',
-};
-
-// W/L and the score once final, the score while on, the tip-off (the viewer's time) before, else what happened.
-const resultOf = (
-  game: GameDto,
-  teamId: string,
-  score: number | null,
-  opponentScore: number | null,
-): string => {
-  if (score === null || opponentScore === null) {
-    return game.status === GameStatus.SCHEDULED
-      ? formatTime(game.startTime)
-      : game.status.charAt(0).toUpperCase() + game.status.slice(1);
-  }
-  if (game.status !== GameStatus.FINAL) return `${score}-${opponentScore}`;
-  return `${game.winnerTeamId === teamId ? 'W' : 'L'} ${score}-${opponentScore}`;
-};
-
-// A game from the team's side: where, against whom, and the score with the team's first.
+// A game from the team's side: where, against whom, and the score with the team's first: W/L and the score once
+// final, the score while on, else N/A.
 const sideOf = (
   game: GameDto,
   teamId: string,
@@ -65,18 +41,23 @@ const sideOf = (
   const [score, opponentScore] = isHome
     ? [game.homeScore, game.awayScore]
     : [game.awayScore, game.homeScore];
+  const won =
+    game.status === GameStatus.FINAL ? game.winnerTeamId === teamId : null;
+  const played = score !== null && opponentScore !== null;
   return {
     game,
     isHome,
     opponentId,
     opponent: teamNames.get(opponentId) ?? opponentId,
-    margin:
-      score === null || opponentScore === null ? null : score - opponentScore,
-    result: resultOf(game, teamId, score, opponentScore),
+    margin: played ? score - opponentScore : null,
+    won,
+    result: played
+      ? `${won === null ? '' : won ? 'W ' : 'L '}${score}-${opponentScore}`
+      : 'N/A',
   };
 };
 
-// The team's games in the season, by day.
+// The team's games in the season, by tip-off.
 export function TeamGames({
   teamId,
   season,
@@ -90,8 +71,9 @@ export function TeamGames({
   const { rows, headCell } = useTableSort(
     (games ?? []).map((game) => sideOf(game, teamId, teamNames)),
     {
-      date: (row) => row.game.startTime,
+      time: (row) => row.game.startTime,
       opponent: (row) => row.opponent,
+      home: (row) => Number(row.isHome),
       result: (row) => row.margin,
     },
   );
@@ -114,29 +96,46 @@ export function TeamGames({
       <Table aria-label="Games">
         <TableHead>
           <TableRow>
-            {headCell('date', 'Date')}
+            {headCell('time', 'Time')}
             {headCell('opponent', 'Opponent')}
+            {headCell('home', 'Home')}
             {headCell('result', 'Result', 'right')}
             <TableCell aria-label="Actions" />
           </TableRow>
         </TableHead>
         <TableBody>
-          {rows.map(({ game, isHome, opponentId, opponent, result }) => (
+          {rows.map(({ game, isHome, opponentId, opponent, won, result }) => (
             <TableRow key={game.id}>
-              <TableCell>{formatDay(game.date)}</TableCell>
+              <TableCell>{formatTime(game.startTime)}</TableCell>
               <TableCell>
-                {isHome ? 'vs ' : '@ '}
-                <Link component={RouterLink} to={`/teams/${opponentId}`}>
-                  {opponent}
-                </Link>
-                {typeLabels[game.seasonType] && (
-                  <Typography component="span" color="text.secondary">
-                    {' · '}
-                    {typeLabels[game.seasonType]}
-                  </Typography>
-                )}
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  sx={{ alignItems: 'center' }}
+                >
+                  {/* Decorative: the name beside it says which team. */}
+                  <img
+                    src={`/logos/${opponentId}.svg`}
+                    alt=""
+                    width={24}
+                    height={24}
+                  />
+                  <Link component={RouterLink} to={`/teams/${opponentId}`}>
+                    {opponent}
+                  </Link>
+                </Stack>
               </TableCell>
-              <TableCell align="right">{result}</TableCell>
+              <TableCell>{isHome ? 'Yes' : 'No'}</TableCell>
+              <TableCell align="right">
+                {/* On its own element: the design system colors every cell. */}
+                <Typography
+                  component="span"
+                  variant="inherit"
+                  color={won === null ? undefined : won ? 'success' : 'error'}
+                >
+                  {result}
+                </Typography>
+              </TableCell>
               <TableCell align="right" sx={{ py: 0 }}>
                 <IconButton
                   className="row-menu"

@@ -77,8 +77,8 @@ const player = (
   ...overrides,
 });
 
-// The scheduled game's tip-off on the viewer's clock (the machine's time zone).
-const tipOff = formatTime('2026-11-20T23:30:00.000Z');
+// A game's tip-off on the viewer's clock (the machine's time zone).
+const tipOff = (date: string) => formatTime(`${date}T23:30:00.000Z`);
 const games = [
   final('nba-bos', 'nba-nyk', '2026-10-21', 110, 102),
   final('nba-nyk', 'nba-bos', '2026-10-25', 99, 95),
@@ -142,16 +142,27 @@ describe('TeamSinglePage', () => {
     ).toEqual(['10-3', '76.9%', '1', '3-2', '3-2', '6-4', 'W4']);
   });
 
+  it('explains a stat on hovering its label', async () => {
+    stubApi(routes());
+    renderAt('/teams/nba-bos');
+
+    fireEvent.mouseOver(await screen.findByText('L10'));
+
+    expect((await screen.findByRole('tooltip')).textContent).toBe(
+      'Record in the last 10 games',
+    );
+  });
+
   it("lists the team's games, from its side", async () => {
     stubApi(routes());
     renderAt('/teams/nba-bos');
 
     expect(await rowsOf('Games')).toEqual([
-      ['Wed, Oct 21', 'vs New York Knicks', 'W 110-102', ''],
-      ['Sun, Oct 25', '@ New York Knicks', 'L 95-99', ''],
-      ['Fri, Nov 20', 'vs Los Angeles Lakers', tipOff, ''],
-      ['Sun, Nov 22', '@ Los Angeles Lakers', 'Postponed', ''],
-      ['Tue, Apr 20', 'vs New York Knicks · Playoffs', 'W 120-100', ''],
+      [tipOff('2026-10-21'), 'New York Knicks', 'Yes', 'W 110-102', ''],
+      [tipOff('2026-10-25'), 'New York Knicks', 'No', 'L 95-99', ''],
+      [tipOff('2026-11-20'), 'Los Angeles Lakers', 'Yes', 'N/A', ''],
+      [tipOff('2026-11-22'), 'Los Angeles Lakers', 'No', 'N/A', ''],
+      [tipOff('2027-04-20'), 'New York Knicks', 'Yes', 'W 120-100', ''],
     ]);
     expect(
       screen
@@ -166,12 +177,12 @@ describe('TeamSinglePage', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Result' }));
     fireEvent.click(screen.getByRole('button', { name: 'Result' }));
-    expect((await rowsOf('Games')).map(([, , result]) => result)).toEqual([
+    expect((await rowsOf('Games')).map(([, , , result]) => result)).toEqual([
       'W 120-100',
       'W 110-102',
       'L 95-99',
-      tipOff,
-      'Postponed',
+      'N/A',
+      'N/A',
     ]);
   });
 
@@ -211,9 +222,9 @@ describe('TeamSinglePage', () => {
         .map((value) => value.textContent),
     ).toEqual(['1', '100.0%', '2', '0.0%']);
     expect(await rowsOf('Previous games')).toEqual([
-      ['2026-27', 'Sun, Oct 25', 'Away', 'L 95-99'],
-      ['2026-27', 'Wed, Oct 21', 'Home', 'W 110-102'],
-      ['2025-26', 'Sun, Mar 1', 'Away', 'L 90-100'],
+      ['2026-27', tipOff('2026-10-25'), 'Away', 'L 95-99'],
+      ['2026-27', tipOff('2026-10-21'), 'Home', 'W 110-102'],
+      ['2025-26', tipOff('2026-03-01'), 'Away', 'L 90-100'],
     ]);
 
     fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }));
