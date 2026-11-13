@@ -14,7 +14,7 @@ For the web app: `apps/web-app` and its libs in `libs/web` (CLAUDE.md's Layout).
   Live games refetch on an interval (`refetchInterval`) only while one is live.
 - **API calls:** relative `/api/...` paths (Vite's proxy locally, same origin in production).
   `api(method, path, body?)` sends `Bearer <Firebase ID token>` while there's a session; a 401 ends it.
-- **Auth:** Firebase signs people in (`firebase/auth`, its own session in IndexedDB); `firebase.ts` loads its config once (`GET /api/firebase-config`, the emulator when the API names one).
+- **Auth:** Firebase signs people in (`firebase/auth`, its own session in IndexedDB); `firebase.ts` loads its config once (`GET /api/firebase-config`).
   The session (`session.ts`, localStorage) is the `userId` that `/login` or `/sign-up` answered, so `useSession()` stays synchronous; `clearSession()` signs out of Firebase too.
   `LoginPage` (`/login`, full-screen, outside the navbar's layout) is outly's: Log in and Sign up tabs, Verify (the emailed link), Finish signing up (a login's 404: the name) and Reset password, with Firebase's errors as the page's own messages.
   Pages are open to everyone; the navbar's end shows Log in, or the user's name and Log out.

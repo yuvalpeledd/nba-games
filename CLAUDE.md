@@ -71,7 +71,6 @@ Tag projects (`scope:web`, `scope:frontend-api`, `scope:data-fetcher`, `scope:sh
 ```bash
 pnpm install
 docker compose up -d db                            # local Postgres (see Database)
-pnpm firebase:emulator                             # Firebase's Auth emulator on :9099, which sign-in uses locally (see Auth in features.md)
 pnpm nx run-many -t serve -p frontend-api web-app  # API :3000, web :4200 (proxies /api)
 pnpm nx run data-fetcher:run                       # one fetch run against the local DB (API_NINJAS_KEY in .env: real calls, real quota)
 pnpm nx affected -t lint test build typecheck      # full check: run before handing work back

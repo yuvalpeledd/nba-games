@@ -289,27 +289,25 @@ describe('AuthController', () => {
   describe('GET /firebase-config', () => {
     // validation: it reads nothing. auth: none, it's read before anyone signs in.
 
+    // The env as a developer's .env may set it, put back after each test.
+    const env = { ...process.env };
+    beforeEach(() => {
+      delete process.env['GOOGLE_CLOUD_PROJECT'];
+      delete process.env['FIREBASE_AUTH_DOMAIN'];
+      process.env['FIREBASE_API_KEY'] = 'dev-key';
+    });
     afterEach(() => {
-      delete process.env['FIREBASE_AUTH_EMULATOR_HOST'];
+      process.env = { ...env };
     });
 
-    it("answers the emulator's when the env names no project", async () => {
+    it("answers what the web needs to reach the dev project, with the env's key", async () => {
       const { status, body } = await app.call('GET', '/firebase-config');
 
       expect(status).toBe(200);
       expect(body.data).toEqual({
-        apiKey: 'demo-key',
-        authDomain: 'demo-nba.firebaseapp.com',
-        emulatorHost: '127.0.0.1:9099',
+        apiKey: 'dev-key',
+        authDomain: 'yuval-nba-test.firebaseapp.com',
       });
-    });
-
-    it('passes on the emulator host the env names', async () => {
-      process.env['FIREBASE_AUTH_EMULATOR_HOST'] = 'localhost:9199';
-
-      const { body } = await app.call('GET', '/firebase-config');
-
-      expect(body.data.emulatorHost).toBe('localhost:9199');
     });
   });
 });

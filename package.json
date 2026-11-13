@@ -6,8 +6,7 @@
   "scripts": {
     "typeorm": "TS_NODE_PROJECT=libs/sql/database/tsconfig.lib.json TS_NODE_BASEURL=../../.. ts-node -r tsconfig-paths/register node_modules/typeorm/cli.js -d libs/sql/database/src/data-source.ts",
     "typeorm:run-migrations": "pnpm typeorm migration:run",
-    "typeorm:generate-migration": "f() { pnpm typeorm migration:generate migrations/$1; }; f",
-    "firebase:emulator": "npx -y firebase-tools@15 emulators:start --only auth --project demo-nba"
+    "typeorm:generate-migration": "f() { pnpm typeorm migration:generate migrations/$1; }; f"
   },
   "packageManager": "pnpm@12.8.1",
   "dependencies": {
