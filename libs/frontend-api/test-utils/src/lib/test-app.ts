@@ -9,7 +9,7 @@ import { APP_FILTER } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
 import { FailureFilter } from '@nba/frontend-api-common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { testPostgresOptions } from '@nba/sql';
+import { TEST_DB_NAME, testPostgresOptions } from '@nba/sql';
 import { GameCreateObject, GameDalService, GameModule } from '@nba/sql-games';
 import {
   PlayerCreateObject,
@@ -42,11 +42,8 @@ export interface Reply {
   body: any;
 }
 
-// testPostgresOptions()' database: clearDatabase() refuses any other.
-const TEST_DB = 'nba_test';
-
 // The modules under test, as main.ts serves them (under /api, with the failure filter), over HTTP on a random port,
-// on `nba_test` rebuilt through the migrations (testPostgresOptions). Every table's DAL module is loaded, for seeding
+// on the specs' database (TEST_DB_NAME) rebuilt through the migrations (testPostgresOptions). Every table's DAL module is loaded, for seeding
 // and reading back.
 export class TestApp {
   private constructor(
@@ -63,7 +60,7 @@ export class TestApp {
     }
     const moduleRef = await Test.createTestingModule({
       imports: [
-        TypeOrmModule.forRoot(testPostgresOptions()),
+        TypeOrmModule.forRootAsync({ useFactory: testPostgresOptions }),
         TeamModule,
         PlayerModule,
         TeamPlayerModule,
@@ -97,7 +94,7 @@ export class TestApp {
   // Empties every table, seasons included (their migration's rows too); the schema and the applied migrations stay.
   async clearDatabase(): Promise<void> {
     const dataSource = this.get(DataSource);
-    if (dataSource.options.database !== TEST_DB) {
+    if (dataSource.options.database !== TEST_DB_NAME) {
       throw new Error(`Not clearing ${dataSource.options.database}`);
     }
     const tables = dataSource.entityMetadatas.map(
