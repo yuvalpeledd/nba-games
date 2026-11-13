@@ -54,8 +54,10 @@ Add a section per feature as it is built; delete what turns out wrong.
   - Scoring is a plain function in the predictions dtos lib (`scorePrediction(prediction, game)`: right, wrong, or null until the game is final with a winner), covered by its own spec; scores are derived, never stored, until that gets slow.
     The web runs it: the dashboard's Predictions counts the current season's games and the caller's picks (`GET /games?season=`, `GET /predictions?season=`).
   - A game that ends without a result (`canceled`) voids its predictions instead of scoring them.
-- **Groups** (`groups`: uuid, `name` up to 100, `owner_id`, `public`, `status` `Active` or `Closed`; `group_members`: uuid, `group_id`, `user_id`, unique on both): users who play together.
+- **Groups** (`groups`: uuid, `name` up to 100, `owner_id`, `public`, `status` `Active`, `Closed` or `Deleted`, `deleted_at`; `group_members`: uuid, `group_id`, `user_id`, unique on both): users who play together.
   `POST /groups` (`{ name, public }`) makes an `Active` group the caller owns, with the caller as its first member, in one transaction (`GroupMemberDalService.createGroup`: the write spans both tables, so it's in the lower one's DAL).
   `GET /groups` answers what the caller may see: every public group, and the private ones they're in, by name, each with its owner, member count and `isMember` (the web splits them into the caller's and the public ones they're not in).
   `GET /groups/:id` (a uuid, else 400) answers one with its members by name; a private group the caller isn't in is 404, like a missing one, so an id gives nothing away.
+  Its owner edits it (`PATCH /groups/:id`, `{ name, public }`, answering the group) and deletes it (`DELETE /groups/:id`, 204); anyone else who sees it is 403, and one they don't see is 404.
+  A delete is soft: `status` `Deleted` and `deleted_at` (a `@DeleteDateColumn`, so TypeORM leaves the row out of every read): a deleted group is 404 everywhere and never listed.
   Nothing joins, leaves or closes a group yet.

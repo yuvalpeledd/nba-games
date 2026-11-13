@@ -88,6 +88,7 @@ pnpm nx g @nx/nest:lib libs/<path> --name=<name> --importPath=@nba/<name> --unit
 - **No entities in responses:** controllers map entities to DTOs (`toGameDto(...)`) and never return an entity.
 - **Response shape:** always JSON.
   One object is `{ data: {...} }`, a list `{ data: [...] }` (`DataResponse<T>`).
+  A `DELETE` answers 204 with no body (`api()` and `TestApp.call()` read it as no data).
   Errors keep Nest's `{ statusCode, message }`; add a `code` (`ErrorCode` in `@nba/enums`) when the client must tell errors apart.
 - **Lists are paged** where they can grow (games, players, box scores): `?limit=&offset=` (or a date range for games), never the whole table.
 - **Where controllers go:** a new controller gets its own lib, `libs/frontend-api/controllers/<name>/`, importing the DAL modules it needs.

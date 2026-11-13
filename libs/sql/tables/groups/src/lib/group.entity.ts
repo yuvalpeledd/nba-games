@@ -2,6 +2,7 @@ import { BaseAbstractEntity, CreateObject } from '@nba/sql-core';
 import { UserEntity } from '@nba/sql-users';
 import {
   Column,
+  DeleteDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
@@ -31,9 +32,13 @@ export class GroupEntity extends BaseAbstractEntity {
 
   @Column({ type: 'enum', enum: GroupStatus, default: GroupStatus.ACTIVE })
   status!: GroupStatus;
+
+  // Set with status Deleted (soft delete): TypeORM leaves rows that have it out of every read.
+  @DeleteDateColumn({ type: 'timestamptz' })
+  deletedAt?: Date | null;
 }
 
 export type GroupCreateObject = CreateObject<
   GroupEntity,
-  'id' | 'owner' | 'status'
+  'id' | 'owner' | 'status' | 'deletedAt'
 >;

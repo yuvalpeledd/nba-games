@@ -47,7 +47,8 @@ export async function api<T>(
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const json: unknown = await response.json().catch(() => null);
-  if (response.ok) return (json as DataResponse<T>).data;
+  // A 204 (DELETE) has no body: undefined.
+  if (response.ok) return (json as DataResponse<T> | null)?.data as T;
   if (response.status === 401 && session) clearSession();
   throw new ApiError(response.status, messageOf(json), codeOf(json));
 }

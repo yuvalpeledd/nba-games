@@ -32,6 +32,22 @@ const rows = async (name: string) =>
         .map((cell) => cell.textContent),
     );
 
+// A group the signed-in user (signIn()'s u1) owns, and one they're only in.
+const owned = group('Friday League', 'Dana Levi', {
+  id: 'friday',
+  public: false,
+  isMember: true,
+  owner: { id: 'u1', name: 'Dana Levi' },
+});
+const joined = group('Sunday Hoops', 'Omer Cohen', { isMember: true });
+
+const openActions = async (name: string, item: 'Edit' | 'Delete') => {
+  fireEvent.click(
+    await screen.findByRole('button', { name: `Actions for ${name}` }),
+  );
+  fireEvent.click(await screen.findByRole('menuitem', { name: item }));
+};
+
 const openNewGroup = async () => {
   fireEvent.click(await screen.findByRole('button', { name: 'New Group' }));
   return screen.findByRole('dialog', { name: 'New Group' });
@@ -62,8 +78,8 @@ describe('GroupsPage', () => {
       await screen.findByRole('heading', { level: 1, name: 'Groups' }),
     ).toBeTruthy();
     expect(await rows('My groups')).toEqual([
-      ['Friday League', '3', 'Dana Levi', 'No', 'Active'],
-      ['Sunday Hoops', '1', 'Omer Cohen', 'Yes', 'Active'],
+      ['Friday League', '3', 'Dana Levi', 'No', 'Active', ''],
+      ['Sunday Hoops', '1', 'Omer Cohen', 'Yes', 'Active', ''],
     ]);
     expect(await rows('Public groups')).toEqual([
       ['Open Court', '1', 'Omer Cohen', 'Yes', 'Closed'],
@@ -160,5 +176,88 @@ describe('GroupsPage', () => {
       await screen.findByText("Couldn't create the group, try again"),
     ).toBeTruthy();
     expect(screen.getByRole('dialog', { name: 'New Group' })).toBeTruthy();
+  });
+
+  it("has an actions menu only on the user's own groups", async () => {
+    stubApi({ 'GET /groups': [owned, joined] });
+    renderAt('/groups');
+
+    expect(
+      await screen.findByRole('button', { name: 'Actions for Friday League' }),
+    ).toBeTruthy();
+    expect(
+      screen.queryByRole('button', { name: 'Actions for Sunday Hoops' }),
+    ).toBeNull();
+  });
+
+  it("edits the user's group from its menu, then says so", async () => {
+    const fetchMock = stubApi({
+      'GET /groups': [owned],
+      'PATCH /groups/friday': { ...owned, name: 'Sunday League', public: true },
+    });
+    renderAt('/groups');
+
+    await openActions('Friday League', 'Edit');
+    const dialog = await screen.findByRole('dialog', { name: 'Edit Group' });
+    const name = within(dialog).getByRole('textbox', { name: /Name/ });
+    expect((name as HTMLInputElement).value).toBe('Friday League');
+    fireEvent.change(name, { target: { value: 'Sunday League' } });
+    fireEvent.click(within(dialog).getByLabelText('Public'));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByText('Group Sunday League saved')).toBeTruthy();
+    expect(callsOf(fetchMock, 'PATCH')).toEqual([
+      ['/api/groups/friday', { name: 'Sunday League', public: true }],
+    ]);
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+
+  it("deletes the user's group from its menu once they confirm, then says so", async () => {
+    const fetchMock = stubApi({
+      'GET /groups': [owned],
+      'DELETE /groups/friday': undefined,
+    });
+    renderAt('/groups');
+
+    await openActions('Friday League', 'Delete');
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Delete Friday League?',
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+
+    expect(await screen.findByText('Group Friday League deleted')).toBeTruthy();
+    expect(callsOf(fetchMock, 'DELETE')).toEqual([
+      ['/api/groups/friday', undefined],
+    ]);
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+
+  it('says when a group could not be deleted', async () => {
+    stubApi({
+      'GET /groups': [owned],
+      'DELETE /groups/friday': new Failure(500, {
+        statusCode: 500,
+        message: 'Boom',
+      }),
+    });
+    renderAt('/groups');
+
+    await openActions('Friday League', 'Delete');
+    fireEvent.click(
+      within(
+        await screen.findByRole('dialog', { name: 'Delete Friday League?' }),
+      ).getByRole('button', { name: 'Delete' }),
+    );
+
+    expect(
+      await screen.findByText("Couldn't delete the group, try again"),
+    ).toBeTruthy();
+  });
+
+  it("says what a link's state brings (a group page's Delete)", async () => {
+    stubApi({ 'GET /groups': [] });
+    renderAt('/groups', { state: { toast: 'Group Friday League deleted' } });
+
+    expect(await screen.findByText('Group Friday League deleted')).toBeTruthy();
   });
 });
