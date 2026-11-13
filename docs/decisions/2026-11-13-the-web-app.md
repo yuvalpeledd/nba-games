@@ -2,7 +2,7 @@
 
 2026-11-13
 
-- **On `frontend-api`'s contracts:** the standings page asks `/seasons` for the current season (the newest that has started, else the newest) and joins `/standings?season=` with `/teams` for the names; the teams page lists the active teams (`/teams` has past franchises too).
+- **On `frontend-api`'s contracts:** the standings page asks `/seasons` for the current season (the newest that has started, else the newest) and joins `/standings?season=` with `/teams` for the names; the games page lists every team's games one league day at a time (`/games?from=`, `?date=` in the URL, the viewer's today by default), since the API pages games by days.
   The specs run on a fake API with the same routes.
 - **outly's design system, copied, not shared:** its palette (`colors.scss`, without the order-status, semantic and gradient maps), `theme.tsx` without RTL, locales and date pickers, and its MUI overrides (all but rich text).
   No package spans the two repos; revisit if both keep changing it.

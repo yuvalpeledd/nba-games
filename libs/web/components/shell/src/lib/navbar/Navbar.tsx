@@ -1,5 +1,5 @@
 import DashboardIcon from '@mui/icons-material/Dashboard';
-import GroupsIcon from '@mui/icons-material/Groups';
+import EventIcon from '@mui/icons-material/Event';
 import LeaderboardIcon from '@mui/icons-material/Leaderboard';
 import SportsBasketballIcon from '@mui/icons-material/SportsBasketball';
 import {
@@ -15,12 +15,12 @@ import './navbar.scss';
 
 const items: { to: string; label: string; icon: ReactNode }[] = [
   { to: '/', label: 'Dashboard', icon: <DashboardIcon /> },
+  { to: '/games', label: 'Games', icon: <EventIcon /> },
   { to: '/standings', label: 'Standings', icon: <LeaderboardIcon /> },
-  { to: '/teams', label: 'Teams', icon: <GroupsIcon /> },
 ];
 
 function NavbarLink({ to, label, icon }: (typeof items)[number]) {
-  // A section's pages under it (/teams/...) keep it selected; the dashboard only at /.
+  // A section's pages under it (/games/...) keep it selected; the dashboard only at /.
   const isActive = useMatch({ path: to, end: to === '/' }) !== null;
   return (
     <ListItemButton component={NavLink} to={to} selected={isActive}>

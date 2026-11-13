@@ -3,6 +3,7 @@ import type { PlayerDto } from '@nba/dtos-players';
 import type { SeasonDto } from '@nba/dtos-seasons';
 import type { StandingDto } from '@nba/dtos-standings';
 import type { TeamDto } from '@nba/dtos-teams';
+import { GameStatus } from '@nba/sql-games/enums';
 import { useQuery } from '@tanstack/react-query';
 import { api } from './api';
 
@@ -23,6 +24,17 @@ export const useStandings = (season: number | undefined) =>
     queryKey: ['standings', season],
     queryFn: () => api<StandingDto[]>(`/standings?season=${season}`),
     enabled: season !== undefined,
+  });
+
+// Every team's games on a league day ('YYYY-MM-DD', US Eastern), by tip-off; refetched each minute while one is live.
+export const useGames = (date: string) =>
+  useQuery({
+    queryKey: ['games', { date }],
+    queryFn: () => api<GameDto[]>(`/games?from=${date}`),
+    refetchInterval: ({ state }) =>
+      state.data?.some(({ status }) => status === GameStatus.IN_PROGRESS)
+        ? 60_000
+        : false,
   });
 
 // A team's games in a season (by its year), preseason and playoffs too, by day; waits for a season.

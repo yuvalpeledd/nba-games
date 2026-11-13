@@ -1,6 +1,8 @@
 // What the web specs share: the app rendered at a path with the spec's pages (appWith), and the data more than one
 // spec starts from. The fakes are test-setup.ts's; their handles are re-exported here.
+import type { GameDto } from '@nba/dtos-games';
 import type { SeasonDto } from '@nba/dtos-seasons';
+import { GameStatus, SeasonType } from '@nba/sql-games/enums';
 import type { StandingDto } from '@nba/dtos-standings';
 import type { TeamDto } from '@nba/dtos-teams';
 import { formatSeason } from '@nba/web-core';
@@ -89,5 +91,34 @@ export const standing = (
   conferenceRank,
   divisionRank: 1,
   final: false,
+  ...overrides,
+});
+
+// A 2026-27 game, scheduled; a test's overrides for the rest.
+export const game = (
+  home: string,
+  away: string,
+  date: string,
+  overrides: Partial<GameDto> = {},
+): GameDto => ({
+  id: `nba-${date.replaceAll('-', '')}-${home}-${away}`,
+  season: 2026,
+  seasonType: SeasonType.REGULAR,
+  date,
+  startTime: `${date}T23:30:00.000Z`,
+  status: GameStatus.SCHEDULED,
+  statusDetail: null,
+  period: null,
+  clock: null,
+  homeTeamId: home,
+  awayTeamId: away,
+  homeScore: null,
+  awayScore: null,
+  periodScores: null,
+  decidedIn: null,
+  winnerTeamId: null,
+  venue: null,
+  neutralSite: false,
+  originalDate: null,
   ...overrides,
 });

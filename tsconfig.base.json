@@ -73,7 +73,7 @@
       "@nba/web-team-single-page": [
         "./libs/web/pages/team-single/src/index.ts"
       ],
-      "@nba/web-teams-page": ["./libs/web/pages/teams/src/index.ts"],
+      "@nba/web-games-page": ["./libs/web/pages/games/src/index.ts"],
       "@nba/web-test-utils": ["./libs/web/test-utils/src/index.ts"]
     }
   },
