@@ -9,8 +9,9 @@ import { ThemeRoot } from '../theme';
 // them all in, and a spec its own, with stand-ins for the rest.
 export const PAGE_NAMES = [
   'DashboardPage',
+  'GamesPage',
+  'LoginPage',
   'StandingsPage',
-  'TeamsPage',
   'TeamSinglePage',
 ] as const;
 
@@ -33,10 +34,12 @@ export function AppShell({ pages }: { pages: Pages }) {
           <Routes>
             <Route element={<PageLayout />}>
               <Route index element={<pages.DashboardPage />} />
+              <Route path="games" element={<pages.GamesPage />} />
               <Route path="standings" element={<pages.StandingsPage />} />
-              <Route path="teams" element={<pages.TeamsPage />} />
               <Route path="teams/:id" element={<pages.TeamSinglePage />} />
             </Route>
+            {/* Full-screen, without the navbar. */}
+            <Route path="login" element={<pages.LoginPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>

@@ -2,7 +2,14 @@ import type { GameDto } from '@nba/dtos-games';
 import type { PlayerDto } from '@nba/dtos-players';
 import { GameStatus, SeasonType } from '@nba/sql-games/enums';
 import { formatTime } from '@nba/web-core';
-import { appWith, season, standing, stubApi, team } from '@nba/web-test-utils';
+import {
+  appWith,
+  game,
+  season,
+  standing,
+  stubApi,
+  team,
+} from '@nba/web-test-utils';
 import { fireEvent, screen, within } from '@testing-library/react';
 import { TeamSinglePage } from './TeamSinglePage';
 
@@ -11,35 +18,6 @@ const { renderAt } = appWith({ TeamSinglePage });
 const celtics = team('nba-bos', 'Boston Celtics', 'Eastern');
 const knicks = team('nba-nyk', 'New York Knicks', 'Eastern');
 const lakers = team('nba-lal', 'Los Angeles Lakers', 'Western');
-
-// A 2026-27 game, scheduled; a test's overrides for the rest.
-const game = (
-  home: string,
-  away: string,
-  date: string,
-  overrides: Partial<GameDto> = {},
-): GameDto => ({
-  id: `nba-${date.replaceAll('-', '')}-${home}-${away}`,
-  season: 2026,
-  seasonType: SeasonType.REGULAR,
-  date,
-  startTime: `${date}T23:30:00.000Z`,
-  status: GameStatus.SCHEDULED,
-  statusDetail: null,
-  period: null,
-  clock: null,
-  homeTeamId: home,
-  awayTeamId: away,
-  homeScore: null,
-  awayScore: null,
-  periodScores: null,
-  decidedIn: null,
-  winnerTeamId: null,
-  venue: null,
-  neutralSite: false,
-  originalDate: null,
-  ...overrides,
-});
 
 // A final, by its scores.
 const final = (

@@ -1,14 +1,16 @@
 import { DashboardPage } from '@nba/web-dashboard-page';
+import { GamesPage } from '@nba/web-games-page';
+import { LoginPage } from '@nba/web-login-page';
 import { AppShell, type Pages } from '@nba/web-shell-components';
 import { StandingsPage } from '@nba/web-standings-page';
 import { TeamSinglePage } from '@nba/web-team-single-page';
-import { TeamsPage } from '@nba/web-teams-page';
 
 // Every page, each from its lib, for AppShell's routes.
 export const pages: Pages = {
   DashboardPage,
+  GamesPage,
+  LoginPage,
   StandingsPage,
-  TeamsPage,
   TeamSinglePage,
 };
 

@@ -1,0 +1,8 @@
+{
+  "name": "web-games-page",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/web/pages/games/src",
+  "projectType": "library",
+  "tags": ["scope:web"],
+  "targets": {}
+}

@@ -1,0 +1,42 @@
+// The card at a fixed height from the top, not centered: it grows downward when the step changes (Sign up's fields),
+// so the title and tabs stay where they were clicked.
+.login-page {
+  min-block-size: 100dvh;
+  display: grid;
+  place-items: start center;
+  padding: clamp(1rem, 12vh, 8rem) 1rem 1rem;
+
+  &__card {
+    inline-size: 100%;
+    max-inline-size: 26rem;
+  }
+
+  // Log in and Sign up, with room under them for the first field's label.
+  &__tabs {
+    margin-block-end: 0.5rem;
+  }
+
+  // Keyed by the step: its fields fade and rise in, so switching tabs shows.
+  @media (prefers-reduced-motion: no-preference) {
+    &__step {
+      animation: login-page-step 0.25s ease-out;
+    }
+  }
+
+  // A step's words, between the title and its fields.
+  &__text {
+    padding-block-end: 0.5rem;
+  }
+
+  // Under the password, at its end.
+  &__forgot {
+    align-self: end;
+  }
+}
+
+@keyframes login-page-step {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+}

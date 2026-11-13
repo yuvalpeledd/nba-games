@@ -22,15 +22,15 @@ describe('DashboardPage', () => {
     await screen.findByRole('heading', { name: 'Hello' });
     const nav = within(screen.getByRole('navigation', { name: 'Navigation' }));
 
+    fireEvent.click(nav.getByRole('link', { name: 'Games' }));
+    expect(
+      await screen.findByRole('heading', { name: 'GamesPage' }),
+    ).toBeTruthy();
     fireEvent.click(nav.getByRole('link', { name: 'Standings' }));
     expect(
       await screen.findByRole('heading', { name: 'StandingsPage' }),
     ).toBeTruthy();
-    fireEvent.click(nav.getByRole('link', { name: 'Teams' }));
-    expect(
-      await screen.findByRole('heading', { name: 'TeamsPage' }),
-    ).toBeTruthy();
-    expect(nav.getByRole('link', { name: 'Teams' }).className).toContain(
+    expect(nav.getByRole('link', { name: 'Standings' }).className).toContain(
       'Mui-selected',
     );
     fireEvent.click(nav.getByRole('link', { name: 'Dashboard' }));

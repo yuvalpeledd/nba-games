@@ -13,6 +13,12 @@ For the web app: `apps/web-app` and its libs in `libs/web` (CLAUDE.md's Layout).
   No other fetching.
   Live games refetch on an interval (`refetchInterval`) only while one is live.
 - **API calls:** relative `/api/...` paths (Vite's proxy locally, same origin in production).
+  `api(method, path, body?)` sends `Bearer <Firebase ID token>` while there's a session; a 401 ends it.
+- **Auth:** Firebase signs people in (`firebase/auth`, its own session in IndexedDB); `firebase.ts` loads its config once (`GET /api/firebase-config`, the emulator when the API names one).
+  The session (`session.ts`, localStorage) is the `userId` that `/login` or `/sign-up` answered, so `useSession()` stays synchronous; `clearSession()` signs out of Firebase too.
+  `LoginPage` (`/login`, full-screen, outside the navbar's layout) is outly's: Log in and Sign up tabs, Verify (the emailed link), Finish signing up (a login's 404: the name) and Reset password, with Firebase's errors as the page's own messages.
+  Pages are open to everyone; the navbar's end shows Log in, or the user's name and Log out.
+  Specs sign in with `signIn()` and fake Firebase's SDK (`firebase`, `firebaseError()` in test-utils).
 - **UI:** MUI components wherever one exists, icons from `@mui/icons-material`.
   SCSS only for layout MUI doesn't cover.
   One theme (`theme.tsx`); don't restyle components per page.
@@ -26,7 +32,7 @@ For the web app: `apps/web-app` and its libs in `libs/web` (CLAUDE.md's Layout).
   Routes live in the shell lib's `AppShell`, which takes the pages from `app.tsx`.
 - **Components:** one that a single page uses is in that page's lib; the rest in `libs/web/components/<group>`, a group per set of pages that use them, so a change reruns only those pages' specs.
   Two groups every page relies on:
-  - `shell`: `AppShell` (providers, routes, the navbar around every page), the theme and the palette (`colors.scss`), `PageLoader`;
+  - `shell`: `AppShell` (providers, routes, the navbar around every page but `/login`), the theme and the palette (`colors.scss`), `PageLoader`;
   - `design-system`: outly's MUI overrides, app-wide; only `main.tsx` imports it.
 - **Types:** import from `types.d.ts` with `import type`.
 - **SCSS:** each file styles one root class (`.games-page`, BEM children `.games-page__row`).

@@ -4,3 +4,10 @@ allowBuilds:
   nx: false
   unrs-resolver: false
   '@nestjs/core': false
+  # Firebase App Hosting's auto-config (FIREBASE_WEBAPP_CONFIG): not used.
+  '@firebase/util': false
+  # A version-scheme warning, from the web SDK's Firestore (unused, tree-shaken).
+  protobufjs: false
+# firebase-admin's Firestore client (gRPC, protobufs): the API uses only its Auth.
+ignoredOptionalDependencies:
+  - '@google-cloud/firestore'

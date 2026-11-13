@@ -12,6 +12,7 @@ import {
 } from '@nba/sql-standings-history';
 import { TeamPlayerDalService, TeamPlayerModule } from '@nba/sql-team-players';
 import { TeamDalService, TeamModule } from '@nba/sql-teams';
+import { UserDalService, UserModule } from '@nba/sql-users';
 import { DataSource } from 'typeorm';
 import {
   gameOf,
@@ -45,6 +46,7 @@ describe('schema', () => {
         SeasonModule,
         StandingHistoryModule,
         GameDayModule,
+        UserModule,
       ],
     }).compile();
     dataSource = module.get(DataSource);
@@ -53,7 +55,7 @@ describe('schema', () => {
   // Not seasons: the migrations load them.
   beforeEach(() =>
     dataSource.query(
-      'TRUNCATE teams, players, games, game_days, standings, standings_history, team_players',
+      'TRUNCATE teams, players, games, game_days, standings, standings_history, team_players, users',
     ),
   );
 
@@ -334,6 +336,38 @@ describe('schema', () => {
             { date: '2026-11-12', teamId: 'nba-por', playerId: 'nba-p-none' },
           ]),
       ).rejects.toThrow(/foreign key/);
+    });
+  });
+
+  describe('users', () => {
+    const user = {
+      name: 'Dana Levi',
+      email: ' Dana@NBA.dev',
+      firebaseUid: 'firebase-dana',
+    };
+
+    it('stores the email lower-cased and finds them by it, their id or their Firebase account', async () => {
+      const dal = module.get(UserDalService);
+      const { id } = await dal.create(user);
+
+      const expected = { id, name: 'Dana Levi', email: 'dana@nba.dev' };
+      expect(await dal.findById(id)).toMatchObject(expected);
+      expect(await dal.findByEmail('DANA@nba.dev')).toMatchObject(expected);
+      expect(await dal.findByFirebaseUid('firebase-dana')).toMatchObject(
+        expected,
+      );
+    });
+
+    it('keeps one user per email and per Firebase account', async () => {
+      const dal = module.get(UserDalService);
+      await dal.create(user);
+
+      await expect(
+        dal.create({ ...user, firebaseUid: 'firebase-other' }),
+      ).rejects.toThrow(/duplicate key/);
+      await expect(
+        dal.create({ ...user, email: 'other@nba.dev' }),
+      ).rejects.toThrow(/duplicate key/);
     });
   });
 });
