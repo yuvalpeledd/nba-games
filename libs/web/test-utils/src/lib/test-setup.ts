@@ -64,6 +64,12 @@ vi.mock('firebase/auth', () => {
     ),
     sendEmailVerification: vi.fn(async () => undefined),
     sendPasswordResetEmail: vi.fn(async () => undefined),
+    // A credential is what it was made of, for a test to compare.
+    EmailAuthProvider: {
+      credential: (email: string, password: string) => ({ email, password }),
+    },
+    reauthenticateWithCredential: vi.fn(async () => undefined),
+    updatePassword: vi.fn(async () => undefined),
     signOut: vi.fn(async () => firebase.setUser(null)),
   };
 });

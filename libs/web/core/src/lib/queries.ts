@@ -2,6 +2,7 @@ import type {
   LoginRequest,
   SessionDto,
   SignUpRequest,
+  UpdateMeRequest,
   UserDto,
 } from '@nba/dtos-auth';
 import type { GameDto } from '@nba/dtos-games';
@@ -91,6 +92,16 @@ export const useMe = () => {
     queryKey: ['me', session?.userId],
     queryFn: () => api<UserDto>('GET', '/me'),
     enabled: session !== null,
+  });
+};
+
+// Renames the signed-in user, who is then shown by the new name.
+export const useUpdateMe = () => {
+  const session = useSession();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: UpdateMeRequest) => api<UserDto>('PATCH', '/me', body),
+    onSuccess: (me) => queryClient.setQueryData(['me', session?.userId], me),
   });
 };
 

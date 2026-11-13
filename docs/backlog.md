@@ -18,8 +18,8 @@
 - **What may the players fetcher delete?** As built, nothing is deleted but the day's `team_players` rows it replaces: a player on no roster keeps their row with `team_id` null (their days point at them), and teams stay (everything points at them).
   Should players gone for a season be deleted, with their days?
 - Next: a first real run (`API_NINJAS_KEY` in `.env`, then `pnpm nx run data-fetcher:run`: 32 calls plus up to 50 for the games), then the web-app's next pages (players).
-- web-app: predictions show in the games tables and as the dashboard's counters (no page of a user's picks), and their toast is the prediction cell's own snackbar until an app-wide toast exists.
-- Auth: no profile page (changing the name, email or password), no account deletion, and the navbar shows the name only while the rail is open.
+- web-app: predictions show in the games tables and as the dashboard's counters (no page of a user's picks), and their toast is the prediction cell's own snackbar (the profile page's too) until an app-wide toast exists.
+- Auth: the profile page changes the name and password, not the email (outly's does, through Firebase's verify-before-update link); no account deletion; the navbar shows the name only while the rail is open.
   Add them when users ask.
 - data-fetcher: a bundle and a Cloud Run Job (and its schedule) when it's deployed; it runs from its sources for now.
   A future day that has games is never checked again until its scores are due: refresh the ones not checked in a while (`game_days.checked_on`) if schedule changes (postponements, playoff dates) must show early.

@@ -286,6 +286,69 @@ describe('AuthController', () => {
     });
   });
 
+  describe('PATCH /me', () => {
+    const rename = (body: Record<string, unknown>, token?: string | null) =>
+      app.call('PATCH', '/me', body, token);
+
+    describe('validation', () => {
+      beforeEach(() => app.signIn());
+
+      const expectRejected = async (
+        body: Record<string, unknown>,
+        message: string,
+      ) => {
+        const { status, body: response } = await rename(body);
+        expect(status).toBe(400);
+        expect(response.message).toContain(message);
+      };
+
+      it('rejects a missing name', () =>
+        expectRejected({}, 'name is a required field'));
+
+      it('rejects a blank name', () =>
+        expectRejected({ name: '   ' }, 'name is a required field'));
+
+      it('rejects a name longer than 255 characters', () =>
+        expectRejected(
+          { name: 'n'.repeat(256) },
+          'name must be at most 255 characters',
+        ));
+    });
+
+    describe('auth', () => {
+      it('refuses a caller who is not signed in', async () => {
+        const { status } = await rename({ name: 'Dana Cohen' }, null);
+        expect(status).toBe(401);
+      });
+    });
+
+    describe('behavior', () => {
+      it('renames the caller (trimmed), and only them, and answers their user', async () => {
+        const dana = await app.signIn({ name: 'Dana Levi' });
+        const noa = await app.createUser({ name: 'Noa' });
+
+        const { status, body } = await rename({
+          name: ' Dana Cohen ',
+          email: 'other@nba.dev',
+        });
+
+        expect(status).toBe(200);
+        expect(body.data).toEqual({
+          id: dana.id,
+          name: 'Dana Cohen',
+          email: dana.email,
+        });
+        await expect(users().findById(dana.id)).resolves.toMatchObject({
+          name: 'Dana Cohen',
+          email: dana.email,
+        });
+        await expect(users().findById(noa.id)).resolves.toMatchObject({
+          name: 'Noa',
+        });
+      });
+    });
+  });
+
   describe('GET /firebase-config', () => {
     // validation: it reads nothing. auth: none, it's read before anyone signs in.
 

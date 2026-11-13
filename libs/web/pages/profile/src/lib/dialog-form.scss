@@ -1,0 +1,4 @@
+// Both dialogs' forms: DialogContent drops its top padding under a title, which would clip the first field's label.
+.dialog-form {
+  padding-block-start: 0.5rem;
+}
