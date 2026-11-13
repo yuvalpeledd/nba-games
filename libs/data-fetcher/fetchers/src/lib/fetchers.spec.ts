@@ -98,6 +98,7 @@ describe('fetchers', () => {
     jest.restoreAllMocks();
     delete process.env['GAMES_MAX_REQUESTS'];
     delete process.env['SEASON_ID'];
+    delete process.env['FETCH_CONCURRENCY'];
   });
 
   describe('TeamsFetcherService', () => {
@@ -313,7 +314,7 @@ describe('fetchers', () => {
       );
     };
 
-    it('fetches the days without games one at a time, nearest to today first, up to the limit', async () => {
+    it('fetches the days without games, started nearest to today first, up to the limit', async () => {
       process.env['GAMES_MAX_REQUESTS'] = '5';
       await module.get(GamesFetcherService).run('2026-11-12');
 
@@ -327,16 +328,39 @@ describe('fetchers', () => {
       expect(
         await module.get(GameDalService).findByDate('2026-11-11'),
       ).toHaveLength(games.length);
-      expect(logged()).toEqual([
+      const lines = logged();
+      expect(lines[0]).toBe(
         'nba-2026-27, today 2026-11-12: 174 days to check (174 never checked, 0 for scores from 2026-10-20); ' +
           'checking 5 now (up to 5 a run): 2026-11-12, 2026-11-11, 2026-11-13, 2026-11-10, 2026-11-14',
-        '2026-11-12: fetched no games from the API',
-        `2026-11-11: fetched ${games.length} games from the API: ${games.length} added, 0 updated, 0 unchanged`,
-        '2026-11-13: fetched no games from the API',
+      );
+      // A line per day, in the order they finished.
+      expect(lines.slice(1, -1).sort()).toEqual([
         '2026-11-10: fetched no games from the API',
+        `2026-11-11: fetched ${games.length} games from the API: ${games.length} added, 0 updated, 0 unchanged`,
+        '2026-11-12: fetched no games from the API',
+        '2026-11-13: fetched no games from the API',
         '2026-11-14: fetched no games from the API',
-        `nba-2026-27: checked 5 of 174 days (0 failed, 169 left for the next run); games ${games.length} added, 0 updated, 0 unchanged`,
       ]);
+      expect(lines.at(-1)).toBe(
+        `nba-2026-27: checked 5 of 174 days (0 failed, 169 left for the next run); games ${games.length} added, 0 updated, 0 unchanged`,
+      );
+    });
+
+    it('has FETCH_CONCURRENCY requests in flight at most', async () => {
+      process.env['GAMES_MAX_REQUESTS'] = '10';
+      process.env['FETCH_CONCURRENCY'] = '3';
+      let inFlight = 0;
+      let most = 0;
+      fetch.mockImplementation(async () => {
+        most = Math.max(most, ++inFlight);
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        inFlight--;
+        return Response.json([]);
+      });
+
+      await module.get(GamesFetcherService).run('2026-11-12');
+      expect(fetch).toHaveBeenCalledTimes(10);
+      expect(most).toBe(3);
     });
 
     it('fetches again from the last day with scores to today, and nothing else the season has', async () => {
@@ -396,13 +420,18 @@ describe('fetchers', () => {
       expect(days).toEqual(daysBetween('2026-10-20', '2026-11-12').reverse());
     });
 
-    it('stops at the quota, without failing', async () => {
+    it('starts no day after the quota, without failing', async () => {
+      process.env['FETCH_CONCURRENCY'] = '2';
       answerWith(() =>
         Response.json({ error: 'Quota exceeded' }, { status: 429 }),
       );
 
       await module.get(GamesFetcherService).run('2026-11-12');
-      expect(fetch).toHaveBeenCalledTimes(1);
+      // The two in flight when the first 429 came, and none after.
+      expect(fetch).toHaveBeenCalledTimes(2);
+      expect(logged().at(-1)).toBe(
+        'nba-2026-27: checked 0 of 174 days (0 failed, 174 left for the next run); games 0 added, 0 updated, 0 unchanged',
+      );
     });
 
     it('goes on past a failed day, and fails the run at the end', async () => {
