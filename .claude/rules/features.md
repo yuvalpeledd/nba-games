@@ -74,4 +74,5 @@ Add a section per feature as it is built; delete what turns out wrong.
   Its `POST /api/games/:gameId/score` writes them, called by the games fetcher for every known game a run turned final (see `data-fetcher.md`): every prediction of the game with a pick, scored by `scorePrediction`, a row in each group its user is in.
   A taken-back pick (null) and a user in no group get no row; scoring a game again overwrites its rows (a corrected result).
   An unknown game is 404; a game not final with a winner (a canceled one never is: its picks are void) is 409 `GAME_NOT_FINAL`, and nothing is written.
+  `POST /api/games/score?from=&to=` (days, both included, both required) scores every game in the range that's final with a winner the same way and skips the rest, answering a `{ gameId, scores, right }` per game scored: to rescore by hand.
   The route has no auth: score-manager must never be reachable from outside the deployment.

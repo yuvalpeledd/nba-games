@@ -105,4 +105,21 @@ export class ScoresService {
     );
     return result;
   }
+
+  // Every game from `from` to `to` ('YYYY-MM-DD', both included) that's final with a winner, scored as `score` does;
+  // the rest (not played yet, canceled) are skipped.
+  // ponytail: one game at a time (a season is ~1,300); batch the reads if a whole season gets slow.
+  async scoreBetween(from: string, to: string): Promise<GameScores[]> {
+    const games = await this.games.findBetween(from, to);
+    const results: GameScores[] = [];
+    for (const game of games) {
+      if (game.status === GameStatus.FINAL && game.winnerTeamId) {
+        results.push(await this.score(game.id));
+      }
+    }
+    this.logger.log(
+      `Scored ${results.length} of ${games.length} games from ${from} to ${to}`,
+    );
+    return results;
+  }
 }

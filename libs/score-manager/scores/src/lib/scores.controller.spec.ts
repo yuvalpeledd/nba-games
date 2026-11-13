@@ -113,6 +113,78 @@ describe('ScoresController', () => {
   const predict = (userId: string, pick: PredictionPick | null) =>
     get(PredictionDalService).set({ userId, gameId: GAME_ID, pick });
 
+  describe('POST /games/score', () => {
+    const scoreBetween = async (query: string) => {
+      const response = await fetch(`${baseUrl}/api/games/score?${query}`, {
+        method: 'POST',
+      });
+      return { status: response.status, body: await response.json() };
+    };
+
+    describe('validation', () => {
+      it('requires from and to', async () => {
+        const { status, body } = await scoreBetween('');
+        expect(status).toBe(400);
+        expect(body.message).toContain('from is a required field');
+        expect(body.message).toContain('to is a required field');
+      });
+
+      it('takes real days', async () => {
+        const { status, body } = await scoreBetween('from=2026-13-01&to=x');
+        expect(status).toBe(400);
+        expect(body.message).toContain('from must be a date (YYYY-MM-DD)');
+        expect(body.message).toContain('to must be a date (YYYY-MM-DD)');
+      });
+
+      it('takes to on or after from', async () => {
+        const { status, body } = await scoreBetween(
+          'from=2026-11-12&to=2026-11-11',
+        );
+        expect(status).toBe(400);
+        expect(body.message).toContain('to must not be before from');
+      });
+    });
+
+    describe('behavior', () => {
+      it('scores the final games in the range and skips the rest', async () => {
+        const game = (id: string, date: string, overrides = {}) => ({
+          ...finalGame,
+          id,
+          date,
+          startTime: new Date(`${date}T23:00:00Z`),
+          ...overrides,
+        });
+        await get(GameDalService).upsert([
+          game('nba-20261110-nyk-bos', '2026-11-10'),
+          game(GAME_ID, '2026-11-11'),
+          game('nba-20261112-nyk-bos', '2026-11-12', {
+            status: GameStatus.SCHEDULED,
+            winnerTeamId: null,
+          }),
+          game('nba-20261113-nyk-bos', '2026-11-13'), // after the range
+        ]);
+        const dana = await createUser('dana');
+        await createGroup('Friday', dana.id);
+        await predict(dana.id, PredictionPick.HOME);
+
+        const { status, body } = await scoreBetween(
+          'from=2026-11-10&to=2026-11-12',
+        );
+
+        expect(status).toBe(200);
+        expect(body).toEqual({
+          data: [
+            { gameId: 'nba-20261110-nyk-bos', scores: 0, right: 0 },
+            { gameId: GAME_ID, scores: 1, right: 1 },
+          ],
+        });
+        expect(
+          await get(GroupUserScoreDalService).findByGame(GAME_ID),
+        ).toMatchObject([{ userId: dana.id, score: 1 }]);
+      });
+    });
+  });
+
   describe('POST /games/:gameId/score', () => {
     it('takes a game id up to 100 characters', async () => {
       const { status, body } = await score('x'.repeat(101));
