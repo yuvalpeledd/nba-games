@@ -98,11 +98,12 @@ export function StandingsPage() {
       {rows.length === 0 ? (
         <Typography color="text.secondary">No standings yet.</Typography>
       ) : (
-        <TableContainer>
+        // As wide as its columns, not the page's.
+        <TableContainer sx={{ width: 'fit-content', maxWidth: '100%' }}>
           <Table aria-label={`${conference} Conference standings`}>
             <TableHead>
               <TableRow>
-                {headCell('seed', '#', 'right')}
+                {headCell('seed', '#')}
                 {headCell('team', 'Team')}
                 {headCell('wins', 'W', 'right')}
                 {headCell('losses', 'L', 'right')}
@@ -118,7 +119,7 @@ export function StandingsPage() {
             <TableBody>
               {rows.map((row) => (
                 <TableRow key={row.teamId}>
-                  <TableCell align="right">{row.conferenceRank}</TableCell>
+                  <TableCell>{row.conferenceRank}</TableCell>
                   <TableCell>
                     <Stack
                       direction="row"

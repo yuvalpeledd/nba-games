@@ -4,9 +4,9 @@
 export const formatSeason = (year: number): string =>
   `${year}-${String((year + 1) % 100).padStart(2, '0')}`;
 
-// The league's way: .846, and 1.000 for a perfect record.
+// As a percentage: 0.876 is 87.6%.
 export const formatWinPct = (winPct: number): string =>
-  winPct.toFixed(3).replace(/^0/, '');
+  `${(winPct * 100).toFixed(1)}%`;
 
 // Games behind: — for the leader, else whole or a half (2, 1.5).
 export const formatGamesBehind = (gamesBehind: number): string =>

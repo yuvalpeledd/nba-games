@@ -69,7 +69,7 @@ describe('StandingsPage', () => {
         'Boston Celtics',
         '10',
         '3',
-        '.769',
+        '76.9%',
         '—',
         '4-2',
         '3-2',
@@ -82,7 +82,7 @@ describe('StandingsPage', () => {
         'New York Knicks',
         '9',
         '5',
-        '.643',
+        '64.3%',
         '1.5',
         '6-3',
         '5-2',
@@ -95,7 +95,7 @@ describe('StandingsPage', () => {
         'Brooklyn Nets',
         '3',
         '10',
-        '.231',
+        '23.1%',
         '7',
         '4-2',
         '3-2',
@@ -125,8 +125,8 @@ describe('StandingsPage', () => {
         row.slice(0, 6),
       ),
     ).toEqual([
-      ['1', 'Los Angeles Lakers', '13', '0', '1.000', '—'],
-      ['2', 'Phoenix Suns', '7', '6', '.538', '6'],
+      ['1', 'Los Angeles Lakers', '13', '0', '100.0%', '—'],
+      ['2', 'Phoenix Suns', '7', '6', '53.8%', '6'],
     ]);
   });
 
