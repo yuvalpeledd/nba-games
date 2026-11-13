@@ -2,6 +2,12 @@
 
 Newest first. One entry per non-obvious choice: the decision, why, and when to revisit, in a few lines. What was built and how it was checked go in the commit message. Open questions and next steps: [backlog.md](backlog.md).
 
+## 2026-11-13: `game_days`: the days the games fetcher checked
+
+- **A row per day fetched, empty days included** (its game count and `checked_on`), so a day without games is asked for once instead of every run. Chosen over a placeholder row in `games` (it would break its NOT NULLs and foreign keys for every reader), a list of off-days on `seasons` (by hand, wrong when the league reschedules) and inferring from `games` (an empty day looks like one never fetched). It also replaces "a day with no games" as the pool's test for the schedule: never checked is the test now.
+- **`checked_on` is a league day, not a timestamp:** an empty day is final only when checked on or after it, so a day checked before its schedule was out (playoffs, the NBA Cup's knockouts) is asked for again on its day; and a day string compares and tests without a clock. Its migration fills it from the games already stored, so a database that has them doesn't fetch the season again.
+- **Revisit** to refresh future days with games not checked in a while (postponements), from `checked_on`.
+
 ## 2026-11-13: `standings_history`, and the games' scores from the last scored day
 
 - **A row per day, season and team**, as asked, with the same columns as `standings` (an abstract `StandingColumns` both extend, so the two can't drift; `standings`' table is unchanged). It points at `standings` (season and team), so `recordStandings` writes both in one transaction from its lib, as the sql libs' rule has it. A second fetch the same day overwrites the day's row. Revisit (a row only when something changed) if ~5,000 rows a season ever matters.

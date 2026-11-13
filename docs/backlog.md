@@ -10,7 +10,7 @@
   - **Where does it run?** GCP as outly (Cloud Run for the API, a Cloud Run Job for the fetcher, Cloud SQL), or only locally for now?
 - **What may the players fetcher delete?** As built, nothing is deleted but the day's `team_players` rows it replaces: a player on no roster keeps their row with `team_id` null (their days point at them), and teams stay (everything points at them). Should players gone for a season be deleted, with their days?
 - Next: a first real run (`API_NINJAS_KEY` in `.env`, then `pnpm nx run data-fetcher:run`: 32 calls plus up to 50 for the games), then `frontend-api` and `web-app`.
-- data-fetcher: a bundle and a Cloud Run Job (and its schedule) when it's deployed; it runs from its sources for now. Remember the days without games (now asked for every run) if those requests matter. Page with `offset` if a response ever comes back cut (one page today).
+- data-fetcher: a bundle and a Cloud Run Job (and its schedule) when it's deployed; it runs from its sources for now. A future day that has games is never checked again until its scores are due: refresh the ones not checked in a while (`game_days.checked_on`) if schedule changes (postponements, playoff dates) must show early. Page with `offset` if a response ever comes back cut (one page today).
 - Port `YupPipe` from outly with `frontend-api`.
 - `SqlModule` has no test of its own yet: the first app's boot checks it.
 - Scope tags in `eslint.config.mjs` once the apps exist (CLAUDE.md's Layout).

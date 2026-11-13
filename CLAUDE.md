@@ -2,7 +2,7 @@
 
 **NBA Games** shows NBA games, teams and player statistics, and lets the user predict what will happen (see Predictions in `.claude/rules/features.md`).
 
-**Scaffolded so far:** the Nx workspace, the DAL (`libs/sql`: `teams`, `players`, `team_players`, `games`, `standings`, `standings_history`, `seasons`) and `data-fetcher` (its app and `libs/data-fetcher`). `frontend-api`, `web-app` and the other libs below are the target: when you scaffold one, follow this file, and fix it where reality differs.
+**Scaffolded so far:** the Nx workspace, the DAL (`libs/sql`: `teams`, `players`, `team_players`, `games`, `game_days`, `standings`, `standings_history`, `seasons`) and `data-fetcher` (its app and `libs/data-fetcher`). `frontend-api`, `web-app` and the other libs below are the target: when you scaffold one, follow this file, and fix it where reality differs.
 
 **The data comes from [API Ninjas](https://api-ninjas.com/api/nba)** (`api.api-ninjas.com/v1/basketball*`); the requests are in the user's Postman collection. See `.claude/rules/data-fetcher.md`.
 

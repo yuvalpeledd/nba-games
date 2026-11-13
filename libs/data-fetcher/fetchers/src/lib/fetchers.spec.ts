@@ -8,6 +8,7 @@ import {
   teams,
 } from '@nba/data-fetcher-api-ninjas-client/fixtures';
 import { testPostgresOptions } from '@nba/sql';
+import { GameDayDalService } from '@nba/sql-game-days';
 import { GameDalService, GameModule, GameStatus } from '@nba/sql-games';
 import { PlayerDalService, PlayerModule } from '@nba/sql-players';
 import { StandingDalService, StandingModule } from '@nba/sql-standings';
@@ -84,7 +85,7 @@ describe('fetchers', () => {
     await module
       .get(DataSource)
       .query(
-        'TRUNCATE teams, players, games, standings, standings_history, team_players',
+        'TRUNCATE teams, players, games, game_days, standings, standings_history, team_players',
       );
     fetch = jest.spyOn(global, 'fetch');
     answerWith(provider);
@@ -254,10 +255,24 @@ describe('fetchers', () => {
   describe('GamesFetcherService', () => {
     beforeEach(() => module.get(TeamDalService).upsert(teams.map(teamOf)));
 
-    // A game on each of the season's days (2026-10-20 to 2027-04-11), final with its score before `scoredBefore`.
-    const seedSeason = (scoredBefore: string) =>
-      module.get(GameDalService).upsert(
-        daysBetween('2026-10-20', '2027-04-11').map((day) => ({
+    const season = daysBetween('2026-10-20', '2027-04-11');
+    const checkedDays = async () => [
+      ...(
+        await module
+          .get(GameDayDalService)
+          .findBetween('2026-10-20', '2027-04-11')
+      ).keys(),
+    ];
+
+    // A game on each of the season's days, final with its score before `scoredBefore`, and every day checked.
+    const seedSeason = async (scoredBefore: string) => {
+      await module
+        .get(GameDayDalService)
+        .record(
+          season.map((date) => ({ date, games: 1, checkedOn: '2026-10-01' })),
+        );
+      await module.get(GameDalService).upsert(
+        season.map((day) => ({
           ...gameOf(games[0]),
           id: `nba-test-${day}`,
           date: day,
@@ -274,6 +289,7 @@ describe('fetchers', () => {
               }),
         })),
       );
+    };
 
     it('fetches the days without games one at a time, nearest to today first, up to the limit', async () => {
       process.env['GAMES_MAX_REQUESTS'] = '5';
@@ -303,10 +319,40 @@ describe('fetchers', () => {
         '2026-11-09',
         '2026-11-08',
       ]);
-      // 11-11's games came back final: from now on, the scores start there.
+      // 11-11's games came back final, so the scores start there; 11-12 came back empty on its day.
       fetch.mockClear();
       await module.get(GamesFetcherService).run('2026-11-12');
-      expect(requested('date')).toEqual(['2026-11-12', '2026-11-11']);
+      expect(requested('date')).toEqual(['2026-11-11']);
+    });
+
+    it('records every day it fetched, and asks for an empty one only once', async () => {
+      process.env['GAMES_MAX_REQUESTS'] = '1000';
+      await module.get(GamesFetcherService).run('2026-11-12');
+
+      expect(requested('date')).toHaveLength(season.length);
+      expect(await checkedDays()).toHaveLength(season.length);
+      expect(
+        (
+          await module
+            .get(GameDayDalService)
+            .findBetween('2026-11-11', '2026-11-12')
+        ).get('2026-11-11'),
+      ).toMatchObject({ games: games.length, checkedOn: '2026-11-12' });
+
+      // Only 11-11, the last day with scores: the other days were found empty, or are to come and have been checked.
+      fetch.mockClear();
+      await module.get(GamesFetcherService).run('2026-11-12');
+      expect(requested('date')).toEqual(['2026-11-11']);
+    });
+
+    it('asks again on its day for a day found empty before it came', async () => {
+      process.env['GAMES_MAX_REQUESTS'] = '1000';
+      await module.get(GamesFetcherService).run('2026-11-12');
+      fetch.mockClear();
+      await module.get(GamesFetcherService).run('2026-11-13');
+
+      // 11-13 was empty when checked on 11-12 (its schedule may have come since); 11-12 was empty on its day.
+      expect(requested('date')).toEqual(['2026-11-13', '2026-11-11']);
     });
 
     it('fetches from the season start when no game has a score, and never a future day it has', async () => {
@@ -346,6 +392,11 @@ describe('fetchers', () => {
       expect(
         await module.get(GameDalService).findByDate('2026-11-11'),
       ).toHaveLength(games.length);
+      // The failed day isn't recorded, so the next run asks for it again.
+      expect((await checkedDays()).sort()).toEqual([
+        '2026-11-11',
+        '2026-11-13',
+      ]);
     });
 
     it('fetches SEASON_ID, and refuses an unknown one', async () => {
