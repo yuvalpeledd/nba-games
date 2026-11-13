@@ -166,6 +166,20 @@ describe('StandingsPage', () => {
     ]);
   });
 
+  it("opens a team's page from its name", async () => {
+    stubApi(routes({ 2026: [standing(celtics, 1, 10, 3)] }));
+    renderAt('/standings');
+
+    fireEvent.click(
+      await screen.findByRole('link', { name: 'Boston Celtics' }),
+    );
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'TeamSinglePage' }),
+    ).toBeTruthy();
+    expect(window.location.pathname).toBe('/teams/nba-bos');
+  });
+
   it('opens the newest season that has started', async () => {
     // 2099 hasn't started; 2025 is over.
     stubApi(

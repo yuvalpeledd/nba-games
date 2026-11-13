@@ -1,4 +1,5 @@
 import {
+  Link,
   Stack,
   Table,
   TableBody,
@@ -11,6 +12,7 @@ import {
 import { useTeams } from '@nba/web-core';
 import { PageLoader } from '@nba/web-shell-components';
 import { useTableSort } from '@nba/web-table-components';
+import { Link as RouterLink } from 'react-router';
 
 // Today's teams (`/teams` has past franchises too).
 export function TeamsPage() {
@@ -36,7 +38,11 @@ export function TeamsPage() {
           <TableBody>
             {rows.map((team) => (
               <TableRow key={team.id}>
-                <TableCell>{team.name}</TableCell>
+                <TableCell>
+                  <Link component={RouterLink} to={`/teams/${team.id}`}>
+                    {team.name}
+                  </Link>
+                </TableCell>
                 <TableCell>{team.conference}</TableCell>
               </TableRow>
             ))}

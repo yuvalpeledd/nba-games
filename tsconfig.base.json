@@ -70,6 +70,9 @@
       "@nba/web-shell-components": ["./libs/web/components/shell/src/index.ts"],
       "@nba/web-standings-page": ["./libs/web/pages/standings/src/index.ts"],
       "@nba/web-table-components": ["./libs/web/components/table/src/index.ts"],
+      "@nba/web-team-single-page": [
+        "./libs/web/pages/team-single/src/index.ts"
+      ],
       "@nba/web-teams-page": ["./libs/web/pages/teams/src/index.ts"],
       "@nba/web-test-utils": ["./libs/web/test-utils/src/index.ts"]
     }
