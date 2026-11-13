@@ -9,12 +9,12 @@ import { byDistanceFrom, daysBetween, easternDate } from './days';
 
 const DEFAULT_MAX_REQUESTS = 50;
 
-// A season's games, a day per request. Each run makes the task pool: every day of the season whose games we don't
-// have yet, nearest to today first. Then it fetches them one at a time, up to GAMES_MAX_REQUESTS (the quota: the free
-// plan's 100 an hour), and the next run picks up where it stopped.
-//
-// A day is done when it has games and, once it has come, all of them are over (final, postponed or canceled). So a
-// future day is fetched once, for its schedule, and again from the day it's played until its results are in.
+// A season's games, a day per request. Each run makes the task pool, nearest to today first:
+//  - the scores to update: every day from the last one with a scored game (the season's start if none has) to today,
+//    so the games played since come back with their scores, and that day's late ones too;
+//  - the days with no games yet: the rest of the season's schedule (and its past, the first time).
+// Then it fetches them one at a time, up to GAMES_MAX_REQUESTS (the quota: the free plan's 100 an hour), and the next
+// run picks up where it stopped. A future day is fetched once, for its schedule.
 // ponytail: a day without games (Thanksgiving, the All-Star break) is never done, so every run asks for it again (a
 // few requests a run). Keep the days fetched empty if that matters.
 @Injectable()
@@ -81,9 +81,14 @@ export class GamesFetcherService {
     season: SeasonEntity,
     today: string,
   ): Promise<string[]> {
-    const over = await this.games.overByDate(season.startDate, season.endDate);
-    return daysBetween(season.startDate, season.endDate)
-      .filter((day) => !over.has(day) || (day <= today && !over.get(day)))
+    const { startDate, endDate } = season;
+    const withGames = await this.games.datesWithGames(startDate, endDate);
+    const scoresFrom =
+      (await this.games.lastScoredDate(startDate, endDate)) ?? startDate;
+    return daysBetween(startDate, endDate)
+      .filter(
+        (day) => !withGames.has(day) || (day >= scoresFrom && day <= today),
+      )
       .sort(byDistanceFrom(today));
   }
 }

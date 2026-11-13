@@ -5,6 +5,10 @@ import { GameDalService, GameModule, GameStatus } from '@nba/sql-games';
 import { PlayerDalService, PlayerModule } from '@nba/sql-players';
 import { StandingDalService, StandingModule } from '@nba/sql-standings';
 import { SeasonDalService, SeasonModule } from '@nba/sql-seasons';
+import {
+  StandingHistoryDalService,
+  StandingHistoryModule,
+} from '@nba/sql-standings-history';
 import { TeamPlayerDalService, TeamPlayerModule } from '@nba/sql-team-players';
 import { TeamDalService, TeamModule } from '@nba/sql-teams';
 import { DataSource } from 'typeorm';
@@ -38,6 +42,7 @@ describe('schema', () => {
         StandingModule,
         TeamPlayerModule,
         SeasonModule,
+        StandingHistoryModule,
       ],
     }).compile();
     dataSource = module.get(DataSource);
@@ -45,7 +50,9 @@ describe('schema', () => {
   afterAll(() => module?.close());
   // Not seasons: the migrations load them.
   beforeEach(() =>
-    dataSource.query('TRUNCATE teams, players, games, standings, team_players'),
+    dataSource.query(
+      'TRUNCATE teams, players, games, standings, standings_history, team_players',
+    ),
   );
 
   describe('migrations', () => {
@@ -179,6 +186,27 @@ describe('schema', () => {
       }
       expect(await dal.findByDate('2026-10-19')).toBeNull();
       expect(await dal.findByDate('2027-04-12')).toBeNull();
+    });
+  });
+
+  describe('standings_history', () => {
+    it("records a day's standings with the latest in standings, a day's row once", async () => {
+      await module.get(TeamDalService).upsert(teams.map(teamOf));
+      const dal = module.get(StandingHistoryDalService);
+      const rows = standings.map(standingOf);
+      await dal.recordStandings('2026-11-12', rows);
+      await dal.recordStandings('2026-11-12', rows);
+      await dal.recordStandings('2026-11-13', [{ ...rows[0], wins: 12 }]);
+
+      expect(await dal.findByDate(2026, '2026-11-12')).toHaveLength(
+        standings.length,
+      );
+      expect(
+        (await dal.findByTeam(2026, rows[0].teamId)).map((row) => row.wins),
+      ).toEqual([rows[0].wins, 12]);
+      expect(
+        (await module.get(StandingDalService).findBySeason(2026))[0],
+      ).toMatchObject({ teamId: rows[0].teamId, wins: 12 });
     });
   });
 

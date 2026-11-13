@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { ApiNinjasModule } from '@nba/data-fetcher-api-ninjas-client';
 import { GameModule } from '@nba/sql-games';
 import { SeasonModule } from '@nba/sql-seasons';
-import { StandingModule } from '@nba/sql-standings';
+import { StandingHistoryModule } from '@nba/sql-standings-history';
 import { TeamPlayerModule } from '@nba/sql-team-players';
 import { TeamModule } from '@nba/sql-teams';
 import { GamesFetcherService } from './games-fetcher.service';
@@ -22,7 +22,7 @@ const FETCHERS = [
     ApiNinjasModule,
     TeamModule,
     TeamPlayerModule,
-    StandingModule,
+    StandingHistoryModule,
     GameModule,
     SeasonModule,
   ],
