@@ -19,6 +19,8 @@
   Should players gone for a season be deleted, with their days?
 - Next: a first real run (`API_NINJAS_KEY` in `.env`, then `pnpm nx run data-fetcher:run`: 32 calls plus up to 50 for the games), then the web-app's next pages (players).
 - web-app: predictions show in the games tables and as the dashboard's counters (no page of a user's picks), and their toast is the prediction cell's own snackbar (the profile and groups pages' too) until an app-wide toast exists.
+- score-manager: nothing calls `POST /games/:gameId/check` yet (the data-fetcher once a game turns final, or a schedule?), it has no bundle or deploy, and it must stay off the public network (or take a service token) when it's deployed.
+  No route reads `group_user_scores` yet (a group's table).
 - Groups: a user can make one (name, public), see theirs beside the public ones they're not in, and open one (its members); nothing joins, invites, leaves or closes one, and the list isn't paged.
 - Auth: the profile page changes the name and password, not the email (outly's does, through Firebase's verify-before-update link); no account deletion; the navbar shows the name only while the rail is open.
   Add them when users ask.

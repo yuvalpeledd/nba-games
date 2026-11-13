@@ -24,6 +24,10 @@ import {
   GroupMemberModule,
 } from '@nba/sql-group-members';
 import { GroupModule, GroupStatus } from '@nba/sql-groups';
+import {
+  GroupUserScoreDalService,
+  GroupUserScoreModule,
+} from '@nba/sql-group-user-scores';
 import { DataSource } from 'typeorm';
 import {
   gameOf,
@@ -62,6 +66,7 @@ describe('schema', () => {
         PredictionModule,
         GroupModule,
         GroupMemberModule,
+        GroupUserScoreModule,
       ],
     }).compile();
     dataSource = module.get(DataSource);
@@ -70,7 +75,7 @@ describe('schema', () => {
   // Not seasons: the migrations load them.
   beforeEach(() =>
     dataSource.query(
-      'TRUNCATE teams, players, games, game_days, standings, standings_history, team_players, users, scans, predictions, groups, group_members',
+      'TRUNCATE teams, players, games, game_days, standings, standings_history, team_players, users, scans, predictions, groups, group_members, group_user_scores',
     ),
   );
 
@@ -438,6 +443,38 @@ describe('schema', () => {
       expect(
         (await dal.findVisibleTo(omer.id)).map(({ group }) => group.name),
       ).toEqual(['Open']);
+    });
+  });
+
+  describe('group_user_scores', () => {
+    it('keeps one score per group, user and game, replaced by the next, and counts what changed', async () => {
+      await module.get(TeamDalService).upsert(teams.map(teamOf));
+      await module.get(GameDalService).upsert(games.map(gameOf));
+      const { id: userId } = await module.get(UserDalService).create({
+        name: 'Dana Levi',
+        email: 'dana@nba.dev',
+        firebaseUid: 'firebase-dana',
+      });
+      const { id: groupId } = await module
+        .get(GroupMemberDalService)
+        .createGroup({ name: 'Friday League', ownerId: userId, public: false });
+      const dal = module.get(GroupUserScoreDalService);
+      const gameId = games[0].game_id;
+
+      expect(await dal.upsert([{ groupId, userId, gameId, score: 0 }])).toEqual(
+        { inserted: 1, updated: 0, unchanged: 0 },
+      );
+      const [first] = await dal.findByGame(gameId);
+      expect(await dal.upsert([{ groupId, userId, gameId, score: 1 }])).toEqual(
+        { inserted: 0, updated: 1, unchanged: 0 },
+      );
+      expect(await dal.upsert([{ groupId, userId, gameId, score: 1 }])).toEqual(
+        { inserted: 0, updated: 0, unchanged: 1 },
+      );
+
+      expect(await dal.findByGame(gameId)).toMatchObject([
+        { id: first.id, groupId, userId, gameId, score: 1 },
+      ]);
     });
   });
 

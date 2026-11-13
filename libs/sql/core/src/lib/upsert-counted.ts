@@ -32,6 +32,8 @@ export async function upsertCounted<T extends ObjectLiteral>(
     .filter(
       (column) =>
         !conflictPaths.includes(column.propertyName) &&
+        // A uuid key a table of our own generates: the conflicting row keeps its own.
+        !column.isGenerated &&
         !column.isCreateDate &&
         !column.isUpdateDate,
     )

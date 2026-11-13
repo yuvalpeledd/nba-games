@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { type GroupCreateObject, GroupEntity } from '@nba/sql-groups';
+import { In } from 'typeorm';
 import { GroupMemberEntity } from './group-member.entity';
 import { GroupMemberRepo } from './group-member.repo';
 
@@ -55,6 +56,11 @@ export class GroupMemberDalService {
       relations: { user: true },
       order: { user: { name: 'ASC' }, userId: 'ASC' },
     });
+  }
+
+  // The memberships of any of the users, in every group.
+  findByUsers(userIds: string[]): Promise<GroupMemberEntity[]> {
+    return this.repo.find({ where: { userId: In(userIds) } });
   }
 
   private async visibleTo(

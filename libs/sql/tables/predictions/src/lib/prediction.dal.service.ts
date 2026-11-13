@@ -19,4 +19,9 @@ export class PredictionDalService {
   findBySeason(userId: string, season: number): Promise<PredictionEntity[]> {
     return this.repo.find({ where: { userId, game: { season } } });
   }
+
+  // Every user's prediction of the game (picks taken back included).
+  findByGame(gameId: string): Promise<PredictionEntity[]> {
+    return this.repo.find({ where: { gameId } });
+  }
 }

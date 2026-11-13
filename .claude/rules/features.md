@@ -2,8 +2,10 @@
 paths:
   - 'apps/frontend-api/**'
   - 'apps/data-fetcher/**'
+  - 'apps/score-manager/**'
   - 'libs/frontend-api/**'
   - 'libs/data-fetcher/**'
+  - 'libs/score-manager/**'
   - 'libs/sql/**'
   - 'libs/dtos/**'
   - 'libs/enums/**'
@@ -51,7 +53,7 @@ Add a section per feature as it is built; delete what turns out wrong.
 - **Predictions** (`predictions`: uuid, `user_id`, `game_id`, unique on both): a signed-in user picks a game's winner, `pick` `Home` or `Away`, null when they took it back.
   `GET /predictions?season=` answers the caller's for a season's games, `PUT /predictions/:gameId` (`{ pick }`) makes or replaces one, as the caller (`@CurrentUser()`).
   - A prediction locks when its game starts (`start_time`), or once its status is anything but `scheduled`, `postponed` or `delayed` (`isPredictionLocked` in `@nba/dtos-predictions`, which the web runs too), checked on the server: a write after that is 409 `PREDICTION_LOCKED`, whatever the web shows.
-  - Scoring is a plain function in the predictions dtos lib (`scorePrediction(prediction, game)`: right, wrong, or null until the game is final with a winner), covered by its own spec; scores are derived, never stored, until that gets slow.
+  - Scoring is a plain function in the predictions dtos lib (`scorePrediction(prediction, game)`: right, wrong, or null until the game is final with a winner), covered by its own spec; groups' scores are stored from it (Group scores).
     The web runs it: the dashboard's Predictions counts the current season's games and the caller's picks (`GET /games?season=`, `GET /predictions?season=`).
   - A game that ends without a result (`canceled`) voids its predictions instead of scoring them.
 - **Groups** (`groups`: uuid, `name` up to 100, `owner_id`, `public`, `status` `Active` or `Closed`; `group_members`: uuid, `group_id`, `user_id`, unique on both): users who play together.
@@ -59,3 +61,8 @@ Add a section per feature as it is built; delete what turns out wrong.
   `GET /groups` answers what the caller may see: every public group, and the private ones they're in, by name, each with its owner, member count and `isMember` (the web splits them into the caller's and the public ones they're not in).
   `GET /groups/:id` (a uuid, else 400) answers one with its members by name; a private group the caller isn't in is 404, like a missing one, so an id gives nothing away.
   Nothing joins, leaves or closes a group yet.
+- **Group scores** (`group_user_scores`: uuid, `group_id`, `user_id`, `game_id`, `score`, unique on the three): a member's score for a game in a group, 1 for a right pick, 0 for a wrong one.
+  Only `score-manager` writes them, an internal API with no sign-in: `POST /api/games/:gameId/check` scores every pick of the game (`scorePrediction`) in each group its user is in, and answers what it wrote (`{ inserted, updated, unchanged }`).
+  A game that isn't final with a winner (a canceled one included) is 409 `GAME_NOT_FINAL`; an unknown one 404.
+  No pick (or one taken back) and no group mean no row; checking again rewrites only what changed (a corrected result).
+  Nothing calls it yet, and a member who joins later has no scores for games checked before.

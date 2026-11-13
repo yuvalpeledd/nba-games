@@ -35,6 +35,8 @@ Every import alias is `@nba/<name>`, in `tsconfig.base.json`.
 - `apps/data-fetcher`: NestJS standalone app (no HTTP server, run from its sources), run on a schedule: one run fetches teams, players, standings and games from API Ninjas into the DB, and exits.
   Only `main.ts`.
   See `.claude/rules/data-fetcher.md`
+- `apps/score-manager`: NestJS HTTP server, internal (no sign-in), run from its sources: it scores games' predictions into `group_user_scores` (Group scores in `features.md`).
+  Only `main.ts`; its routes are in `libs/score-manager/scores` (`@nba/score-manager-scores`)
 - `apps/frontend-api`: NestJS 11 HTTP server (webpack).
   Thin: bootstrap, root module, `GET /api/health`, and it serves the web build in production.
   Its `build` runs `compile-migrations` (`tsconfig.migrations.json`) into `dist/apps/frontend-api/migrations/`, beside `main.js`, where `SqlModule` finds them
@@ -56,7 +58,7 @@ Every import alias is `@nba/<name>`, in `tsconfig.base.json`.
   `libs/dtos/common` (`@nba/dtos`): what they all share (`DataResponse<T>`, the common schemas)
 - `libs/data-fetcher/api-ninjas-client` (`@nba/data-fetcher-api-ninjas-client`): `ApiNinjasClient`, the provider's response types and mappers to our rows; `@nba/data-fetcher-api-ninjas-client/fixtures` (spec-only): its real responses
 - `libs/data-fetcher/fetchers` (`@nba/data-fetcher-fetchers`): `FetchersModule` and a `*-fetcher.service.ts` per kind of data: teams, players, standings, games (see `.claude/rules/data-fetcher.md`)
-- `libs/frontend-api/common` (`@nba/frontend-api-common`): `YupPipe`, `FailureFilter`, `logRequests`, `CloudLogger`
+- `libs/frontend-api/common` (`@nba/frontend-api-common`): `YupPipe`, `FailureFilter`, `logRequests`, `CloudLogger` (score-manager's too: tagged `scope:server`)
 - `libs/frontend-api/auth` (`@nba/frontend-api-auth`): Firebase ID tokens to users (`TokenService`, `firebaseSettings`), `AccessGuard`, `@Public()`, `@CurrentUser()` (see Auth in `features.md`)
 - `libs/frontend-api/test-utils` (`@nba/frontend-api-test-utils`): spec-only `TestApp` (HTTP + DB + seeding, a fake Firebase `Auth`) and `generate*()` test data
 - `libs/frontend-api/controllers/<name>` (`@nba/frontend-api-<name>-controller`): one controller per lib, with its service (DAL reads → DTOs, 404s), e.g. `libs/frontend-api/controllers/games`
@@ -64,7 +66,7 @@ Every import alias is `@nba/<name>`, in `tsconfig.base.json`.
 **Dependency direction:** apps → feature libs → dal (`sql-*`) → `sql-core`.
 `dtos` and `enums` import nothing server-only.
 `frontend-api` and `data-fetcher` never import each other's libs: what both need lives in `sql-*`, `dtos-*` or `enums`.
-Tag projects (`scope:web`, `scope:frontend-api`, `scope:data-fetcher`, `scope:shared`) and enforce it in `eslint.config.mjs`'s `depConstraints`.
+Tag projects (`scope:web`, `scope:frontend-api`, `scope:data-fetcher`, `scope:score-manager`, `scope:shared`) and enforce it in `eslint.config.mjs`'s `depConstraints`.
 
 ## Commands
 
@@ -73,6 +75,7 @@ pnpm install
 docker compose up -d db                            # local Postgres (see Database)
 pnpm nx run-many -t serve -p frontend-api web-app  # API :3000, web :4200 (proxies /api)
 pnpm nx run data-fetcher:run                       # one fetch run against the local DB (API_NINJAS_KEY in .env: real calls, real quota)
+pnpm nx serve score-manager                        # internal API :3001 (POST /api/games/:gameId/check)
 pnpm nx affected -t lint test build typecheck      # full check: run before handing work back
 pnpm nx test sql-schema                            # or data-fetcher-fetchers / frontend-api-<name>-controller / web-<page>-page / ...
 pnpm nx format:write
@@ -195,7 +198,7 @@ describe('GamesController', () => {
   `data-fetcher` refuses to run while any are pending, so a job never writes to an old schema.
 - **Never drop or truncate the local DB** from scripts or verification runs: the user's own data may be there.
   Throwaway runs use their own database name and a port other than 3000, and stop only the PIDs they started.
-- Env: `DB_HOST` (localhost), `DB_PORT` (5432), `DB_NAME`, `DB_USER`, `DB_PASSWORD` (`nba`), `PORT` (3000), `WEB_DIR` (container only), Firebase's (see Auth in `features.md`), and the provider's (see `data-fetcher.md`).
+- Env: `DB_HOST` (localhost), `DB_PORT` (5432), `DB_NAME`, `DB_USER`, `DB_PASSWORD` (`nba`), `PORT` (3000), `SCORE_MANAGER_PORT` (3001), `WEB_DIR` (container only), Firebase's (see Auth in `features.md`), and the provider's (see `data-fetcher.md`).
 
 ## Gotchas
 

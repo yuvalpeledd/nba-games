@@ -67,6 +67,7 @@
       "@nba/frontend-api-test-utils": [
         "./libs/frontend-api/test-utils/src/index.ts"
       ],
+      "@nba/score-manager-scores": ["./libs/score-manager/scores/src/index.ts"],
       "@nba/sql": ["./libs/sql/database/src/index.ts"],
       "@nba/sql-core": ["./libs/sql/core/src/index.ts"],
       "@nba/sql-game-days": ["./libs/sql/tables/game-days/src/index.ts"],
@@ -74,6 +75,9 @@
       "@nba/sql-games/enums": ["./libs/sql/tables/games/src/enums.ts"],
       "@nba/sql-group-members": [
         "./libs/sql/tables/group-members/src/index.ts"
+      ],
+      "@nba/sql-group-user-scores": [
+        "./libs/sql/tables/group-user-scores/src/index.ts"
       ],
       "@nba/sql-groups": ["./libs/sql/tables/groups/src/index.ts"],
       "@nba/sql-groups/enums": ["./libs/sql/tables/groups/src/enums.ts"],
