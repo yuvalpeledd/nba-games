@@ -1,0 +1,8 @@
+{
+  "name": "sql-seasons",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/sql/tables/seasons/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {}
+}

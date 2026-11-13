@@ -2,6 +2,18 @@
 
 Newest first. One entry per non-obvious choice: the decision, why, and when to revisit, in a few lines. What was built and how it was checked go in the commit message. Open questions and next steps: [backlog.md](backlog.md).
 
+## 2026-11-13: `seasons`, loaded by migrations
+
+- **A table of seasons with their dates**, as asked, loaded by a data migration per season (2026-27: 2026-10-20 to 2027-04-11), apart from the table's own migration, so a season's dates are reviewed like code and every database gets the same rows. The provider has no seasons endpoint.
+- **Not linked to `games` and `standings` yet:** their `season` is the provider's year (2026), and `seasons.id` is `nba-2026-27`. Revisit with the first query that joins them (a foreign key then, or `seasons.year`).
+- **Its dates are the regular season's:** the play-in and playoffs run past `end_date`, so a playoff day's `findByDate` is null. Revisit if the playoffs need their season (an `end_date` through the Finals, or a column for it).
+
+## 2026-11-13: Rosters by day: `team_players`
+
+- **A row per day, team and player** (all three the key), as asked, from the daily roster fetch, rather than stints (`from` / `to` per team): a daily insert with no reads before it, idempotent, and a trade on any day is caught whatever the provider says about when it happened. A player on two teams the same day (a trade between fetches) is two rows, so the team is in the key.
+- **Size:** about 500 rows a day, ~120,000 a season: fine for Postgres. Revisit (stints computed from the days, or kept beside them) if reading a player's teams over seasons gets slow, or for a "traded on" view.
+- **`players.team_id` stays** as today's team: the common read needs no `MAX(date)`.
+
 ## 2026-11-13: The DAL: API Ninjas' ids as keys, its values as they come
 
 - **API Ninjas is the provider**, as decided (its basketball endpoints, the requests in the Postman collection). Four tables from its four endpoints: `teams`, `players`, `games`, `standings`; their columns are its fields, checked against its real responses (`schema.spec.ts`'s fixtures).

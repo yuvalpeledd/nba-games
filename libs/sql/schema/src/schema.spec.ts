@@ -17,6 +17,8 @@ import {
   StandingDalService,
   StandingModule,
 } from '@nba/sql-standings';
+import { SeasonDalService, SeasonModule } from '@nba/sql-seasons';
+import { TeamPlayerDalService, TeamPlayerModule } from '@nba/sql-team-players';
 import { TeamCreateObject, TeamDalService, TeamModule } from '@nba/sql-teams';
 import { DataSource } from 'typeorm';
 import games from './__fixtures__/games.json';
@@ -121,13 +123,16 @@ describe('schema', () => {
         PlayerModule,
         GameModule,
         StandingModule,
+        TeamPlayerModule,
+        SeasonModule,
       ],
     }).compile();
     dataSource = module.get(DataSource);
   });
   afterAll(() => module?.close());
+  // Not seasons: the migrations load them.
   beforeEach(() =>
-    dataSource.query('TRUNCATE teams, players, games, standings'),
+    dataSource.query('TRUNCATE teams, players, games, standings, team_players'),
   );
 
   describe('migrations', () => {
@@ -239,6 +244,87 @@ describe('schema', () => {
         wins: 12,
       });
       expect(await dal.findBySeason(2025)).toHaveLength(1);
+    });
+  });
+
+  describe('seasons', () => {
+    it('has the current season, from its migration', async () => {
+      expect(
+        await module.get(SeasonDalService).findById('nba-2026-27'),
+      ).toMatchObject({
+        id: 'nba-2026-27',
+        name: 'NBA 2026-2027',
+        startDate: '2026-10-20',
+        endDate: '2027-04-11',
+      });
+    });
+
+    it('finds the season a day falls in, its first and last days included', async () => {
+      const dal = module.get(SeasonDalService);
+      for (const day of ['2026-10-20', '2026-11-13', '2027-04-11']) {
+        expect(await dal.findByDate(day)).toMatchObject({ id: 'nba-2026-27' });
+      }
+      expect(await dal.findByDate('2026-10-19')).toBeNull();
+      expect(await dal.findByDate('2027-04-12')).toBeNull();
+    });
+  });
+
+  describe('team_players', () => {
+    beforeEach(async () => {
+      await module.get(TeamDalService).upsert(teams.map(teamOf));
+      await module.get(PlayerDalService).upsert(players.map(playerOf));
+    });
+
+    it("records a day's roster once", async () => {
+      const dal = module.get(TeamPlayerDalService);
+      const roster = players.map((p) => ({
+        date: '2026-11-12',
+        teamId: 'nba-por',
+        playerId: p.player_id,
+      }));
+      await dal.upsert(roster);
+      await dal.upsert(roster);
+
+      expect(
+        await dal.findByTeamIdAndDate('nba-por', '2026-11-12'),
+      ).toHaveLength(players.length);
+      expect(await dal.findByTeamIdAndDate('nba-por', '2026-11-13')).toEqual(
+        [],
+      );
+    });
+
+    it("keeps a traded player's days on each team, oldest first", async () => {
+      const dal = module.get(TeamPlayerDalService);
+      const playerId = players[0].player_id;
+      await dal.upsert([
+        { date: '2026-11-13', teamId: 'nba-bos', playerId },
+        { date: '2026-11-11', teamId: 'nba-por', playerId },
+        { date: '2026-11-12', teamId: 'nba-por', playerId },
+        // The trade's day: a fetch before it and one after.
+        { date: '2026-11-12', teamId: 'nba-bos', playerId },
+      ]);
+
+      expect(
+        (await dal.findByPlayerId(playerId)).map(({ date, teamId }) => [
+          date,
+          teamId,
+        ]),
+      ).toEqual([
+        ['2026-11-11', 'nba-por'],
+        ['2026-11-12', 'nba-bos'],
+        ['2026-11-12', 'nba-por'],
+        ['2026-11-13', 'nba-bos'],
+      ]);
+    });
+
+    it('refuses an unknown player', async () => {
+      await expect(
+        module
+          .get(TeamPlayerDalService)
+          .upsert([
+            { date: '2026-11-12', teamId: 'nba-por', playerId: 'nba-p-none' },
+          ]),
+      ).rejects.toThrow(/foreign key/);
     });
   });
 });
