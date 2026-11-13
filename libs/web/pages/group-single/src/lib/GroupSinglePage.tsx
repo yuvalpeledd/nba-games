@@ -1,9 +1,16 @@
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
+import GroupAddIcon from '@mui/icons-material/GroupAdd';
+import LogoutIcon from '@mui/icons-material/Logout';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import {
   Box,
   Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   IconButton,
   Menu,
   MenuItem,
@@ -17,6 +24,8 @@ import {
   currentSeason,
   formatSeason,
   useGroup,
+  useJoinGroup,
+  useLeaveGroup,
   usePredictions,
   useSeasonGames,
   useSeasons,
@@ -31,8 +40,9 @@ import { useNavigate, useParams } from 'react-router';
 import { GroupPredictionsDialog } from './group-predictions-dialog/GroupPredictionsDialog';
 import { Scoreboard } from './scoreboard/Scoreboard';
 
-// A group (/groups/:id): what it is, its scoreboard, and the season's games, each with its members' picks a menu away;
-// its owner edits or deletes it (then it's back to /groups, which says so).
+// A group (/groups/:id): what it is, its scoreboard, and, for its members, the season's games, each with its members'
+// picks a menu away. Its owner edits or deletes it; anyone else joins it, or leaves it once confirmed (deleting or
+// leaving, it's back to /groups, which says so).
 // ponytail: its own snackbar, as the groups page's, until an app-wide toast exists.
 export function GroupSinglePage() {
   const { id } = useParams() as { id: string };
@@ -46,6 +56,9 @@ export function GroupSinglePage() {
   const predictions = usePredictions(season?.year);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isLeaveOpen, setIsLeaveOpen] = useState(false);
+  const joinGroup = useJoinGroup();
+  const leaveGroup = useLeaveGroup();
   const [toast, setToast] = useState<string | null>(null);
   const [menu, setMenu] = useState<{
     game: GameDto;
@@ -70,6 +83,17 @@ export function GroupSinglePage() {
     return <PageLoader error={isError} />;
   }
   const { name, owner, status, members, isMember } = group.data;
+  const join = () =>
+    joinGroup.mutate(id, {
+      onSuccess: () => setToast(`You joined ${name}`),
+      onError: () => setToast("Couldn't join the group, try again"),
+    });
+  const leave = () =>
+    leaveGroup.mutate(id, {
+      onSuccess: () =>
+        navigate('/groups', { state: { toast: `You left ${name}` } }),
+      onError: () => setToast("Couldn't leave the group, try again"),
+    });
   const nameOf = (teamId: string) =>
     teams.data.find((team) => team.id === teamId)?.name ?? teamId;
 
@@ -93,6 +117,26 @@ export function GroupSinglePage() {
             {isMember && ' · You are a member'}
           </Typography>
         </div>
+        {owner.id !== userId && !isMember && (
+          <Button
+            variant="contained"
+            startIcon={<GroupAddIcon />}
+            onClick={join}
+            loading={joinGroup.isPending}
+          >
+            Join
+          </Button>
+        )}
+        {owner.id !== userId && isMember && (
+          <Button
+            variant="outlined"
+            color="error"
+            startIcon={<LogoutIcon />}
+            onClick={() => setIsLeaveOpen(true)}
+          >
+            Leave
+          </Button>
+        )}
         {owner.id === userId && (
           <Stack direction="row" spacing={1}>
             <Button
@@ -123,26 +167,34 @@ export function GroupSinglePage() {
         <Typography variant="h6" component="h2">
           Games{season && ` · ${formatSeason(season.year)}`}
         </Typography>
-        <GamesTable
-          games={games.data ?? []}
-          teams={teams.data}
-          picks={
-            new Map(predictions.data?.map(({ gameId, pick }) => [gameId, pick]))
-          }
-          actions={(game) => (
-            <IconButton
-              className="row-menu"
-              aria-label="Actions"
-              aria-haspopup="menu"
-              aria-expanded={menu?.game.id === game.id}
-              onClick={(event) =>
-                setMenu({ game, anchor: event.currentTarget })
-              }
-            >
-              <MoreVertIcon />
-            </IconButton>
-          )}
-        />
+        {!isMember ? (
+          <Typography color="text.secondary">
+            Join the group to see its games and its members' picks.
+          </Typography>
+        ) : (
+          <GamesTable
+            games={games.data ?? []}
+            teams={teams.data}
+            picks={
+              new Map(
+                predictions.data?.map(({ gameId, pick }) => [gameId, pick]),
+              )
+            }
+            actions={(game) => (
+              <IconButton
+                className="row-menu"
+                aria-label="Actions"
+                aria-haspopup="menu"
+                aria-expanded={menu?.game.id === game.id}
+                onClick={(event) =>
+                  setMenu({ game, anchor: event.currentTarget })
+                }
+              >
+                <MoreVertIcon />
+              </IconButton>
+            )}
+          />
+        )}
       </Box>
       <Menu
         anchorEl={menu?.anchor}
@@ -184,6 +236,27 @@ export function GroupSinglePage() {
           toast={setToast}
         />
       )}
+      <Dialog open={isLeaveOpen} onClose={() => setIsLeaveOpen(false)}>
+        <DialogTitle>Leave {name}?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {group.data.public
+              ? "You won't see its games and its members' picks until you join again."
+              : "It's private: you can't join it again."}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setIsLeaveOpen(false)}>Cancel</Button>
+          <Button
+            color="error"
+            variant="contained"
+            onClick={leave}
+            loading={leaveGroup.isPending}
+          >
+            Leave
+          </Button>
+        </DialogActions>
+      </Dialog>
       <Snackbar
         open={toast !== null}
         autoHideDuration={4000}

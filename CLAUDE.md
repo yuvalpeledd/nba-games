@@ -38,7 +38,7 @@ Every import alias is `@nba/<name>`, in `tsconfig.base.json`.
 - `apps/frontend-api`: NestJS 11 HTTP server (webpack).
   Thin: bootstrap, root module, `GET /api/health`, and it serves the web build in production.
   Its `build` runs `compile-migrations` (`tsconfig.migrations.json`) into `dist/apps/frontend-api/migrations/`, beside `main.js`, where `SqlModule` finds them
-- `apps/score-manager`: NestJS internal HTTP server (no auth, run from its sources, `:3001`) that scores a final game's predictions into `group_user_score`.
+- `apps/score-manager`: NestJS internal HTTP server (no auth, run from its sources, `:3001`) that scores predictions into `group_user_score`: a final game's (the data-fetcher asks), and a new member's in their group (frontend-api asks).
   Only `main.ts`; its routes are in `libs/score-manager/scores` (`@nba/score-manager-scores`), tested over HTTP against the test DB (`TestApp` is frontend-api's).
 - `apps/web-app`: React 19 + Vite SPA (MUI, React Query, React Router).
   The app is only its entry, `index.html`, `public/` and `app.tsx`; the rest is in `libs/web` (see `.claude/rules/web.md`):
@@ -74,7 +74,7 @@ Tag projects (`scope:web`, `scope:frontend-api`, `scope:data-fetcher`, `scope:sc
 pnpm install
 docker compose up -d db                            # local Postgres (see Database)
 pnpm nx run-many -t serve -p frontend-api web-app  # API :3000, web :4200 (proxies /api)
-pnpm nx run score-manager:serve                    # internal API :3001: POST /api/games/:gameId/score
+pnpm nx run score-manager:serve                    # internal API :3001 (joining a group needs it too)
 pnpm nx run data-fetcher:run                       # one fetch run against the local DB (API_NINJAS_KEY in .env: real calls, real quota)
 pnpm nx affected -t lint test build typecheck      # full check: run before handing work back
 pnpm nx test sql-schema                            # or data-fetcher-fetchers / frontend-api-<name>-controller / web-<page>-page / ...

@@ -1,7 +1,10 @@
 import {
+  ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import type {
   CreateGroupRequest,
@@ -11,6 +14,7 @@ import type {
   UpdateGroupRequest,
 } from '@nba/dtos-groups';
 import { isPredictionLocked } from '@nba/dtos-predictions';
+import { stackOf } from '@nba/frontend-api-common';
 import { GameDalService } from '@nba/sql-games';
 import {
   GroupMemberDalService,
@@ -35,8 +39,14 @@ const toGroupDto = ({
   isMember,
 });
 
+const SCORE_TIMEOUT_MS = 10_000;
+
 @Injectable()
 export class GroupsService {
+  private readonly logger = new Logger(GroupsService.name);
+  private readonly scoreManagerUrl =
+    process.env['SCORE_MANAGER_URL'] ?? 'http://localhost:3001';
+
   constructor(
     private readonly groups: GroupDalService,
     private readonly members: GroupMemberDalService,
@@ -66,13 +76,17 @@ export class GroupsService {
     };
   }
 
-  // Each member's pick of the game, by name; which pick only once the game locks. 404 for an unknown game too.
+  // Each member's pick of the game, by name; which pick only once the game locks. 404 for an unknown game too, 403
+  // for a public group the caller isn't in (only members see each other's picks).
   async findPredictions(
     id: string,
     gameId: string,
     userId: string,
   ): Promise<GroupMemberPredictionDto[]> {
-    await this.visible(id, userId);
+    const { isMember } = await this.visible(id, userId);
+    if (!isMember) {
+      throw new ForbiddenException("Only a group's members see their picks");
+    }
     const game = await this.games.findById(gameId);
     if (!game) throw new NotFoundException(`Game ${gameId} not found`);
     const [members, predictions] = await Promise.all([
@@ -122,6 +136,46 @@ export class GroupsService {
   async delete(id: string, userId: string): Promise<void> {
     await this.owned(id, userId);
     await this.groups.delete(id);
+  }
+
+  // The caller joins a group they see, then score-manager scores their past picks there (so they count from the
+  // start); if it can't, the join is undone (503: try again), so no member is missing scores. A member already: a no-op.
+  // ponytail: no retry but the caller's; add one if score-manager's blips show up.
+  async join(id: string, userId: string): Promise<GroupDto> {
+    const { isMember } = await this.visible(id, userId);
+    if (!isMember) {
+      await this.members.join(id, userId);
+      try {
+        const response = await fetch(
+          `${this.scoreManagerUrl}/api/groups/${id}/users/${userId}/score`,
+          { method: 'POST', signal: AbortSignal.timeout(SCORE_TIMEOUT_MS) },
+        );
+        if (!response.ok) {
+          throw new Error(`score-manager answered ${response.status}`);
+        }
+      } catch (error) {
+        await this.members.leave(id, userId);
+        this.logger.error(
+          `Joining ${id}: scoring ${userId} failed, join undone`,
+          stackOf(error),
+        );
+        throw new ServiceUnavailableException(
+          "Couldn't join the group: try again",
+        );
+      }
+    }
+    return toGroupDto(await this.visible(id, userId));
+  }
+
+  // The caller leaves a group they're in (not being in it, a no-op); its owner can't (they delete it instead).
+  async leave(id: string, userId: string): Promise<void> {
+    const { group } = await this.visible(id, userId);
+    if (group.ownerId === userId) {
+      throw new ConflictException(
+        "A group's owner can't leave it: delete it instead",
+      );
+    }
+    await this.members.leave(id, userId);
   }
 
   // A private group the caller isn't in is a 404 too, so its id gives nothing away.

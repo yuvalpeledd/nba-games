@@ -143,11 +143,8 @@ describe('ScoresController', () => {
       const lone = await createUser('lone'); // in no group
       const friday = await createGroup('Friday', dana.id);
       const office = await createGroup('Office', omer.id);
-      // ponytail: joining has no DAL yet; the test inserts the memberships itself.
-      await get(DataSource).query(
-        'INSERT INTO group_members (group_id, user_id) VALUES ($1, $2), ($1, $3)',
-        [office.id, dana.id, noam.id],
-      );
+      await get(GroupMemberDalService).join(office.id, dana.id);
+      await get(GroupMemberDalService).join(office.id, noam.id);
       await predict(dana.id, PredictionPick.HOME);
       await predict(omer.id, PredictionPick.AWAY);
       await predict(noam.id, null);
@@ -187,6 +184,87 @@ describe('ScoresController', () => {
       expect(
         await get(GroupUserScoreDalService).findByGame(GAME_ID),
       ).toMatchObject([{ userId: dana.id, score: 0 }]);
+    });
+  });
+
+  describe('POST /groups/:groupId/users/:userId/score', () => {
+    const scoreMember = async (groupId: string, userId: string) => {
+      const response = await fetch(
+        `${baseUrl}/api/groups/${groupId}/users/${userId}/score`,
+        { method: 'POST' },
+      );
+      return { status: response.status, body: await response.json() };
+    };
+    const UUID = '00000000-0000-4000-8000-000000000000';
+
+    it('takes only uuids', async () => {
+      const group = await scoreMember('nope', UUID);
+      expect(group.status).toBe(400);
+      expect(group.body.message).toContain('id must be a uuid');
+      const user = await scoreMember(UUID, 'nope');
+      expect(user.status).toBe(400);
+      expect(user.body.message).toContain('userId must be a uuid');
+    });
+
+    it("is 404 for a user who isn't in the group", async () => {
+      const dana = await createUser('dana');
+      const omer = await createUser('omer');
+      const friday = await createGroup('Friday', dana.id);
+      expect((await scoreMember(friday.id, omer.id)).status).toBe(404);
+    });
+
+    it("scores the member's picks of final games in that group only", async () => {
+      const later = 'nba-20261112-bos-nyk';
+      await get(GameDalService).upsert([
+        finalGame,
+        // New York at home to Boston, final, Boston won: Omer picked New York.
+        {
+          ...finalGame,
+          id: later,
+          date: '2026-11-12',
+          homeTeamId: 'nba-nyk',
+          awayTeamId: 'nba-bos',
+        },
+        // Not played yet: nothing to score.
+        {
+          ...finalGame,
+          id: 'nba-20261120-nyk-bos',
+          date: '2026-11-20',
+          status: GameStatus.SCHEDULED,
+          winnerTeamId: null,
+        },
+      ]);
+      const dana = await createUser('dana');
+      const omer = await createUser('omer');
+      const friday = await createGroup('Friday', dana.id);
+      const office = await createGroup('Office', omer.id);
+      await get(GroupMemberDalService).join(friday.id, omer.id);
+      await predict(omer.id, PredictionPick.HOME);
+      await get(PredictionDalService).set({
+        userId: omer.id,
+        gameId: later,
+        pick: PredictionPick.HOME,
+      });
+      await get(PredictionDalService).set({
+        userId: omer.id,
+        gameId: 'nba-20261120-nyk-bos',
+        pick: PredictionPick.HOME,
+      });
+      await predict(dana.id, PredictionPick.HOME);
+
+      const { status, body } = await scoreMember(friday.id, omer.id);
+
+      expect(status).toBe(200);
+      expect(body).toEqual({
+        data: { groupId: friday.id, userId: omer.id, scores: 2, right: 1 },
+      });
+      const totals = await get(GroupUserScoreDalService).totalsByGroup(
+        friday.id,
+      );
+      expect([...totals]).toEqual([[omer.id, 1]]);
+      expect(
+        (await get(GroupUserScoreDalService).totalsByGroup(office.id)).size,
+      ).toBe(0);
     });
   });
 });

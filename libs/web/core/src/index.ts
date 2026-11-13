@@ -15,6 +15,8 @@ export {
 export {
   useCreateGroup,
   useDeleteGroup,
+  useJoinGroup,
+  useLeaveGroup,
   useUpdateGroup,
   useGroup,
   useGroupPredictions,

@@ -18,6 +18,14 @@ export interface GameScores {
   right: number;
 }
 
+// What scoring a member's picks in a group wrote: a row per final game they picked, `right` of them 1.
+export interface MemberScores {
+  groupId: string;
+  userId: string;
+  scores: number;
+  right: number;
+}
+
 @Injectable()
 export class ScoresService {
   private readonly logger = new Logger(ScoresService.name);
@@ -65,6 +73,35 @@ export class ScoresService {
     };
     this.logger.log(
       `Scored ${gameId}: ${result.scores} scores, ${result.right} right`,
+    );
+    return result;
+  }
+
+  // A member's every pick of a final game, scored in the group (frontend-api asks when they join, so their past
+  // games count there too); again overwrites. 404 for a user who isn't in the group.
+  async scoreMember(groupId: string, userId: string): Promise<MemberScores> {
+    const memberships = await this.members.findByUsers([userId]);
+    if (!memberships.some((membership) => membership.groupId === groupId)) {
+      throw new NotFoundException(`User ${userId} is not in group ${groupId}`);
+    }
+    const predictions = await this.predictions.findFinalByUser(userId);
+    const rows = predictions.map((prediction) => ({
+      groupId,
+      userId,
+      gameId: prediction.gameId,
+      // findFinalByUser loads the game.
+      score:
+        prediction.game && scorePrediction(prediction, prediction.game) ? 1 : 0,
+    }));
+    await this.groupUserScores.upsert(rows);
+    const result = {
+      groupId,
+      userId,
+      scores: rows.length,
+      right: rows.filter(({ score }) => score).length,
+    };
+    this.logger.log(
+      `Scored ${userId} in ${groupId}: ${result.scores} scores, ${result.right} right`,
     );
     return result;
   }
