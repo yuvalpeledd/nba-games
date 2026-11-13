@@ -25,6 +25,14 @@
       "options": {
         "targetName": "test"
       }
+    },
+    {
+      "plugin": "@nx/webpack/plugin",
+      "options": {
+        "buildTargetName": "build",
+        "serveTargetName": "webpack-serve",
+        "previewTargetName": "preview"
+      }
     }
   ],
   "targetDefaults": {

@@ -8,6 +8,14 @@ Newest first. One entry per non-obvious choice: the decision, why, and when to r
 - **`checked_on` is a league day, not a timestamp:** an empty day is final only when checked on or after it, so a day checked before its schedule was out (playoffs, the NBA Cup's knockouts) is asked for again on its day; and a day string compares and tests without a clock. Its migration fills it from the games already stored, so a database that has them doesn't fetch the season again.
 - **Revisit** to refresh future days with games not checked in a while (postponements), from `checked_on`.
 
+## 2026-11-13: frontend-api's reads
+
+- **Read-only routes, no auth yet**, as asked: `GET /api/seasons`, `/teams`, `/teams/:id`, `/players?teamId=&limit=&offset=`, `/players/:id`, `/players/:id/teams`, `/games?from=&to=&teamId=`, `/games/:id`, `/standings?season=`. Revisit with the backlog's "who uses it?".
+- **Games by a range of league days, at most 31** (`MAX_GAME_DAYS`), not paged: a month's schedule is ~230 games. `to` defaults to `from` (one day).
+- **Games carry team ids, not teams:** the web loads `/teams` once (30 rows) and joins. Revisit if a page needs one game without the teams list.
+- **`/players/:id/teams` gives one span per team** (first to last day seen), so a player who leaves and returns shows one span across the gap. Split on gaps if a "traded on" view needs it.
+- **`SeasonDto.year`** (from `start_date`) is what `/standings?season=` and `games.season` take, so the web never parses `nba-2026-27`.
+
 ## 2026-11-13: `standings_history`, and the games' scores from the last scored day
 
 - **A row per day, season and team**, as asked, with the same columns as `standings` (an abstract `StandingColumns` both extend, so the two can't drift; `standings`' table is unchanged). It points at `standings` (season and team), so `recordStandings` writes both in one transaction from its lib, as the sql libs' rule has it. A second fetch the same day overwrites the day's row. Revisit (a row only when something changed) if ~5,000 rows a season ever matters.

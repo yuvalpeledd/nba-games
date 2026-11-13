@@ -3,7 +3,7 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "apps/data-fetcher/src",
   "projectType": "application",
-  "tags": [],
+  "tags": ["scope:data-fetcher"],
   "targets": {
     "run": {
       "executor": "nx:run-commands",
