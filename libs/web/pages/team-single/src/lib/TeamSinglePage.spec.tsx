@@ -77,8 +77,8 @@ const player = (
   ...overrides,
 });
 
-// The scheduled game's tip-off on the viewer's clock (the machine's time zone).
-const tipOff = formatTime('2026-11-20T23:30:00.000Z');
+// A game's tip-off on the viewer's clock (the machine's time zone).
+const tipOff = (date: string) => formatTime(`${date}T23:30:00.000Z`);
 const games = [
   final('nba-bos', 'nba-nyk', '2026-10-21', 110, 102),
   final('nba-nyk', 'nba-bos', '2026-10-25', 99, 95),
@@ -147,11 +147,11 @@ describe('TeamSinglePage', () => {
     renderAt('/teams/nba-bos');
 
     expect(await rowsOf('Games')).toEqual([
-      ['Wed, Oct 21', 'vs New York Knicks', 'W 110-102'],
-      ['Sun, Oct 25', '@ New York Knicks', 'L 95-99'],
-      ['Fri, Nov 20', 'vs Los Angeles Lakers', tipOff],
-      ['Sun, Nov 22', '@ Los Angeles Lakers', 'Postponed'],
-      ['Tue, Apr 20', 'vs New York Knicks · Playoffs', 'W 120-100'],
+      [tipOff('2026-10-21'), 'New York Knicks', 'Yes', 'W 110-102'],
+      [tipOff('2026-10-25'), 'New York Knicks', 'No', 'L 95-99'],
+      [tipOff('2026-11-20'), 'Los Angeles Lakers', 'Yes', 'N/A'],
+      [tipOff('2026-11-22'), 'Los Angeles Lakers', 'No', 'N/A'],
+      [tipOff('2027-04-20'), 'New York Knicks', 'Yes', 'W 120-100'],
     ]);
     expect(
       screen
@@ -166,12 +166,12 @@ describe('TeamSinglePage', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Result' }));
     fireEvent.click(screen.getByRole('button', { name: 'Result' }));
-    expect((await rowsOf('Games')).map(([, , result]) => result)).toEqual([
+    expect((await rowsOf('Games')).map(([, , , result]) => result)).toEqual([
       'W 120-100',
       'W 110-102',
       'L 95-99',
-      tipOff,
-      'Postponed',
+      'N/A',
+      'N/A',
     ]);
   });
 

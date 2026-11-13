@@ -1,6 +1,5 @@
 export { api, ApiError } from './lib/api';
 export {
-  formatDay,
   formatGamesBehind,
   formatHeight,
   formatSeason,

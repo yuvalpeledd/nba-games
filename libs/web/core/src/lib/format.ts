@@ -12,18 +12,12 @@ export const formatWinPct = (winPct: number): string =>
 export const formatGamesBehind = (gamesBehind: number): string =>
   gamesBehind === 0 ? '—' : String(gamesBehind);
 
-// A league day ('YYYY-MM-DD') as `Wed, Oct 21`: a day has no time zone.
-export const formatDay = (day: string): string =>
-  new Date(`${day}T12:00:00Z`).toLocaleDateString('en-US', {
+// A moment (ISO) on the viewer's clock: `Wed, Oct 21, 7:30 PM`.
+export const formatTime = (iso: string): string =>
+  new Date(iso).toLocaleString('en-US', {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
-    timeZone: 'UTC',
-  });
-
-// A moment (ISO) on the viewer's clock: `7:30 PM`.
-export const formatTime = (iso: string): string =>
-  new Date(iso).toLocaleTimeString('en-US', {
     hour: 'numeric',
     minute: '2-digit',
   });
