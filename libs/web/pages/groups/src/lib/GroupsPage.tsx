@@ -20,7 +20,7 @@ import { NewGroupDialog } from './new-group-dialog/NewGroupDialog';
 const yesNo = (value: boolean) => (value ? 'Yes' : 'No');
 
 // The groups the signed-in user may see (every public one and theirs), and New Group to make one.
-// ponytail: its own snackbar, as PredictionCell's; share one app-wide when a third mutation needs it.
+// ponytail: its own snackbar, as PredictionCell's and the profile page's, until an app-wide toast exists.
 export function GroupsPage() {
   const groups = useGroups();
   const [isNewOpen, setIsNewOpen] = useState(false);

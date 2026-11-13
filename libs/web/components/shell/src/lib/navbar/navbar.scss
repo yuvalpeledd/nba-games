@@ -1,12 +1,13 @@
 @use '../colors' as *;
 
 // outly's navbar: a rail of icons on the start edge that expands over the page to show the labels on hover
-// (devices that can hover) and on keyboard focus.
+// (devices that can hover), on keyboard focus, and while the account menu is open.
 $rail-size: 56px;
 $expanded-size: 240px;
 
 @mixin expanded {
-  .navbar__paper:has(:focus-visible) & {
+  .navbar__paper:has(:focus-visible) &,
+  .navbar--open & {
     @content;
   }
 
@@ -32,7 +33,9 @@ $expanded-size: 240px;
       inline-size 0.3s ease,
       box-shadow 0.3s ease;
 
-    &:has(:focus-visible) {
+    // Also while the account menu is open: it takes the focus, and its anchor shouldn't shrink under it.
+    &:has(:focus-visible),
+    .navbar--open & {
       inline-size: $expanded-size;
       box-shadow: 0 0 24px rgb(25 24 26 / 16%);
     }
@@ -89,7 +92,7 @@ $expanded-size: 240px;
     }
   }
 
-  // Who's signed in, and Log in or Log out: at the rail's end.
+  // Who's signed in, and their menu: at the rail's end.
   &__account {
     margin-block-start: auto;
   }

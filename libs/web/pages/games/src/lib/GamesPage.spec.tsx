@@ -91,22 +91,25 @@ describe('GamesPage', () => {
   });
 
   it("opens on a link's filters instead (the dashboard's games left to pick this week)", async () => {
+    stubApi(routes([...games, game('nba-gsw', 'nba-nyk', '2026-11-14')]));
     renderAt('/games', {
       state: {
         filters: [
           { column: 'time', operator: 'after', values: ['2026-11-08'] },
-          { column: 'time', operator: 'before', values: ['2026-11-13'] },
+          { column: 'time', operator: 'before', values: ['2026-11-16'] },
+          { column: 'status', operator: 'is', values: ['Scheduled'] },
           { column: 'prediction', operator: 'is', values: ['None'] },
         ],
       },
     });
 
     expect((await rows()).map(([time]) => time)).toEqual([
-      tipOff('2026-11-12'),
+      tipOff('2026-11-14'),
     ]);
     for (const chip of [
       'Date after 08/11/2026',
-      'Date before 13/11/2026',
+      'Date before 16/11/2026',
+      'Status is Scheduled',
       'Prediction is None',
     ]) {
       expect(screen.getByRole('button', { name: chip })).toBeTruthy();

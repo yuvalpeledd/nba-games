@@ -98,6 +98,7 @@
       ],
       "@nba/web-groups-page": ["./libs/web/pages/groups/src/index.ts"],
       "@nba/web-login-page": ["./libs/web/pages/login/src/index.ts"],
+      "@nba/web-profile-page": ["./libs/web/pages/profile/src/index.ts"],
       "@nba/web-predictions-components": [
         "./libs/web/components/predictions/src/index.ts"
       ],

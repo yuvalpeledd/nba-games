@@ -40,6 +40,7 @@ Add a section per feature as it is built; delete what turns out wrong.
   Everything is for signed-in users: `AccessGuard` is global, and only `/login`, `/sign-up`, `/firebase-config` and `/health` are `@Public()`.
   - `users` (uuid, `name`, `email` lower-cased and unique, `firebase_uid` unique): a row per Firebase account, made by `/sign-up` with a name.
     `/login` answers the account's user, 404 when it has none yet (the web asks for a name, then signs up).
+    `GET /me` answers the caller's user, and `PATCH /me` renames them (the only field a user changes through the API; the password is Firebase's).
   - Every account's email is verified first: an unverified one is 403 `EMAIL_NOT_VERIFIED` on every route.
     An email another account's user has is 409 `USER_EXISTS` at sign-up.
     A token Firebase refuses, or an account with no user, is 401.

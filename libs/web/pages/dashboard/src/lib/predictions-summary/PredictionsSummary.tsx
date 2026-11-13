@@ -32,12 +32,14 @@ const fromMonday = (offset: number, now = new Date()) => {
   return day.toLocaleDateString('en-CA');
 };
 
-// The games table's filters for this week's games without a pick: GamesPage opens with the `filters` of the
+// The games table's filters for this week's scheduled games without a pick: GamesPage opens with the `filters` of the
 // navigation's state. The date filters' bounds are exclusive: the Sunday before and the Monday after.
 // ponytail: names the games table's columns; put filters in the URL when a second page links into a table.
-const unpickedThisWeek = (): Filter<'time' | 'prediction'>[] => [
+const unpickedThisWeek = (): Filter<'time' | 'status' | 'prediction'>[] => [
   { column: 'time', operator: 'after', values: [fromMonday(-1)] },
   { column: 'time', operator: 'before', values: [fromMonday(7)] },
+  // The games table's label of GameStatus.SCHEDULED.
+  { column: 'status', operator: 'is', values: ['Scheduled'] },
   { column: 'prediction', operator: 'is', values: [predictionLabel(null)] },
 ];
 
