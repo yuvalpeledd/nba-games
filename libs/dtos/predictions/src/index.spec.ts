@@ -1,5 +1,6 @@
 import { GameStatus } from '@nba/sql-games/enums';
-import { isPredictionLocked } from './index';
+import { PredictionPick } from '@nba/sql-predictions/enums';
+import { isPredictionLocked, scorePrediction } from './index';
 
 describe('isPredictionLocked', () => {
   const now = Date.parse('2026-11-13T12:00:00Z');
@@ -33,6 +34,35 @@ describe('isPredictionLocked', () => {
       GameStatus.SUSPENDED,
     ]) {
       expect(isPredictionLocked({ startTime: later, status }, now)).toBe(true);
+    }
+  });
+});
+
+describe('scorePrediction', () => {
+  const final = {
+    status: GameStatus.FINAL,
+    homeTeamId: 'nba-bos',
+    winnerTeamId: 'nba-bos',
+  };
+
+  it('is right when the picked side won, wrong when the other did', () => {
+    expect(scorePrediction({ pick: PredictionPick.HOME }, final)).toBe(true);
+    expect(scorePrediction({ pick: PredictionPick.AWAY }, final)).toBe(false);
+    const awayWon = { ...final, winnerTeamId: 'nba-nyk' };
+    expect(scorePrediction({ pick: PredictionPick.AWAY }, awayWon)).toBe(true);
+    expect(scorePrediction({ pick: PredictionPick.HOME }, awayWon)).toBe(false);
+  });
+
+  it('scores nothing without a pick, before the game is final, or when it was canceled', () => {
+    expect(scorePrediction(undefined, final)).toBeNull();
+    expect(scorePrediction({ pick: null }, final)).toBeNull();
+    for (const status of [GameStatus.IN_PROGRESS, GameStatus.CANCELED]) {
+      expect(
+        scorePrediction(
+          { pick: PredictionPick.HOME },
+          { ...final, status, winnerTeamId: null },
+        ),
+      ).toBeNull();
     }
   });
 });

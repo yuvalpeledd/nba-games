@@ -42,3 +42,13 @@ export const isPredictionLocked = (
 ): boolean =>
   new Date(game.startTime).getTime() <= now ||
   !OPEN_STATUSES.includes(game.status);
+
+// Whether the pick was right: null until the game is final with a winner, and for no pick (a canceled game voids it).
+export const scorePrediction = (
+  prediction: { pick: PredictionPick | null } | undefined,
+  game: { status: GameStatus; winnerTeamId: string | null; homeTeamId: string },
+): boolean | null =>
+  !prediction?.pick || game.status !== GameStatus.FINAL || !game.winnerTeamId
+    ? null
+    : (prediction.pick === PredictionPick.HOME) ===
+      (game.winnerTeamId === game.homeTeamId);

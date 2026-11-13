@@ -1,5 +1,9 @@
+import type { GameDto } from '@nba/dtos-games';
+import type { PredictionDto } from '@nba/dtos-predictions';
 import type { ScanDto } from '@nba/dtos-scans';
-import { appWith, stubApi } from '@nba/web-test-utils';
+import { GameStatus } from '@nba/sql-games/enums';
+import { PredictionPick } from '@nba/sql-predictions/enums';
+import { appWith, game, season, stubApi } from '@nba/web-test-utils';
 import { fireEvent, screen, within } from '@testing-library/react';
 import { DashboardPage } from './DashboardPage';
 
@@ -15,7 +19,99 @@ const scan: ScanDto = {
   error: null,
 };
 
+// A final the home team won.
+const homeWon = (date: string): GameDto =>
+  game('nba-bos', 'nba-nyk', date, {
+    status: GameStatus.FINAL,
+    homeScore: 110,
+    awayScore: 100,
+    winnerTeamId: 'nba-bos',
+  });
+
+const pick = (g: GameDto, p: PredictionPick | null): PredictionDto => ({
+  gameId: g.id,
+  pick: p,
+});
+
 describe('DashboardPage', () => {
+  describe('predictions', () => {
+    // Friday 2026-11-13: the week is Monday 11-09 to Sunday 11-15.
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date('2026-11-13T12:00:00'));
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    const counter = async (name: string) =>
+      within(
+        await within(
+          await screen.findByRole('region', { name: 'Predictions' }),
+        ).findByRole('group', { name }),
+      );
+
+    const lastWeek = homeWon('2026-11-08');
+    const wrong = homeWon('2026-11-10');
+    const right = homeWon('2026-11-11');
+    const unpicked = homeWon('2026-11-12');
+    const picked = game('nba-lal', 'nba-gsw', '2026-11-14');
+    const open = game('nba-lal', 'nba-gsw', '2026-11-15');
+    const takenBack = game('nba-gsw', 'nba-lal', '2026-11-15');
+    const nextWeek = game('nba-lal', 'nba-gsw', '2026-11-16');
+
+    const routes = (predictions: PredictionDto[]) => ({
+      'GET /scans/last': null,
+      'GET /seasons': [season(2026)],
+      'GET /games?season=2026': [
+        lastWeek,
+        wrong,
+        right,
+        unpicked,
+        picked,
+        open,
+        takenBack,
+        nextWeek,
+      ],
+      'GET /predictions?season=2026': predictions,
+    });
+
+    it("counts this week's games still to pick, and how often the picks were right this week and this season", async () => {
+      stubApi(
+        routes([
+          pick(lastWeek, PredictionPick.HOME),
+          pick(wrong, PredictionPick.AWAY),
+          pick(right, PredictionPick.HOME),
+          pick(picked, PredictionPick.HOME),
+          pick(takenBack, null),
+        ]),
+      );
+      renderAt('/');
+
+      const left = await counter('Left this week');
+      expect(left.getByText('2')).toBeTruthy();
+      expect(left.getByText('of 6 games this week')).toBeTruthy();
+      const week = await counter('Success this week');
+      expect(week.getByText('50.0%')).toBeTruthy();
+      expect(week.getByText('1 of 2 right')).toBeTruthy();
+      const wholeSeason = await counter('Success this season');
+      expect(wholeSeason.getByText('66.7%')).toBeTruthy();
+      expect(wholeSeason.getByText('2 of 3 right')).toBeTruthy();
+    });
+
+    it('shows no success rate before any pick is scored', async () => {
+      stubApi(routes([]));
+      renderAt('/');
+
+      expect((await counter('Left this week')).getByText('3')).toBeTruthy();
+      for (const name of ['Success this week', 'Success this season']) {
+        const rate = await counter(name);
+        expect(rate.getByText('—')).toBeTruthy();
+        expect(rate.getByText('No results yet')).toBeTruthy();
+      }
+    });
+  });
+
   describe('last scan', () => {
     const card = async () =>
       within(await screen.findByRole('region', { name: 'Last scan' }));

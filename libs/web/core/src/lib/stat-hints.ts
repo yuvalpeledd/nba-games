@@ -21,4 +21,8 @@ export const statHints = {
   height: 'Height, in feet and inches',
   weight: 'Weight, in pounds',
   experience: 'Years in the league (R: rookie)',
+  predictionsLeft:
+    "This week's games (Monday to Sunday) you haven't picked yet that haven't begun",
+  predictionsSuccess:
+    'The share of your picks that were right, of the games that ended with a winner',
 } as const;
