@@ -1,0 +1,97 @@
+import { Box, Stack, Tab, Tabs, Typography } from '@mui/material';
+import type { StandingDto } from '@nba/dtos-standings';
+import {
+  currentSeason,
+  formatSeason,
+  formatWinPct,
+  useSeasons,
+  useStandings,
+  useTeams,
+} from '@nba/web-core';
+import { PageLoader } from '@nba/web-shell-components';
+import { useState } from 'react';
+import { useParams } from 'react-router';
+import { TeamGames } from './team-games/TeamGames';
+import { TeamPlayers } from './team-players/TeamPlayers';
+
+// The team's line in the season's standings.
+const statsOf = (standing: StandingDto): [string, string][] => [
+  ['Record', `${standing.wins}-${standing.losses}`],
+  ['PCT', formatWinPct(standing.winPct)],
+  ['Seed', String(standing.conferenceRank)],
+  ['Home', standing.homeRecord],
+  ['Away', standing.awayRecord],
+  ['L10', standing.last10],
+  ['Streak', standing.streak],
+];
+
+// A team (/teams/:id): what we know of it, its current season's standing, and tabs for its games and its roster.
+export function TeamSinglePage() {
+  const { id } = useParams() as { id: string };
+  const teams = useTeams();
+  const seasons = useSeasons();
+  const season = seasons.data && currentSeason(seasons.data);
+  // ponytail: the standing shows once it loads and is left out if it fails: the rest of the page doesn't need it.
+  const standings = useStandings(season?.year);
+  const [tab, setTab] = useState<'games' | 'players'>('games');
+  if (!teams.data || !seasons.data) {
+    return <PageLoader error={teams.isError || seasons.isError} />;
+  }
+  const team = teams.data.find((row) => row.id === id);
+  if (!team) {
+    return (
+      <Stack spacing={3}>
+        <Typography variant="h1">Team not found</Typography>
+        <Typography color="text.secondary">There's no team {id}.</Typography>
+      </Stack>
+    );
+  }
+  const standing = standings.data?.find((row) => row.teamId === id);
+  const teamNames = new Map(teams.data.map((row) => [row.id, row.name]));
+
+  return (
+    <Stack spacing={3}>
+      <div>
+        <Typography variant="h1">{team.name}</Typography>
+        <Typography color="text.secondary">
+          {team.conference} Conference · {team.division} Division ·{' '}
+          {team.venue.name}, {team.venue.city}
+        </Typography>
+      </div>
+      {season && standing && (
+        <Stack spacing={1}>
+          <Typography variant="h2">{formatSeason(season.year)}</Typography>
+          <Stack
+            component="dl"
+            direction="row"
+            sx={{ m: 0, flexWrap: 'wrap', columnGap: 4, rowGap: 2 }}
+          >
+            {statsOf(standing).map(([label, value]) => (
+              <Box key={label}>
+                <Typography
+                  component="dt"
+                  variant="caption"
+                  color="text.secondary"
+                >
+                  {label}
+                </Typography>
+                <Typography component="dd" sx={{ m: 0 }}>
+                  {value}
+                </Typography>
+              </Box>
+            ))}
+          </Stack>
+        </Stack>
+      )}
+      <Tabs value={tab} onChange={(_, next) => setTab(next)}>
+        <Tab value="games" label="Games" />
+        <Tab value="players" label="Players" />
+      </Tabs>
+      {tab === 'games' ? (
+        <TeamGames teamId={id} season={season?.year} teamNames={teamNames} />
+      ) : (
+        <TeamPlayers teamId={id} />
+      )}
+    </Stack>
+  );
+}

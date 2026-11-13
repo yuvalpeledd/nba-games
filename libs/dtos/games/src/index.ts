@@ -1,6 +1,6 @@
 import { daySchema, idSchema, VenueDto } from '@nba/dtos';
 import { GameStatus, SeasonType } from '@nba/sql-games/enums';
-import { InferType, object } from 'yup';
+import { InferType, number, object } from 'yup';
 
 export interface GameDto {
   id: string;
@@ -45,9 +45,14 @@ const rangeTest =
 const daysFrom = (from: string, to: string): number =>
   (Date.parse(to) - Date.parse(from)) / 86_400_000 + 1;
 
-// GET /games: the days from `from` to `to` (both included; `to` defaults to `from`), only a team's when `teamId` is given.
+// GET /games: the days from `from` to `to` (both included; `to` defaults to `from`), only a team's when `teamId` is given;
+// or, with `season` (the year it starts in) instead of the days, a team's whole season, every type of game (a team
+// plays ~100: no paging).
 export const gamesQuerySchema = object({
-  from: daySchema.required(),
+  from: daySchema.when('season', {
+    is: undefined,
+    then: (schema) => schema.required(),
+  }),
   to: daySchema
     .test(
       'not-before-from',
@@ -59,6 +64,19 @@ export const gamesQuerySchema = object({
       `from and to must be at most ${MAX_GAME_DAYS} days apart`,
       rangeTest((from, to) => daysFrom(from, to) <= MAX_GAME_DAYS),
     ),
-  teamId: idSchema,
+  season: number()
+    .typeError('season must be a year')
+    .integer('season must be a year')
+    .test(
+      'alone',
+      'season cannot be combined with from or to',
+      (season, { parent }) =>
+        season === undefined ||
+        (parent.from === undefined && parent.to === undefined),
+    ),
+  teamId: idSchema.when('season', {
+    is: (season?: number) => season !== undefined,
+    then: (schema) => schema.required('teamId is required with season'),
+  }),
 });
 export type GamesQuery = InferType<typeof gamesQuerySchema>;

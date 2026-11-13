@@ -11,6 +11,7 @@ export const PAGE_NAMES = [
   'DashboardPage',
   'StandingsPage',
   'TeamsPage',
+  'TeamSinglePage',
 ] as const;
 
 export type Pages = Record<(typeof PAGE_NAMES)[number], ComponentType>;
@@ -34,6 +35,7 @@ export function AppShell({ pages }: { pages: Pages }) {
               <Route index element={<pages.DashboardPage />} />
               <Route path="standings" element={<pages.StandingsPage />} />
               <Route path="teams" element={<pages.TeamsPage />} />
+              <Route path="teams/:id" element={<pages.TeamSinglePage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

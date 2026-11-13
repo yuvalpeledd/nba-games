@@ -1,4 +1,5 @@
 import {
+  Link,
   Stack,
   Tab,
   Table,
@@ -23,6 +24,7 @@ import {
 import { PageLoader } from '@nba/web-shell-components';
 import { useTableSort } from '@nba/web-table-components';
 import { useState } from 'react';
+import { Link as RouterLink } from 'react-router';
 
 // The tabs: the provider's conference names, and their labels.
 const conferences = [
@@ -130,7 +132,9 @@ export function StandingsPage() {
                         width={24}
                         height={24}
                       />
-                      <span>{row.teamName}</span>
+                      <Link component={RouterLink} to={`/teams/${row.teamId}`}>
+                        {row.teamName}
+                      </Link>
                     </Stack>
                   </TableCell>
                   <TableCell align="right">{row.wins}</TableCell>
