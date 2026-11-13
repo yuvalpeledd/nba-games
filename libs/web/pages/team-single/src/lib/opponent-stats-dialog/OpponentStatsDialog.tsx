@@ -66,25 +66,31 @@ const recordOf = (
       ];
 };
 
-// The team's finals against an opponent, every season: its record at home and away, then each game, newest first.
+// The team's finals against an opponent that tipped off before `before` (ISO, the game the dialog is for), every
+// season: its record at home and away, then each game, oldest first.
 export function OpponentStatsDialog({
   teamId,
   opponentId,
   opponent,
+  before,
   onClose,
 }: {
   teamId: string;
   opponentId: string;
   opponent: string;
+  before: string;
   onClose: () => void;
 }) {
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const { data: games, isError } = useHeadToHead(teamId, opponentId);
   const sides = (games ?? [])
-    .filter((game) => game.status === GameStatus.FINAL)
-    .map((game) => sideOf(game, teamId))
-    .reverse();
+    .filter(
+      (game) =>
+        game.status === GameStatus.FINAL &&
+        Date.parse(game.startTime) < Date.parse(before),
+    )
+    .map((game) => sideOf(game, teamId));
   const { rows, headCell } = useTableSort(sides, {
     season: (row) => row.game.season,
     time: (row) => row.game.startTime,

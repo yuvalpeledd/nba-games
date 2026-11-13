@@ -164,7 +164,7 @@ describe('TeamSinglePage', () => {
     ]);
   });
 
-  it("shows the team's record against a game's opponent from its menu", async () => {
+  it("shows the team's record against a game's opponent before that game, from its menu", async () => {
     stubApi(
       routes({
         'GET /games?teamId=nba-bos&opponentId=nba-nyk': [
@@ -174,14 +174,15 @@ describe('TeamSinglePage', () => {
           },
           final('nba-bos', 'nba-nyk', '2026-10-21', 110, 102),
           final('nba-nyk', 'nba-bos', '2026-10-25', 99, 95),
-          game('nba-bos', 'nba-nyk', '2026-12-25'),
+          final('nba-bos', 'nba-nyk', '2027-04-20', 120, 100),
         ],
       }),
     );
     renderAt('/teams/nba-bos');
 
     fireEvent.click(
-      (await screen.findAllByRole('button', { name: 'Actions' }))[0],
+      // The Oct 25 game's: it and the playoff game after it don't count.
+      (await screen.findAllByRole('button', { name: 'Actions' }))[1],
     );
     fireEvent.click(
       await screen.findByRole('menuitem', { name: 'Statistics' }),
@@ -198,11 +199,10 @@ describe('TeamSinglePage', () => {
       within(dialog)
         .getAllByRole('definition')
         .map((value) => value.textContent),
-    ).toEqual(['1', '100.0%', '2', '0.0%']);
+    ).toEqual(['1', '100.0%', '1', '0.0%']);
     expect(await rowsOf('Previous games')).toEqual([
-      ['2026-27', tipOff('2026-10-25'), 'Away', 'L 95-99'],
-      ['2026-27', tipOff('2026-10-21'), 'Home', 'W 110-102'],
       ['2025-26', tipOff('2026-03-01'), 'Away', 'L 90-100'],
+      ['2026-27', tipOff('2026-10-21'), 'Home', 'W 110-102'],
     ]);
 
     fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }));

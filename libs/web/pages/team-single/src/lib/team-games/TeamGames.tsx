@@ -25,6 +25,7 @@ import { OpponentStatsDialog } from '../opponent-stats-dialog/OpponentStatsDialo
 // A row's opponent, for its menu and the dialog the menu opens.
 interface OpponentOf {
   gameId: string;
+  startTime: string;
   opponentId: string;
   opponent: string;
 }
@@ -145,6 +146,7 @@ export function TeamGames({
                   onClick={(event) =>
                     setMenu({
                       gameId: game.id,
+                      startTime: game.startTime,
                       opponentId,
                       opponent,
                       anchor: event.currentTarget,
@@ -177,6 +179,7 @@ export function TeamGames({
           teamId={teamId}
           opponentId={stats.opponentId}
           opponent={stats.opponent}
+          before={stats.startTime}
           onClose={() => setStats(null)}
         />
       )}
