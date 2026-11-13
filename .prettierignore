@@ -1,0 +1,6 @@
+/dist
+/coverage
+/.nx/cache
+/.nx/workspace-data
+# pnpm writes this file in its own format.
+pnpm-lock.yaml

@@ -1,0 +1,542 @@
+[
+  {
+    "team_id": "nba-atl",
+    "league": "nba",
+    "sport": "basketball",
+    "abbreviation": "ATL",
+    "name": "Atlanta Hawks",
+    "nickname": "Hawks",
+    "city": "Atlanta",
+    "conference": "Eastern",
+    "division": "Southeast",
+    "venue": {
+      "name": "State Farm Arena",
+      "city": "Atlanta",
+      "state": "GA",
+      "country": "US"
+    },
+    "active": true
+  },
+  {
+    "team_id": "nba-bkn",
+    "league": "nba",
+    "sport": "basketball",
+    "abbreviation": "BKN",
+    "name": "Brooklyn Nets",
+    "nickname": "Nets",
+    "city": "Brooklyn",
+    "conference": "Eastern",
+    "division": "Atlantic",
+    "venue": {
+      "name": "Barclays Center",
+      "city": "Brooklyn",
+      "state": "NY",
+      "country": "US"
+    },
+    "active": true
+  },
+  {
+    "team_id": "nba-bos",
+    "league": "nba",
+    "sport": "basketball",
+    "abbreviation": "BOS",
+    "name": "Boston Celtics",
+    "nickname": "Celtics",
+    "city": "Boston",
+    "conference": "Eastern",
+    "division": "Atlantic",
+    "venue": {
+      "name": "TD Garden",
+      "city": "Boston",
+      "state": "MA",
+      "country": "US"
+    },
+    "active": true
+  },
+  {
+    "team_id": "nba-cha",
+    "league": "nba",
+    "sport": "basketball",
+    "abbreviation": "CHA",
+    "name": "Charlotte Hornets",
+    "nickname": "Hornets",
+    "city": "Charlotte",
+    "conference": "Eastern",
+    "division": "Southeast",
+    "venue": {
+      "name": "Spectrum Center",
+      "city": "Charlotte",
+      "state": "NC",
+      "country": "US"
+    },
+    "active": true
+  },
+  {
+    "team_id": "nba-chi",
+    "league": "nba",
+    "sport": "basketball",
+    "abbreviation": "CHI",
+    "name": "Chicago Bulls",
+    "nickname": "Bulls",
+    "city": "Chicago",
+    "conference": "Eastern",
+    "division": "Central",
+    "venue": {
+      "name": "United Center",
+      "city": "Chicago",
+      "state": "IL",
+      "country": "US"
+    },
+    "active": true
+  },
+  {
+    "team_id": "nba-cle",
+    "league": "nba",
+    "sport": "basketball",
+    "abbreviation": "CLE",
+    "name": "Cleveland Cavaliers",
+    "nickname": "Cavaliers",
+    "city": "Cleveland",
+    "conference": "Eastern",
+    "division": "Central",
+    "venue": {
+      "name": "Rocket Arena",
+      "city": "Cleveland",
+      "state": "OH",
+      "country": "US"
+    },
+    "active": true
+  },
+  {
+    "team_id": "nba-dal",
+    "league": "nba",
+    "sport": "basketball",
+    "abbreviation": "DAL",
+    "name": "Dallas Mavericks",
+    "nickname": "Mavericks",
+    "city": "Dallas",
+    "conference": "Western",
+    "division": "Southwest",
+    "venue": {
+      "name": "American Airlines Center",
+      "city": "Dallas",
+      "state": "TX",
+      "country": "US"
+    },
+    "active": true
+  },
+  {
+    "team_id": "nba-den",
+    "league": "nba",
+    "sport": "basketball",
+    "abbreviation": "DEN",
+    "name": "Denver Nuggets",
+    "nickname": "Nuggets",
+    "city": "Denver",
+    "conference": "Western",
+    "division": "Northwest",
+    "venue": {
+      "name": "Ball Arena",
+      "city": "Denver",
+      "state": "CO",
+      "country": "US"
+    },
+    "active": true
+  },
+  {
+    "team_id": "nba-det",
+    "league": "nba",
+    "sport": "basketball",
+    "abbreviation": "DET",
+    "name": "Detroit Pistons",
+    "nickname": "Pistons",
+    "city": "Detroit",
+    "conference": "Eastern",
+    "division": "Central",
+    "venue": {
+      "name": "Little Caesars Arena",
+      "city": "Detroit",
+      "state": "MI",
+      "country": "US"
+    },
+    "active": true
+  },
+  {
+    "team_id": "nba-gsw",
+    "league": "nba",
+    "sport": "basketball",
+    "abbreviation": "GSW",
+    "name": "Golden State Warriors",
+    "nickname": "Warriors",
+    "city": "Golden State",
+    "conference": "Western",
+    "division": "Pacific",
+    "venue": {
+      "name": "Chase Center",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "US"
+    },
+    "active": true
+  },
+  {
+    "team_id": "nba-hou",
+    "league": "nba",
+    "sport": "basketball",
+    "abbreviation": "HOU",
+    "name": "Houston Rockets",
+    "nickname": "Rockets",
+    "city": "Houston",
+    "conference": "Western",
+    "division": "Southwest",
+    "venue": {
+      "name": "Toyota Center",
+      "city": "Houston",
+      "state": "TX",
+      "country": "US"
+    },
+    "active": true
+  },
+  {
+    "team_id": "nba-ind",
+    "league": "nba",
+    "sport": "basketball",
+    "abbreviation": "IND",
+    "name": "Indiana Pacers",
+    "nickname": "Pacers",
+    "city": "Indiana",
+    "conference": "Eastern",
+    "division": "Central",
+    "venue": {
+      "name": "Gainbridge Fieldhouse",
+      "city": "Indianapolis",
+      "state": "IN",
+      "country": "US"
+    },
+    "active": true
+  },
+  {
+    "team_id": "nba-lac",
+    "league": "nba",
+    "sport": "basketball",
+    "abbreviation": "LAC",
+    "name": "LA Clippers",
+    "nickname": "Clippers",
+    "city": "LA",
+    "conference": "Western",
+    "division": "Pacific",
+    "venue": {
+      "name": "Intuit Dome",
+      "city": "Inglewood",
+      "state": "CA",
+      "country": "US"
+    },
+    "active": true
+  },
+  {
+    "team_id": "nba-lal",
+    "league": "nba",
+    "sport": "basketball",
+    "abbreviation": "LAL",
+    "name": "Los Angeles Lakers",
+    "nickname": "Lakers",
+    "city": "Los Angeles",
+    "conference": "Western",
+    "division": "Pacific",
+    "venue": {
+      "name": "Crypto.com Arena",
+      "city": "Los Angeles",
+      "state": "CA",
+      "country": "US"
+    },
+    "active": true
+  },
+  {
+    "team_id": "nba-mem",
+    "league": "nba",
+    "sport": "basketball",
+    "abbreviation": "MEM",
+    "name": "Memphis Grizzlies",
+    "nickname": "Grizzlies",
+    "city": "Memphis",
+    "conference": "Western",
+    "division": "Southwest",
+    "venue": {
+      "name": "FedExForum",
+      "city": "Memphis",
+      "state": "TN",
+      "country": "US"
+    },
+    "active": true
+  },
+  {
+    "team_id": "nba-mia",
+    "league": "nba",
+    "sport": "basketball",
+    "abbreviation": "MIA",
+    "name": "Miami Heat",
+    "nickname": "Heat",
+    "city": "Miami",
+    "conference": "Eastern",
+    "division": "Southeast",
+    "venue": {
+      "name": "Kaseya Center",
+      "city": "Miami",
+      "state": "FL",
+      "country": "US"
+    },
+    "active": true
+  },
+  {
+    "team_id": "nba-mil",
+    "league": "nba",
+    "sport": "basketball",
+    "abbreviation": "MIL",
+    "name": "Milwaukee Bucks",
+    "nickname": "Bucks",
+    "city": "Milwaukee",
+    "conference": "Eastern",
+    "division": "Central",
+    "venue": {
+      "name": "Fiserv Forum",
+      "city": "Milwaukee",
+      "state": "WI",
+      "country": "US"
+    },
+    "active": true
+  },
+  {
+    "team_id": "nba-min",
+    "league": "nba",
+    "sport": "basketball",
+    "abbreviation": "MIN",
+    "name": "Minnesota Timberwolves",
+    "nickname": "Timberwolves",
+    "city": "Minnesota",
+    "conference": "Western",
+    "division": "Northwest",
+    "venue": {
+      "name": "Target Center",
+      "city": "Minneapolis",
+      "state": "MN",
+      "country": "US"
+    },
+    "active": true
+  },
+  {
+    "team_id": "nba-nop",
+    "league": "nba",
+    "sport": "basketball",
+    "abbreviation": "NOP",
+    "name": "New Orleans Pelicans",
+    "nickname": "Pelicans",
+    "city": "New Orleans",
+    "conference": "Western",
+    "division": "Southwest",
+    "venue": {
+      "name": "Smoothie King Center",
+      "city": "New Orleans",
+      "state": "LA",
+      "country": "US"
+    },
+    "active": true
+  },
+  {
+    "team_id": "nba-nyk",
+    "league": "nba",
+    "sport": "basketball",
+    "abbreviation": "NYK",
+    "name": "New York Knicks",
+    "nickname": "Knicks",
+    "city": "New York",
+    "conference": "Eastern",
+    "division": "Atlantic",
+    "venue": {
+      "name": "Madison Square Garden",
+      "city": "New York",
+      "state": "NY",
+      "country": "US"
+    },
+    "active": true
+  },
+  {
+    "team_id": "nba-okc",
+    "league": "nba",
+    "sport": "basketball",
+    "abbreviation": "OKC",
+    "name": "Oklahoma City Thunder",
+    "nickname": "Thunder",
+    "city": "Oklahoma City",
+    "conference": "Western",
+    "division": "Northwest",
+    "venue": {
+      "name": "Paycom Center",
+      "city": "Oklahoma City",
+      "state": "OK",
+      "country": "US"
+    },
+    "active": true
+  },
+  {
+    "team_id": "nba-orl",
+    "league": "nba",
+    "sport": "basketball",
+    "abbreviation": "ORL",
+    "name": "Orlando Magic",
+    "nickname": "Magic",
+    "city": "Orlando",
+    "conference": "Eastern",
+    "division": "Southeast",
+    "venue": {
+      "name": "Kia Center",
+      "city": "Orlando",
+      "state": "FL",
+      "country": "US"
+    },
+    "active": true
+  },
+  {
+    "team_id": "nba-phi",
+    "league": "nba",
+    "sport": "basketball",
+    "abbreviation": "PHI",
+    "name": "Philadelphia 76ers",
+    "nickname": "76ers",
+    "city": "Philadelphia",
+    "conference": "Eastern",
+    "division": "Atlantic",
+    "venue": {
+      "name": "Xfinity Mobile Arena",
+      "city": "Philadelphia",
+      "state": "PA",
+      "country": "US"
+    },
+    "active": true
+  },
+  {
+    "team_id": "nba-phx",
+    "league": "nba",
+    "sport": "basketball",
+    "abbreviation": "PHX",
+    "name": "Phoenix Suns",
+    "nickname": "Suns",
+    "city": "Phoenix",
+    "conference": "Western",
+    "division": "Pacific",
+    "venue": {
+      "name": "Mortgage Matchup Center",
+      "city": "Phoenix",
+      "state": "AZ",
+      "country": "US"
+    },
+    "active": true
+  },
+  {
+    "team_id": "nba-por",
+    "league": "nba",
+    "sport": "basketball",
+    "abbreviation": "POR",
+    "name": "Portland Trail Blazers",
+    "nickname": "Trail Blazers",
+    "city": "Portland",
+    "conference": "Western",
+    "division": "Northwest",
+    "venue": {
+      "name": "Moda Center",
+      "city": "Portland",
+      "state": "OR",
+      "country": "US"
+    },
+    "active": true
+  },
+  {
+    "team_id": "nba-sac",
+    "league": "nba",
+    "sport": "basketball",
+    "abbreviation": "SAC",
+    "name": "Sacramento Kings",
+    "nickname": "Kings",
+    "city": "Sacramento",
+    "conference": "Western",
+    "division": "Pacific",
+    "venue": {
+      "name": "Golden 1 Center",
+      "city": "Sacramento",
+      "state": "CA",
+      "country": "US"
+    },
+    "active": true
+  },
+  {
+    "team_id": "nba-sas",
+    "league": "nba",
+    "sport": "basketball",
+    "abbreviation": "SAS",
+    "name": "San Antonio Spurs",
+    "nickname": "Spurs",
+    "city": "San Antonio",
+    "conference": "Western",
+    "division": "Southwest",
+    "venue": {
+      "name": "Frost Bank Center",
+      "city": "San Antonio",
+      "state": "TX",
+      "country": "US"
+    },
+    "active": true
+  },
+  {
+    "team_id": "nba-tor",
+    "league": "nba",
+    "sport": "basketball",
+    "abbreviation": "TOR",
+    "name": "Toronto Raptors",
+    "nickname": "Raptors",
+    "city": "Toronto",
+    "conference": "Eastern",
+    "division": "Atlantic",
+    "venue": {
+      "name": "Scotiabank Arena",
+      "city": "Toronto",
+      "state": "ON",
+      "country": "CA"
+    },
+    "active": true
+  },
+  {
+    "team_id": "nba-uta",
+    "league": "nba",
+    "sport": "basketball",
+    "abbreviation": "UTA",
+    "name": "Utah Jazz",
+    "nickname": "Jazz",
+    "city": "Utah",
+    "conference": "Western",
+    "division": "Northwest",
+    "venue": {
+      "name": "Delta Center",
+      "city": "Salt Lake City",
+      "state": "UT",
+      "country": "US"
+    },
+    "active": true
+  },
+  {
+    "team_id": "nba-was",
+    "league": "nba",
+    "sport": "basketball",
+    "abbreviation": "WAS",
+    "name": "Washington Wizards",
+    "nickname": "Wizards",
+    "city": "Washington",
+    "conference": "Eastern",
+    "division": "Southeast",
+    "venue": {
+      "name": "Capital One Arena",
+      "city": "Washington",
+      "state": "DC",
+      "country": "US"
+    },
+    "active": true
+  }
+]

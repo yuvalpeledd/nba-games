@@ -1,0 +1,1 @@
+CREATE DATABASE nba_test OWNER nba;

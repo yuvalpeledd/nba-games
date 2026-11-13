@@ -1,0 +1,8 @@
+{
+  "name": "sql-core",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/sql/core/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {}
+}
