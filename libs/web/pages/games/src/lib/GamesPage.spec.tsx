@@ -53,13 +53,37 @@ const rows = async () =>
         .map((cell) => cell.textContent),
     );
 
+// Removes the filter on the games after two days ago the page opens with.
+const showEveryDay = async () =>
+  fireEvent.click(
+    within(
+      await screen.findByRole('button', { name: 'Date after 11/11/2026' }),
+    ).getByTestId('CancelIcon'),
+  );
+
 describe('GamesPage', () => {
   beforeEach(() => {
+    // Only the clock: the spec's waits still run.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-13T12:00:00'));
     stubApi(routes(games));
   });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
-  it("lists every team's games in the season, every day", async () => {
+  it('opens on the games after two days ago', async () => {
     renderAt('/games');
+
+    expect((await rows()).map(([time]) => time)).toEqual([
+      tipOff('2026-11-12'),
+      tipOff('2026-11-13'),
+    ]);
+  });
+
+  it("lists every team's games in the season, every day, without that filter", async () => {
+    renderAt('/games');
+    await showEveryDay();
 
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Games' }),
@@ -99,7 +123,7 @@ describe('GamesPage', () => {
     renderAt('/games');
 
     fireEvent.click(await screen.findByRole('button', { name: 'Add Filter' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Date' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Date/ }));
     fireEvent.change(screen.getByLabelText('After'), {
       target: { value: '2026-11-01' },
     });
@@ -115,6 +139,7 @@ describe('GamesPage', () => {
 
   it('filters by any of the checked values, or none, until the filter is removed', async () => {
     renderAt('/games');
+    await showEveryDay();
     const homes = async () => (await rows()).map(([, , home]) => home);
 
     fireEvent.click(await screen.findByRole('button', { name: 'Add Filter' }));
@@ -147,6 +172,7 @@ describe('GamesPage', () => {
 
   it('sorts by score, the unplayed last', async () => {
     renderAt('/games');
+    await showEveryDay();
 
     fireEvent.click(await screen.findByRole('button', { name: 'Score' }));
     fireEvent.click(screen.getByRole('button', { name: 'Score' }));
@@ -161,7 +187,7 @@ describe('GamesPage', () => {
     stubApi(
       routes(
         Array.from({ length: 51 }, (_, i) =>
-          game('nba-bos', 'nba-nyk', '2026-11-01', { id: `game-${i}` }),
+          game('nba-bos', 'nba-nyk', '2026-11-13', { id: `game-${i}` }),
         ),
       ),
     );
