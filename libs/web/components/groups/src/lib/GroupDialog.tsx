@@ -11,26 +11,29 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import { createGroupRequestSchema } from '@nba/dtos-groups';
-import { invalidFields, useCreateGroup } from '@nba/web-core';
+import { createGroupRequestSchema, type GroupDto } from '@nba/dtos-groups';
+import { invalidFields, useCreateGroup, useUpdateGroup } from '@nba/web-core';
 import { type FormEvent, useState } from 'react';
 
-const FORM_ID = 'new-group-form';
+const FORM_ID = 'group-form';
 
-// A group the signed-in user will own: its name, and whether everyone sees it. Says how it went through `toast`, and
-// closes once it's made.
-export function NewGroupDialog({
+// A group's name, and whether everyone sees it: a new one the signed-in user will own, or `group`, which they own,
+// edited. Says how it went through `toast`, and closes once it's saved.
+export function GroupDialog({
+  group,
   onClose,
   toast,
 }: {
+  group?: GroupDto;
   onClose: () => void;
   toast: (message: string) => void;
 }) {
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const createGroup = useCreateGroup();
-  const [name, setName] = useState('');
-  const [isPublic, setIsPublic] = useState(false);
+  const updateGroup = useUpdateGroup();
+  const [name, setName] = useState(group?.name ?? '');
+  const [isPublic, setIsPublic] = useState(group?.public ?? false);
   const [nameInvalid, setNameInvalid] = useState(false);
 
   const submit = async (event: FormEvent) => {
@@ -39,18 +42,22 @@ export function NewGroupDialog({
     const invalid = await invalidFields(createGroupRequestSchema, request);
     setNameInvalid(invalid.includes('name'));
     if (invalid.length) return;
-    createGroup.mutate(createGroupRequestSchema.cast(request), {
-      onSuccess: (group) => {
-        toast(`Group ${group.name} created`);
+    const body = createGroupRequestSchema.cast(request);
+    const done = {
+      onSuccess: (saved: GroupDto) => {
+        toast(`Group ${saved.name} ${group ? 'saved' : 'created'}`);
         onClose();
       },
-      onError: () => toast("Couldn't create the group, try again"),
-    });
+      onError: () =>
+        toast(`Couldn't ${group ? 'save' : 'create'} the group, try again`),
+    };
+    if (group) updateGroup.mutate({ id: group.id, ...body }, done);
+    else createGroup.mutate(body, done);
   };
 
   return (
     <Dialog open onClose={onClose} fullScreen={fullScreen} fullWidth>
-      <DialogTitle>New Group</DialogTitle>
+      <DialogTitle>{group ? 'Edit Group' : 'New Group'}</DialogTitle>
       <DialogContent>
         <Stack component="form" id={FORM_ID} onSubmit={submit} sx={{ pt: 1 }}>
           <TextField
@@ -80,9 +87,9 @@ export function NewGroupDialog({
           type="submit"
           form={FORM_ID}
           variant="contained"
-          loading={createGroup.isPending}
+          loading={createGroup.isPending || updateGroup.isPending}
         >
-          Create
+          {group ? 'Save' : 'Create'}
         </Button>
       </DialogActions>
     </Dialog>

@@ -1,0 +1,8 @@
+{
+  "name": "web-groups-components",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/web/components/groups/src",
+  "projectType": "library",
+  "tags": ["scope:web"],
+  "targets": {}
+}
