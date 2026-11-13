@@ -139,7 +139,7 @@ describe('TeamSinglePage', () => {
     );
     expect(
       screen.getAllByRole('definition').map((value) => value.textContent),
-    ).toEqual(['10-3', '.769', '1', '3-2', '3-2', '6-4', 'W4']);
+    ).toEqual(['10-3', '76.9%', '1', '3-2', '3-2', '6-4', 'W4']);
   });
 
   it("lists the team's games, from its side", async () => {
