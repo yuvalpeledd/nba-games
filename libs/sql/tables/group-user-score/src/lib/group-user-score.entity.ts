@@ -11,9 +11,9 @@ import {
   Unique,
 } from 'typeorm';
 
-// A member's score for a game in a group: 1 if their prediction was right, 0 if wrong; a row per group, user and game,
-// written by score-manager when it checks the game.
-@Entity('group_user_scores')
+// What a member's prediction of a game scored in a group: a row per group, user and game, written by score-manager
+// once the game is final.
+@Entity('group_user_score')
 @Unique(['groupId', 'userId', 'gameId'])
 export class GroupUserScoreEntity extends BaseAbstractEntity {
   @PrimaryGeneratedColumn('uuid')
@@ -40,6 +40,7 @@ export class GroupUserScoreEntity extends BaseAbstractEntity {
   @JoinColumn({ name: 'game_id' })
   game?: GameEntity;
 
+  // 1: the pick was right, 0: wrong.
   @Column({ type: 'int' })
   score!: number;
 }

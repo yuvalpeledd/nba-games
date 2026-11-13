@@ -1,8 +1,8 @@
 {
-  "name": "sql-group-user-scores",
+  "name": "web-groups-components",
   "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "libs/sql/tables/group-user-scores/src",
+  "sourceRoot": "libs/web/components/groups/src",
   "projectType": "library",
-  "tags": ["scope:shared"],
+  "tags": ["scope:web"],
   "targets": {}
 }

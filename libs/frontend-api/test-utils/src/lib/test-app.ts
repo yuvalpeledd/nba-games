@@ -151,7 +151,11 @@ export class TestApp {
       },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
-    return { status: response.status, body: await response.json() };
+    // A 204 (DELETE) has no body: null.
+    return {
+      status: response.status,
+      body: await response.json().catch(() => null),
+    };
   }
 
   // Empties every table, seasons included (their migration's rows too); the schema and the applied migrations stay.

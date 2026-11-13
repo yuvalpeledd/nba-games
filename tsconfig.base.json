@@ -76,8 +76,8 @@
       "@nba/sql-group-members": [
         "./libs/sql/tables/group-members/src/index.ts"
       ],
-      "@nba/sql-group-user-scores": [
-        "./libs/sql/tables/group-user-scores/src/index.ts"
+      "@nba/sql-group-user-score": [
+        "./libs/sql/tables/group-user-score/src/index.ts"
       ],
       "@nba/sql-groups": ["./libs/sql/tables/groups/src/index.ts"],
       "@nba/sql-groups/enums": ["./libs/sql/tables/groups/src/enums.ts"],
@@ -106,6 +106,9 @@
       ],
       "@nba/web-login-page": ["./libs/web/pages/login/src/index.ts"],
       "@nba/web-profile-page": ["./libs/web/pages/profile/src/index.ts"],
+      "@nba/web-groups-components": [
+        "./libs/web/components/groups/src/index.ts"
+      ],
       "@nba/web-predictions-components": [
         "./libs/web/components/predictions/src/index.ts"
       ],

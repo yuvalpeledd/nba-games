@@ -1,239 +1,192 @@
 import { INestApplication } from '@nestjs/common';
-import { APP_FILTER } from '@nestjs/core';
+import { ErrorCode } from '@nba/enums';
 import { Test } from '@nestjs/testing';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ErrorCode } from '@nba/enums';
-import { FailureFilter } from '@nba/frontend-api-common';
 import { testPostgresOptions } from '@nba/sql';
 import {
-  type GameCreateObject,
   GameDalService,
+  GameModule,
   GameStatus,
   SeasonType,
 } from '@nba/sql-games';
-import { GroupMemberDalService } from '@nba/sql-group-members';
-import { GroupUserScoreDalService } from '@nba/sql-group-user-scores';
-import { PredictionDalService, PredictionPick } from '@nba/sql-predictions';
+import {
+  GroupMemberDalService,
+  GroupMemberModule,
+} from '@nba/sql-group-members';
+import {
+  GroupUserScoreDalService,
+  GroupUserScoreModule,
+} from '@nba/sql-group-user-score';
+import {
+  PredictionDalService,
+  PredictionModule,
+  PredictionPick,
+} from '@nba/sql-predictions';
 import { TeamDalService, TeamModule } from '@nba/sql-teams';
 import { UserDalService, UserModule } from '@nba/sql-users';
 import { DataSource } from 'typeorm';
 import { ScoreManagerScoresModule } from './scores.module';
 
-// Over HTTP, as main.ts serves it (under /api, with the failure filter), on the specs' database. No sign-in: it's
-// internal. (TestApp is frontend-api's, with its Firebase guard.)
+// Over HTTP, as main.ts serves it (under /api), against the specs' database (TEST_DB_NAME).
+
+const team = (abbreviation: string) => ({
+  id: `nba-${abbreviation}`,
+  abbreviation: abbreviation.toUpperCase(),
+  name: abbreviation,
+  nickname: abbreviation,
+  city: 'Test City',
+  conference: 'Eastern',
+  division: 'Atlantic',
+  venue: { name: 'Arena', city: 'Test City', state: 'NY', country: 'USA' },
+  active: true,
+});
+
+// Boston at home to New York, final, Boston won.
+const GAME_ID = 'nba-20261111-nyk-bos';
+const finalGame = {
+  id: GAME_ID,
+  season: 2026,
+  seasonType: SeasonType.REGULAR,
+  date: '2026-11-11',
+  startTime: new Date('2026-11-11T23:00:00Z'),
+  status: GameStatus.FINAL,
+  statusDetail: null,
+  period: null,
+  clock: null,
+  homeTeamId: 'nba-bos',
+  awayTeamId: 'nba-nyk',
+  homeScore: 110,
+  awayScore: 100,
+  periodScores: null,
+  decidedIn: null,
+  winnerTeamId: 'nba-bos',
+  venue: null,
+  neutralSite: false,
+  originalDate: null,
+};
+
 describe('ScoresController', () => {
   let app: INestApplication;
   let baseUrl: string;
+  const get = <T>(type: new (...args: never[]) => T) => app.get(type);
+
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [
         TypeOrmModule.forRootAsync({ useFactory: testPostgresOptions }),
         TeamModule,
+        GameModule,
         UserModule,
+        PredictionModule,
+        GroupMemberModule,
+        GroupUserScoreModule,
         ScoreManagerScoresModule,
       ],
-      providers: [{ provide: APP_FILTER, useClass: FailureFilter }],
     }).compile();
     app = moduleRef.createNestApplication({ logger: ['error'] });
     app.setGlobalPrefix('api');
     await app.listen(0);
     baseUrl = await app.getUrl();
   });
-  afterAll(() => app.close());
-  beforeEach(() =>
-    app
-      .get(DataSource)
-      .query(
-        'TRUNCATE teams, games, users, predictions, groups, group_members, group_user_scores CASCADE',
-      ),
-  );
+  afterAll(() => app?.close());
+  beforeEach(async () => {
+    await get(DataSource).query(
+      'TRUNCATE teams, games, users, predictions, groups, group_members, group_user_score CASCADE',
+    );
+    await get(TeamDalService).upsert([team('bos'), team('nyk')]);
+  });
 
-  const check = async (gameId: string) => {
-    const response = await fetch(`${baseUrl}/api/games/${gameId}/check`, {
+  const score = async (gameId: string) => {
+    const response = await fetch(`${baseUrl}/api/games/${gameId}/score`, {
       method: 'POST',
     });
     return { status: response.status, body: await response.json() };
   };
-
-  // A game between two new teams, final with the home team winning unless `overrides` say otherwise.
-  let next = 0;
-  const createGame = async (overrides: Partial<GameCreateObject> = {}) => {
-    const [home, away] = ['h', 'a'].map((side) => `nba-${side}${++next}`);
-    await app.get(TeamDalService).upsert(
-      [home, away].map((id) => ({
-        id,
-        abbreviation: id.slice(4).toUpperCase(),
-        name: id,
-        nickname: id,
-        city: 'Test City',
-        conference: 'Eastern',
-        division: 'Atlantic',
-        venue: {
-          name: 'Arena',
-          city: 'Test City',
-          state: null,
-          country: 'USA',
-        },
-        active: true,
-      })),
-    );
-    const game: GameCreateObject = {
-      id: `nba-20261111-${next}`,
-      season: 2026,
-      seasonType: SeasonType.REGULAR,
-      date: '2026-11-11',
-      startTime: new Date('2026-11-11T23:00:00Z'),
-      status: GameStatus.FINAL,
-      statusDetail: null,
-      period: null,
-      clock: null,
-      homeTeamId: home,
-      awayTeamId: away,
-      homeScore: 110,
-      awayScore: 100,
-      periodScores: null,
-      decidedIn: null,
-      winnerTeamId: home,
-      venue: null,
-      neutralSite: false,
-      originalDate: null,
-      ...overrides,
-    };
-    await app.get(GameDalService).upsert([game]);
-    return game;
-  };
-
   const createUser = (name: string) =>
-    app.get(UserDalService).create({
+    get(UserDalService).create({
       name,
-      email: `${name.toLowerCase()}@nba.dev`,
+      email: `${name}@nba.dev`,
       firebaseUid: `firebase-${name}`,
     });
+  const createGroup = (name: string, ownerId: string) =>
+    get(GroupMemberDalService).createGroup({ name, ownerId, public: true });
+  const predict = (userId: string, pick: PredictionPick | null) =>
+    get(PredictionDalService).set({ userId, gameId: GAME_ID, pick });
 
-  // Owned by the first user, with the rest added (nothing in the API joins a group yet).
-  const createGroup = async (name: string, ...userIds: string[]) => {
-    const group = await app
-      .get(GroupMemberDalService)
-      .createGroup({ name, ownerId: userIds[0], public: false });
-    await app
-      .get(DataSource)
-      .getRepository('group_members')
-      .insert(
-        userIds.slice(1).map((userId) => ({ groupId: group.id, userId })),
-      );
-    return group;
-  };
-
-  const pick = (userId: string, gameId: string, pick: PredictionPick | null) =>
-    app.get(PredictionDalService).set({ userId, gameId, pick });
-
-  const sorted = <T extends { groupId: string; userId: string }>(rows: T[]) =>
-    rows.sort((a, b) =>
-      `${a.groupId}${a.userId}`.localeCompare(`${b.groupId}${b.userId}`),
-    );
-
-  const scores = async (gameId: string) =>
-    sorted(
-      (await app.get(GroupUserScoreDalService).findByGame(gameId)).map(
-        ({ groupId, userId, score }) => ({ groupId, userId, score }),
-      ),
-    );
-
-  describe('POST /games/:gameId/check', () => {
-    describe('validation', () => {
-      it('takes a game id up to 100 characters', async () => {
-        const { status, body } = await check('x'.repeat(101));
-        expect(status).toBe(400);
-        expect(body.message).toContain('gameId must be at most 100 characters');
-      });
+  describe('POST /games/:gameId/score', () => {
+    it('takes a game id up to 100 characters', async () => {
+      const { status, body } = await score('x'.repeat(101));
+      expect(status).toBe(400);
+      expect(body.message).toContain('gameId must be at most 100 characters');
     });
 
-    describe('behavior', () => {
-      it('is 404 for an unknown game', async () => {
-        const { status } = await check('nba-20261111-nope');
-        expect(status).toBe(404);
-      });
+    it('is 404 for an unknown game', async () => {
+      expect((await score('nba-nope')).status).toBe(404);
+    });
 
-      it.each([GameStatus.SCHEDULED, GameStatus.CANCELED])(
-        'refuses a %s game, without a winner',
-        async (status) => {
-          const game = await createGame({ status, winnerTeamId: null });
-          const dana = await createUser('Dana');
-          await createGroup('Friday League', dana.id);
-          await pick(dana.id, game.id, PredictionPick.HOME);
+    it('is 409 until the game is final with a winner, and for a canceled one', async () => {
+      for (const status of [GameStatus.SCHEDULED, GameStatus.CANCELED]) {
+        await get(GameDalService).upsert([
+          { ...finalGame, status, winnerTeamId: null },
+        ]);
+        const { status: code, body } = await score(GAME_ID);
+        expect(code).toBe(409);
+        expect(body.code).toBe(ErrorCode.GAME_NOT_FINAL);
+      }
+    });
 
-          const reply = await check(game.id);
-
-          expect(reply.status).toBe(409);
-          expect(reply.body.code).toBe(ErrorCode.GAME_NOT_FINAL);
-          expect(await scores(game.id)).toEqual([]);
-        },
+    it("scores each pick 1 if right and 0 if wrong, in every group of its user's", async () => {
+      await get(GameDalService).upsert([finalGame]);
+      const dana = await createUser('dana');
+      const omer = await createUser('omer');
+      const noam = await createUser('noam'); // took their pick back
+      const lone = await createUser('lone'); // in no group
+      const friday = await createGroup('Friday', dana.id);
+      const office = await createGroup('Office', omer.id);
+      // ponytail: joining has no DAL yet; the test inserts the memberships itself.
+      await get(DataSource).query(
+        'INSERT INTO group_members (group_id, user_id) VALUES ($1, $2), ($1, $3)',
+        [office.id, dana.id, noam.id],
       );
+      await predict(dana.id, PredictionPick.HOME);
+      await predict(omer.id, PredictionPick.AWAY);
+      await predict(noam.id, null);
+      await predict(lone.id, PredictionPick.HOME);
 
-      it("scores each pick 1 if right and 0 if wrong, in every group of the user's", async () => {
-        const game = await createGame(); // the home team won
-        const [dana, omer, noa, lior, eli] = await Promise.all(
-          ['Dana', 'Omer', 'Noa', 'Lior', 'Eli'].map(createUser),
-        );
-        const league = await createGroup(
-          'Friday League',
-          dana.id,
-          omer.id,
-          noa.id,
-          lior.id,
-        );
-        const office = await createGroup('Office', dana.id);
-        await pick(dana.id, game.id, PredictionPick.HOME); // right
-        await pick(omer.id, game.id, PredictionPick.AWAY); // wrong
-        await pick(noa.id, game.id, null); // took it back: no score
-        // lior made no pick: no score; eli is in no group: nowhere to score
-        await pick(eli.id, game.id, PredictionPick.HOME);
+      const { status, body } = await score(GAME_ID);
 
-        const { status, body } = await check(game.id);
+      expect(status).toBe(200);
+      expect(body).toEqual({ data: { gameId: GAME_ID, scores: 3, right: 2 } });
+      const rows = await get(GroupUserScoreDalService).findByGame(GAME_ID);
+      expect(
+        rows
+          .map(({ groupId, userId, score }) => [groupId, userId, score])
+          .sort(),
+      ).toEqual(
+        [
+          [friday.id, dana.id, 1],
+          [office.id, dana.id, 1],
+          [office.id, omer.id, 0],
+        ].sort(),
+      );
+    });
 
-        expect(status).toBe(200);
-        expect(body.data).toEqual({ inserted: 3, updated: 0, unchanged: 0 });
-        expect(await scores(game.id)).toEqual(
-          sorted([
-            { groupId: league.id, userId: dana.id, score: 1 },
-            { groupId: office.id, userId: dana.id, score: 1 },
-            { groupId: league.id, userId: omer.id, score: 0 },
-          ]),
-        );
-      });
+    it('overwrites the scores when the game is scored again', async () => {
+      await get(GameDalService).upsert([finalGame]);
+      const dana = await createUser('dana');
+      await createGroup('Friday', dana.id);
+      await predict(dana.id, PredictionPick.HOME);
+      await score(GAME_ID);
 
-      it('rewrites only what changed when checked again', async () => {
-        const game = await createGame();
-        const [dana, omer] = await Promise.all(
-          ['Dana', 'Omer'].map(createUser),
-        );
-        const league = await createGroup('Friday League', dana.id, omer.id);
-        await pick(dana.id, game.id, PredictionPick.HOME);
-        await pick(omer.id, game.id, PredictionPick.AWAY);
-        await check(game.id);
+      // The provider corrected the result.
+      await get(GameDalService).upsert([
+        { ...finalGame, winnerTeamId: 'nba-nyk' },
+      ]);
+      await score(GAME_ID);
 
-        expect((await check(game.id)).body.data).toEqual({
-          inserted: 0,
-          updated: 0,
-          unchanged: 2,
-        });
-
-        // The provider corrects the result: the away team won.
-        await app
-          .get(GameDalService)
-          .upsert([{ ...game, winnerTeamId: game.awayTeamId }]);
-        expect((await check(game.id)).body.data).toEqual({
-          inserted: 0,
-          updated: 2,
-          unchanged: 0,
-        });
-        expect(await scores(game.id)).toEqual(
-          sorted([
-            { groupId: league.id, userId: dana.id, score: 0 },
-            { groupId: league.id, userId: omer.id, score: 1 },
-          ]),
-        );
-      });
+      expect(
+        await get(GroupUserScoreDalService).findByGame(GAME_ID),
+      ).toMatchObject([{ userId: dana.id, score: 0 }]);
     });
   });
 });

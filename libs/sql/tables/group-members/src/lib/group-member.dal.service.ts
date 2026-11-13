@@ -58,11 +58,6 @@ export class GroupMemberDalService {
     });
   }
 
-  // The memberships of any of the users, in every group.
-  findByUsers(userIds: string[]): Promise<GroupMemberEntity[]> {
-    return this.repo.find({ where: { userId: In(userIds) } });
-  }
-
   private async visibleTo(
     userId: string,
     id?: string,
@@ -95,5 +90,10 @@ export class GroupMemberDalService {
       memberCount: Number(rows.get(group.id)?.member_count ?? 0),
       isMember: rows.get(group.id)?.is_member ?? false,
     }));
+  }
+
+  // The memberships of these users: a row per group each is in.
+  findByUsers(userIds: string[]): Promise<GroupMemberEntity[]> {
+    return this.repo.find({ where: { userId: In(userIds) } });
   }
 }

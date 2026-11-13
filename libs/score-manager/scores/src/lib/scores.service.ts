@@ -6,11 +6,17 @@ import {
 } from '@nestjs/common';
 import { scorePrediction } from '@nba/dtos-predictions';
 import { ErrorCode } from '@nba/enums';
-import { NO_WRITES, type WriteCounts } from '@nba/sql-core';
 import { GameDalService, GameStatus } from '@nba/sql-games';
 import { GroupMemberDalService } from '@nba/sql-group-members';
-import { GroupUserScoreDalService } from '@nba/sql-group-user-scores';
+import { GroupUserScoreDalService } from '@nba/sql-group-user-score';
 import { PredictionDalService } from '@nba/sql-predictions';
+
+// What scoring a game wrote: a row per group of each user who picked, `right` of them 1.
+export interface GameScores {
+  gameId: string;
+  scores: number;
+  right: number;
+}
 
 @Injectable()
 export class ScoresService {
@@ -20,42 +26,46 @@ export class ScoresService {
     private readonly games: GameDalService,
     private readonly predictions: PredictionDalService,
     private readonly members: GroupMemberDalService,
-    private readonly scores: GroupUserScoreDalService,
+    private readonly groupUserScores: GroupUserScoreDalService,
   ) {}
 
-  // Scores every pick of the final game in each of its user's groups: 1 if right, 0 if wrong (scorePrediction).
-  // A user who made no pick (or took it back) gets no row. Checking again rewrites only what changed.
-  async check(gameId: string): Promise<WriteCounts> {
+  // Every pick of a final game, scored 1 (right) or 0 (wrong) in each group its user is in; again overwrites.
+  // 404 for an unknown game, 409 until it's final with a winner (a canceled one never is: its picks are void).
+  async score(gameId: string): Promise<GameScores> {
     const game = await this.games.findById(gameId);
     if (!game) throw new NotFoundException(`Game ${gameId} not found`);
     if (game.status !== GameStatus.FINAL || !game.winnerTeamId) {
       throw new ConflictException({
         statusCode: 409,
-        message: `Game ${gameId} is ${game.status} without a winner: nothing to score`,
+        message: `Game ${gameId} has no result to score (${game.status})`,
         code: ErrorCode.GAME_NOT_FINAL,
       });
     }
-    const scoreOf = new Map<string, number>();
-    for (const prediction of await this.predictions.findByGame(gameId)) {
-      const right = scorePrediction(prediction, game);
-      if (right !== null) scoreOf.set(prediction.userId, right ? 1 : 0);
-    }
-    const memberships = scoreOf.size
-      ? await this.members.findByUsers([...scoreOf.keys()])
-      : [];
-    const counts = memberships.length
-      ? await this.scores.upsert(
-          memberships.map(({ groupId, userId }) => ({
-            groupId,
-            userId,
-            gameId,
-            score: scoreOf.get(userId) ?? 0,
-          })),
-        )
-      : NO_WRITES;
-    this.logger.log(
-      `Checked ${gameId}: ${scoreOf.size} picks, ${counts.inserted} scores inserted, ${counts.updated} updated, ${counts.unchanged} unchanged`,
+    const predictions = await this.predictions.findByGame(gameId);
+    const right = new Map(
+      predictions.map((prediction) => [
+        prediction.userId,
+        scorePrediction(prediction, game),
+      ]),
     );
-    return counts;
+    const memberships = right.size
+      ? await this.members.findByUsers([...right.keys()])
+      : [];
+    const rows = memberships.map(({ groupId, userId }) => ({
+      groupId,
+      userId,
+      gameId,
+      score: right.get(userId) ? 1 : 0,
+    }));
+    await this.groupUserScores.upsert(rows);
+    const result = {
+      gameId,
+      scores: rows.length,
+      right: rows.filter(({ score }) => score).length,
+    };
+    this.logger.log(
+      `Scored ${gameId}: ${result.scores} scores, ${result.right} right`,
+    );
+    return result;
   }
 }

@@ -53,16 +53,18 @@ Add a section per feature as it is built; delete what turns out wrong.
 - **Predictions** (`predictions`: uuid, `user_id`, `game_id`, unique on both): a signed-in user picks a game's winner, `pick` `Home` or `Away`, null when they took it back.
   `GET /predictions?season=` answers the caller's for a season's games, `PUT /predictions/:gameId` (`{ pick }`) makes or replaces one, as the caller (`@CurrentUser()`).
   - A prediction locks when its game starts (`start_time`), or once its status is anything but `scheduled`, `postponed` or `delayed` (`isPredictionLocked` in `@nba/dtos-predictions`, which the web runs too), checked on the server: a write after that is 409 `PREDICTION_LOCKED`, whatever the web shows.
-  - Scoring is a plain function in the predictions dtos lib (`scorePrediction(prediction, game)`: right, wrong, or null until the game is final with a winner), covered by its own spec; groups' scores are stored from it (Group scores).
+  - Scoring is a plain function in the predictions dtos lib (`scorePrediction(prediction, game)`: right, wrong, or null until the game is final with a winner), covered by its own spec, run by the web and by score-manager (see Scores).
     The web runs it: the dashboard's Predictions counts the current season's games and the caller's picks (`GET /games?season=`, `GET /predictions?season=`).
   - A game that ends without a result (`canceled`) voids its predictions instead of scoring them.
-- **Groups** (`groups`: uuid, `name` up to 100, `owner_id`, `public`, `status` `Active` or `Closed`; `group_members`: uuid, `group_id`, `user_id`, unique on both): users who play together.
+- **Groups** (`groups`: uuid, `name` up to 100, `owner_id`, `public`, `status` `Active`, `Closed` or `Deleted`, `deleted_at`; `group_members`: uuid, `group_id`, `user_id`, unique on both): users who play together.
   `POST /groups` (`{ name, public }`) makes an `Active` group the caller owns, with the caller as its first member, in one transaction (`GroupMemberDalService.createGroup`: the write spans both tables, so it's in the lower one's DAL).
   `GET /groups` answers what the caller may see: every public group, and the private ones they're in, by name, each with its owner, member count and `isMember` (the web splits them into the caller's and the public ones they're not in).
   `GET /groups/:id` (a uuid, else 400) answers one with its members by name; a private group the caller isn't in is 404, like a missing one, so an id gives nothing away.
+  Its owner edits it (`PATCH /groups/:id`, `{ name, public }`, answering the group) and deletes it (`DELETE /groups/:id`, 204); anyone else who sees it is 403, and one they don't see is 404.
+  A delete is soft: `status` `Deleted` and `deleted_at` (a `@DeleteDateColumn`, so TypeORM leaves the row out of every read): a deleted group is 404 everywhere and never listed.
   Nothing joins, leaves or closes a group yet.
-- **Group scores** (`group_user_scores`: uuid, `group_id`, `user_id`, `game_id`, `score`, unique on the three): a member's score for a game in a group, 1 for a right pick, 0 for a wrong one.
-  Only `score-manager` writes them, an internal API with no sign-in: `POST /api/games/:gameId/check` scores every pick of the game (`scorePrediction`) in each group its user is in, and answers what it wrote (`{ inserted, updated, unchanged }`).
-  A game that isn't final with a winner (a canceled one included) is 409 `GAME_NOT_FINAL`; an unknown one 404.
-  No pick (or one taken back) and no group mean no row; checking again rewrites only what changed (a corrected result).
-  Nothing calls it yet, and a member who joins later has no scores for games checked before.
+- **Scores** (`group_user_score`: uuid, `group_id`, `user_id`, `game_id`, `score` int, unique on the three): what a member's prediction of a game scored in a group, 1 right or 0 wrong.
+  `score-manager`'s internal `POST /api/games/:gameId/score` writes them: every prediction of the game with a pick, scored by `scorePrediction`, a row in each group its user is in.
+  A taken-back pick (null) and a user in no group get no row; scoring a game again overwrites its rows (a corrected result).
+  An unknown game is 404; a game not final with a winner (a canceled one never is: its picks are void) is 409 `GAME_NOT_FINAL`, and nothing is written.
+  The route has no auth: score-manager must never be reachable from outside the deployment.
