@@ -1,0 +1,8 @@
+{
+  "name": "web-table-components",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/web/components/table/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {}
+}

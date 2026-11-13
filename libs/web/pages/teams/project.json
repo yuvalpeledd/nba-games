@@ -1,0 +1,8 @@
+{
+  "name": "web-teams-page",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/web/pages/teams/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {}
+}

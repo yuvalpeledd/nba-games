@@ -1,0 +1,24 @@
+.page-layout {
+  display: flex;
+  min-block-size: 100dvh;
+
+  // A column, so a page's loader can take the height that's left and sit in the middle.
+  &__content {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    min-inline-size: 0;
+    padding: 1rem;
+
+    @media (min-width: 600px) {
+      padding: 2rem;
+    }
+
+    // The page: up to 90rem, centered in the space the navbar leaves.
+    > * {
+      inline-size: 100%;
+      max-inline-size: 90rem;
+      margin-inline: auto;
+    }
+  }
+}

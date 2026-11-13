@@ -8,7 +8,8 @@
   - **Who uses it?** Only you (no auth, or one shared password), or friends competing on predictions (accounts, a leaderboard: Firebase as in outly)?
   - **How much history?** The free plan has the current season only.
   - **Where does it run?** GCP as outly (Cloud Run for the API, a Cloud Run Job for the fetcher, Cloud SQL), or only locally for now?
-- Next: `data-fetcher` (the API Ninjas client with the spec's mappers and yup validation, the four jobs, the app), then `frontend-api` and `web-app`.
+- Next: `data-fetcher` (the API Ninjas client with the spec's mappers and yup validation, the four jobs, the app), then `frontend-api`, starting with `GET /api/teams` and `GET /api/standings` as `dtos-teams` and `dtos-standings` define them (the web-app already calls them).
+- web-app: the dashboard only says hello; the teams list has no team page yet; the standings tab isn't in the URL (back from elsewhere opens East).
 - Port `@Retry()` and `YupPipe` from outly.
 - `SqlModule` has no test of its own yet: the first app's boot checks it.
 - Scope tags in `eslint.config.mjs` once the apps exist (CLAUDE.md's Layout).

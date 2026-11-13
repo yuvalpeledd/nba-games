@@ -1,0 +1,9 @@
+// outly's design system (the Nokod portal's), applied to MUI's components app-wide. Loaded once, in main.tsx.
+// Each partial mirrors a portal component; component SCSS elsewhere only does layout.
+@use 'alerts';
+@use 'buttons';
+@use 'fields';
+@use 'menus';
+@use 'table';
+@use 'tabs';
+@use 'toggle-buttons';

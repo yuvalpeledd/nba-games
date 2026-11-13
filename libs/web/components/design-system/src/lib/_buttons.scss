@@ -1,0 +1,113 @@
+@use '../../../shell/src/lib/colors' as *;
+
+// portal: components/buttons/button. Pills, 14px semi-bold, no shadow or ripple (theme.tsx).
+// variant="contained" = primary, "outlined" = secondary, "text" = tertiary; color="error" = the red pair.
+.MuiButton-root {
+  padding: 8px 16px;
+  border: 1px solid transparent;
+  border-radius: 64px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 16px;
+  text-transform: none;
+  white-space: nowrap;
+
+  .MuiButton-startIcon > *:nth-of-type(1),
+  .MuiButton-endIcon > *:nth-of-type(1) {
+    font-size: 16px;
+  }
+
+  &.MuiButton-sizeSmall {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+
+  &.MuiButton-sizeLarge {
+    padding: 12px 24px;
+    font-size: 15px;
+  }
+
+  // The portal drops the focus outline; keyboard users still need one.
+  &.Mui-focusVisible {
+    outline: 2px solid border-color(action);
+    outline-offset: 2px;
+  }
+
+  &.Mui-disabled {
+    border-color: transparent;
+    background-color: surface-color(disabled);
+    color: text-color(on-disabled);
+  }
+}
+
+.MuiButton-contained.MuiButton-colorPrimary:not(.Mui-disabled) {
+  background-color: surface-color(action);
+  color: icon-color(on-action);
+
+  &:hover {
+    background-color: surface-color(action-hover);
+  }
+
+  &:active {
+    background-color: surface-color(action-pressed);
+  }
+}
+
+.MuiButton-outlined.MuiButton-colorPrimary:not(.Mui-disabled) {
+  border-color: border-color(secondary);
+  background-color: surface-color(primary);
+  color: text-color(secondary);
+
+  &:hover {
+    border-color: border-color(action);
+    background-color: surface-color(primary);
+    color: text-color(action);
+  }
+
+  &:active {
+    border-color: border-color(action);
+    background-color: surface-color(action-hover-light);
+    color: text-color(action-pressed);
+  }
+}
+
+.MuiButton-text.MuiButton-colorPrimary:not(.Mui-disabled) {
+  color: text-color(secondary);
+
+  &:hover {
+    background-color: surface-color(secondary);
+    color: text-color(action);
+  }
+
+  &:active {
+    background-color: surface-color(action-hover-light);
+    color: text-color(action-hover);
+  }
+}
+
+.MuiButton-contained.MuiButton-colorError:not(.Mui-disabled) {
+  background-color: surface-color(error);
+  color: icon-color(on-action);
+
+  &:hover,
+  &:active {
+    background-color: surface-color(error-pressed);
+  }
+}
+
+.MuiButton-outlined.MuiButton-colorError:not(.Mui-disabled) {
+  border-color: border-color(error);
+  background-color: surface-color(primary);
+  color: text-color(error);
+
+  &:hover {
+    border-color: border-color(action);
+    color: text-color(action);
+  }
+
+  &:active {
+    border-color: border-color(action);
+    background-color: surface-color(action-hover-light);
+    color: text-color(action-pressed);
+  }
+}

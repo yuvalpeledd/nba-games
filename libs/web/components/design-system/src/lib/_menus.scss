@@ -1,0 +1,53 @@
+@use '../../../shell/src/lib/colors' as *;
+
+// portal: the dropdown box's menu. 40px items with 14px text (phones keep MUI's 48px touch targets).
+.MuiMenuItem-root {
+  font-size: 14px;
+  color: text-color(primary);
+
+  .MuiListItemText-primary {
+    font-size: 14px;
+  }
+
+  @media (min-width: 600px) {
+    min-block-size: 40px;
+  }
+}
+
+// No padding above the first item or below the last, in every dropdown: menus and the selects' lists.
+.MuiMenu-list {
+  padding-block: 0;
+}
+
+// portal: a menu's items, light grey under the pointer and while pressed.
+.MuiMenuItem-root {
+  &:hover {
+    background-color: surface-color(secondary);
+  }
+
+  &:active {
+    background-color: surface-color(tertiary);
+  }
+}
+
+// portal: a table row's ⋮ (its MoreOptions). The light purple square is the icon's, as the portal's, while the
+// button keeps its 48px touch target; it stays while its menu is open, the icon purple, and shows keyboard focus.
+.MuiIconButton-root.row-menu {
+  &:hover {
+    background-color: transparent;
+  }
+
+  svg {
+    border-radius: 4px;
+  }
+
+  &:hover svg,
+  &.Mui-focusVisible svg,
+  &[aria-expanded='true'] svg {
+    background-color: surface-color(action-hover-light);
+  }
+
+  &[aria-expanded='true'] {
+    color: icon-color(action);
+  }
+}

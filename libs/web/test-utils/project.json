@@ -1,0 +1,8 @@
+{
+  "name": "web-test-utils",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/web/test-utils/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {}
+}

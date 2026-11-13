@@ -1,0 +1,28 @@
+@use '../../../shell/src/lib/colors' as *;
+
+// The portal's Alert (components/alert): a thin border, a tinted background and a colored icon for each
+// severity, on primary text, with the icon and any action centered beside the message.
+.MuiAlert-root {
+  align-items: center;
+  border: 1px solid;
+  color: text-color(primary);
+
+  .MuiAlert-action {
+    align-items: center;
+    padding-block-start: 0;
+  }
+
+  // MUI 9 marks the variant and the color apart (MuiAlert-standard, MuiAlert-colorWarning).
+  @each $severity,
+    $tone in (Error: error, Warning: warning, Info: info, Success: success)
+  {
+    &.MuiAlert-standard.MuiAlert-color#{$severity} {
+      border-color: border-color($tone);
+      background-color: surface-color(#{$tone}-bg);
+
+      .MuiAlert-icon {
+        color: icon-color($tone);
+      }
+    }
+  }
+}

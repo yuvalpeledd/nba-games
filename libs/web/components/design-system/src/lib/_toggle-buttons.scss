@@ -1,0 +1,58 @@
+@use '../../../shell/src/lib/colors' as *;
+
+// portal: components/toggle-button-group (KanopyToggleButtonGroup). A single choice (`exclusive`) of
+// separate pills; the chosen one, and the hovered, are outlined in purple.
+.MuiToggleButtonGroup-root {
+  flex-wrap: wrap;
+  gap: 8px;
+
+  // MUI joins the buttons into one bar; the portal keeps each a pill of its own.
+  .MuiToggleButtonGroup-grouped {
+    margin: 0;
+    border: 1px solid border-color(primary);
+    border-radius: 20px;
+  }
+}
+
+.MuiToggleButton-root {
+  gap: 4px;
+  // A touch target on phones; the portal's 35px from 600px up.
+  min-block-size: 44px;
+  padding: 8px 16px;
+  background-color: surface-color(primary);
+  color: text-color(secondary);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 16px;
+  text-transform: none;
+  white-space: nowrap;
+
+  @media (min-width: 600px) {
+    min-block-size: 35px;
+  }
+
+  .MuiSvgIcon-root {
+    font-size: 16px;
+  }
+
+  &:hover:not(.Mui-selected),
+  &.Mui-selected {
+    border-color: border-color(action);
+    color: text-color(action);
+  }
+
+  &:hover:not(.Mui-selected) {
+    background-color: surface-color(secondary);
+  }
+
+  &.Mui-selected,
+  &.Mui-selected:hover {
+    background-color: surface-color(primary);
+  }
+
+  // As on buttons: the portal has no focus ring, keyboard users need one.
+  &.Mui-focusVisible {
+    outline: 2px solid border-color(action);
+    outline-offset: 2px;
+  }
+}

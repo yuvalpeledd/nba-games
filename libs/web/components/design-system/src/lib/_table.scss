@@ -1,0 +1,83 @@
+@use '../../../shell/src/lib/colors' as *;
+
+// portal: components/table. A rounded, bordered card; a tinted header row of 12px labels;
+// 14px rows with a hairline between them, tinted on hover.
+.MuiTableContainer-root {
+  border: 1px solid border-color(primary);
+  border-radius: 15px;
+  background-color: surface-color(primary);
+}
+
+.MuiTableCell-root {
+  block-size: 48px;
+  padding-block: 0;
+  padding-inline: 16px 8px;
+  border-block-end: 1px solid border-color(primary);
+  font-size: 14px;
+  color: text-color(primary);
+
+  &.MuiTableCell-paddingCheckbox {
+    padding-inline: 4px;
+  }
+
+  a {
+    color: text-color(link);
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+.MuiTableCell-head {
+  background-color: surface-color(secondary);
+  font-size: 12px;
+  font-weight: 500;
+  color: text-color(secondary);
+}
+
+.MuiTableCell-body {
+  block-size: 60px;
+
+  @media (min-width: 1550px) {
+    block-size: 48px;
+  }
+}
+
+.MuiTableBody-root .MuiTableRow-root {
+  &:hover {
+    background-color: surface-color(secondary);
+  }
+
+  &:last-child .MuiTableCell-root {
+    border-block-end: 0;
+  }
+}
+
+// portal: components/table's footer, closing the table's card under a hairline: the page size, the rows
+// shown and the page buttons, at its end. MUI builds it on a table cell, so it undoes the cells' height
+// and border. Phones wrap it rather than scroll it.
+// ponytail: it's inside the table's container, so a table wider than a phone scrolls it sideways too;
+// move it under the container (with the card's border around both) if that bothers.
+.MuiTablePagination-root {
+  block-size: auto;
+  border-block-start: 1px solid border-color(primary);
+  border-block-end: 0;
+  color: text-color(secondary);
+}
+
+.MuiTablePagination-toolbar {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+// It pushes the rest to the end, which justify-content does; wrapped, it would take a line of its own.
+.MuiTablePagination-spacer {
+  display: none;
+}
+
+// Numbers (right-aligned cells) in tabular figures, so stat columns line up.
+.MuiTableCell-alignRight {
+  font-variant-numeric: tabular-nums;
+}

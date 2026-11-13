@@ -1,0 +1,99 @@
+@use '../../../shell/src/lib/colors' as *;
+
+// portal: the date filter's fields and the dropdown box. 40px tall, 8px corners, a light border that
+// darkens on hover, and a 12px label above the field instead of inside it (labels never float: theme.tsx).
+// Covers TextField, Select and the MUI X pickers.
+
+// One selector, not a list: interpolated as a list, `&:hover #{$outlines}` would apply its styles to the
+// second outline unconditionally (it made every date picker's border red).
+$outlines: ':is(.MuiOutlinedInput-notchedOutline, .MuiPickersOutlinedInput-notchedOutline)';
+
+.MuiFormControl-root > .MuiInputLabel-root {
+  position: static;
+  max-inline-size: none;
+  margin-block-end: 4px;
+  transform: none;
+  font-size: 12px;
+  line-height: 16px;
+  color: text-color(secondary);
+
+  &.Mui-focused {
+    color: text-color(secondary);
+  }
+
+  &.Mui-error {
+    color: text-color(error);
+  }
+
+  &.Mui-disabled {
+    color: text-color(disabled);
+  }
+}
+
+// No gap in the border for the label, which sits above.
+.MuiOutlinedInput-notchedOutline legend,
+.MuiPickersOutlinedInput-notchedOutline legend {
+  max-inline-size: 0.01px;
+}
+
+.MuiOutlinedInput-root,
+.MuiPickersOutlinedInput-root {
+  min-block-size: 40px;
+  border-radius: 8px;
+  background-color: surface-color(primary);
+  font-size: 14px;
+  color: text-color(primary);
+
+  #{$outlines} {
+    border: 1px solid border-color(primary);
+  }
+
+  &:hover #{$outlines} {
+    border-color: border-color(action-hover);
+  }
+
+  // The portal turns the border grey on focus; purple keeps focus visible.
+  &.Mui-focused #{$outlines} {
+    border-width: 1px;
+    border-color: border-color(action);
+  }
+
+  &.Mui-error #{$outlines} {
+    border-color: border-color(error);
+  }
+
+  &.Mui-disabled {
+    background-color: surface-color(secondary);
+
+    #{$outlines} {
+      border-color: border-color(primary);
+    }
+  }
+}
+
+.MuiOutlinedInput-input:not(.MuiInputBase-inputMultiline),
+.MuiPickersInputBase-sectionsContainer {
+  padding-block: 10px;
+}
+
+.MuiOutlinedInput-root.MuiInputBase-multiline {
+  padding-block: 10px;
+}
+
+// The dropdown box: a faint lift and a chevron.
+.MuiOutlinedInput-root:has(> .MuiSelect-select) {
+  box-shadow: 0 1px 2px 0 rgb(16 24 40 / 5%);
+}
+
+.MuiSelect-icon {
+  color: icon-color(secondary);
+}
+
+.MuiPickersOutlinedInput-root .MuiInputAdornment-root .MuiSvgIcon-root {
+  font-size: 16px;
+}
+
+.MuiFormHelperText-root {
+  margin-inline: 0;
+  font-size: 12px;
+}

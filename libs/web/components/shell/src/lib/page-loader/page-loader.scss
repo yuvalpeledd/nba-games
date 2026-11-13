@@ -1,0 +1,7 @@
+// Fills the rest of <main> (a flex column), so the spinner is centered both ways.
+.page-loader {
+  display: grid;
+  place-items: center;
+  flex-grow: 1;
+  padding-block: 3rem;
+}

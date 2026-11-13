@@ -1,0 +1,65 @@
+@use '../../../shell/src/lib/colors' as *;
+
+// portal: components/basic-tabs. 14px semi-bold labels in the secondary text color, purple (text and
+// indicator) when selected, a light tint on hover, and a divider under the row.
+.MuiTabs-root {
+  border-block-end: 1px solid border-color(primary);
+
+  .MuiTabs-indicator {
+    background-color: border-color(action);
+  }
+
+  .MuiTabs-scrollButtons {
+    inline-size: 30px;
+    color: icon-color(action);
+
+    // An arrow only when there are more tabs on its side.
+    &.Mui-disabled {
+      display: none;
+    }
+  }
+
+  @media (min-width: 600px) {
+    .MuiTabs-list {
+      gap: 20px;
+    }
+  }
+}
+
+.MuiTab-root {
+  min-block-size: 44px;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: none;
+  color: text-color(secondary);
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+
+  &:hover:not(.Mui-selected, .Mui-disabled) {
+    background-color: surface-color(action-hover-light);
+  }
+
+  &:active:not(.Mui-selected, .Mui-disabled) {
+    background-color: surface-color(action-hover-light);
+    color: text-color(action-pressed);
+  }
+
+  &.Mui-selected {
+    color: text-color(action);
+
+    &:hover {
+      background-color: surface-color(action-hover-light);
+    }
+  }
+
+  &.Mui-disabled {
+    color: text-color(disabled);
+  }
+
+  // As on buttons: no ripple, so keyboard focus needs a ring.
+  &.Mui-focusVisible {
+    outline: 2px solid border-color(action);
+    outline-offset: -2px;
+  }
+}

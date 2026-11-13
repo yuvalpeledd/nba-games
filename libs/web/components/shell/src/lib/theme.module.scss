@@ -1,0 +1,18 @@
+@use 'colors' as *;
+
+// colors.scss → the MUI palette in theme.tsx, so MUI components and our SCSS share one palette.
+:export {
+  primary: surface-color(action);
+  primaryDark: surface-color(action-hover);
+  onPrimary: icon-color(on-action);
+  success: text-color(success);
+  info: text-color(info);
+  warning: text-color(warning);
+  error: text-color(error);
+  textPrimary: text-color(primary);
+  textSecondary: text-color(secondary);
+  textDisabled: text-color(disabled);
+  background: surface-color(secondary);
+  paper: surface-color(primary);
+  divider: border-color(primary);
+}

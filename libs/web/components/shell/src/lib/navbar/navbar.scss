@@ -1,0 +1,101 @@
+@use '../colors' as *;
+
+// outly's navbar: a rail of icons on the start edge that expands over the page to show the labels on hover
+// (devices that can hover) and on keyboard focus.
+$rail-size: 56px;
+$expanded-size: 240px;
+
+@mixin expanded {
+  .navbar__paper:has(:focus-visible) & {
+    @content;
+  }
+
+  @media (hover: hover) {
+    .navbar__paper:hover & {
+      @content;
+    }
+  }
+}
+
+.navbar {
+  inline-size: $rail-size;
+  flex-shrink: 0;
+
+  // A soft shadow off its inner edge, deeper while it's open over the page.
+  &__paper {
+    inline-size: $rail-size;
+    overflow-x: hidden;
+    padding-block: 8px;
+    border-color: border-color(primary);
+    box-shadow: 0 0 12px rgb(25 24 26 / 6%);
+    transition:
+      inline-size 0.3s ease,
+      box-shadow 0.3s ease;
+
+    &:has(:focus-visible) {
+      inline-size: $expanded-size;
+      box-shadow: 0 0 24px rgb(25 24 26 / 16%);
+    }
+
+    @media (hover: hover) {
+      &:hover {
+        inline-size: $expanded-size;
+        box-shadow: 0 0 24px rgb(25 24 26 / 16%);
+      }
+    }
+
+    // Each item a rounded pill, its icon where it was (8px margin + 8px padding); the current page's is
+    // tinted, its icon and label purple.
+    .MuiListItemButton-root {
+      margin-block: 2px;
+      margin-inline: 8px;
+      padding-inline: 8px;
+      border-radius: 10px;
+
+      &:hover {
+        background-color: surface-color(tertiary);
+      }
+
+      &.Mui-selected,
+      &.Mui-selected:hover {
+        background-color: surface-color(action-hover-light);
+        color: text-color(action);
+
+        .MuiListItemIcon-root {
+          color: icon-color(action);
+        }
+      }
+    }
+
+    .MuiListItemIcon-root {
+      min-inline-size: 36px;
+      color: icon-color(secondary);
+    }
+  }
+
+  // The mark on the icons' column, the app's name beside it once the rail expands.
+  &__brand {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    block-size: $rail-size;
+    padding-inline: 16px;
+    color: icon-color(action);
+    font-weight: 700;
+    white-space: nowrap;
+
+    .MuiSvgIcon-root {
+      margin-inline-end: 12px;
+    }
+  }
+
+  &__label {
+    opacity: 0;
+    white-space: nowrap;
+    transition: opacity 0.3s ease;
+
+    @include expanded {
+      opacity: 1;
+    }
+  }
+}

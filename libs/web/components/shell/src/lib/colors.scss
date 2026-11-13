@@ -1,0 +1,167 @@
+@use 'sass:map';
+
+// outly's palette (its colors.scss: same maps, same accessor functions), without its order-status,
+// semantic and gradient maps. `@use '../colors' as *;` (another components lib's:
+// '../../../shell/src/lib/colors'; a page's: '../../../../components/shell/src/lib/colors') then
+// `color: text-color(secondary);`.
+// MUI gets its palette from here as well, through theme.module.scss.
+
+// Unlike a bare map.get, an unknown key fails the build instead of dropping the declaration.
+@function -color($map, $key) {
+  @if not map.has-key($map, $key) {
+    @error 'Unknown color key `#{$key}`';
+  }
+  @return map.get($map, $key);
+}
+
+@function text-color($key) {
+  @return -color($text, $key);
+}
+
+@function chart-color($key) {
+  @return -color($charts, $key);
+}
+
+@function surface-color($key) {
+  @return -color($surface, $key);
+}
+
+@function border-color($key) {
+  @return -color($border, $key);
+}
+
+@function icon-color($key) {
+  @return -color($icon, $key);
+}
+
+$text: (
+  primary: #19181a,
+  secondary: #504d51,
+  tertiary: #847f86,
+  disabled: #cccacd,
+  on-disabled: #918c93,
+  action: #9654b8,
+  action-hover: #6b3c83,
+  action-pressed: #532e65,
+  on-action: #f7f3f8,
+  link: #2858f6,
+  success: #15934c,
+  info: #5379f8,
+  warning: #e87400,
+  error: #da3e33,
+  // Order statuses
+  pending: #c99c00,
+  approved: #15934c,
+  declined: #da3e33,
+  canceled: #84253f,
+  inverse: #f7f7f7,
+);
+
+$charts: (
+  // Order status colors
+  pending: #fdc500,
+  approved: #62b787,
+  declined: #f36960,
+  canceled: #84253f,
+  warning: #ff9933,
+  info: #6f8ff9,
+  success: #62b787,
+  error: #f36960,
+  // Primary shades
+  primary-500: #9654b8,
+  primary-300: #b98ccf,
+  primary-200: #cfb0de,
+  primary-100: #decae9,
+  primary-50: #f7f3f8,
+  // Core colors
+  blue: #9cb2fb,
+  light-blue: #bccbfc,
+  dark-blue: #2858f6,
+  orange: #ffaa54,
+  light-orange: #ffc58a,
+  purple: #b98ccf,
+  light-purple: #decae9,
+  pink: #fcb1da,
+  // The logo's dot (the accent gradient's end).
+  magenta: #e258c7,
+  light-pink: #fdcbe6,
+  yellow: #fdc500,
+  green: #62b787,
+  grey: #dddbde,
+  // Background colors
+  bg-blue: #f4f6fe,
+  bg-light-blue: #ebf0fe,
+  bg-dark-blue: #d4defd,
+  bg-orange: #fff6ed,
+  bg-purple: #f7f3f8,
+  bg-light-purple: #f1e8f5,
+  bg-pink: #feeef7,
+  bg-yellow: #fff3cc,
+  bg-green: #e0f1e7
+);
+
+$surface: (
+  primary: #ffffff,
+  secondary: #fafafc,
+  tertiary: #f7f7f7,
+  disabled: #dddbde,
+  action: #9654b8,
+  action-hover: #6b3c83,
+  action-pressed: #532e65,
+  action-hover-light: #f7f3f8,
+  tooltip: #19181a,
+  selector-off: #a7a3a9,
+  selector-off-hover: #3d3b3e,
+  success: #15934c,
+  success-bg: #e8f4ed,
+  error: #f04438,
+  error-pressed: #aa3028,
+  error-bg: #fef2f1,
+  info-bg: #f4f6fe,
+  warning: #fdc63a,
+  warning-bg: #fff9eb,
+  pending-bg: #fffdf7,
+  approved-bg: #e8f4ed,
+  declined-bg: #fef2f1,
+  canceled-bg: #f5eff0,
+);
+
+$border: (
+  primary: #dddbde,
+  secondary: #b5b2b7,
+  tertiary: #847f86,
+  disabled: #cccacd,
+  action: #9654b8,
+  action-hover: #6b3c83,
+  pressed: #532e65,
+  brand: #6b3c83,
+  success: #15934c,
+  info: #5379f8,
+  warning: #e87400,
+  error: #da3e33,
+  pending: #c99c00,
+  approved: #15934c,
+  declined: #da3e33,
+  canceled: #84253f,
+);
+
+$icon: (
+  primary: #19181a,
+  secondary: #504d51,
+  tertiary: #847f86,
+  disabled: #cccacd,
+  on-disabled: #918c93,
+  action: #9654b8,
+  action-hover: #6b3c83,
+  action-pressed: #532e65,
+  on-action: #ffffff,
+  link: #2858f6,
+  success: #15934c,
+  info: #5379f8,
+  warning: #e87400,
+  error: #da3e33,
+  pending: #c99c00,
+  approved: #15934c,
+  declined: #da3e33,
+  canceled: #84253f,
+);

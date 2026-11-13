@@ -2,7 +2,7 @@
 
 **NBA Games** shows NBA games, teams and player statistics, and lets the user predict what will happen (see Predictions in `.claude/rules/features.md`).
 
-**Scaffolded so far:** the Nx workspace and the DAL (`libs/sql`: `teams`, `players`, `team_players`, `games`, `standings`, `seasons`). The apps and the other libs below are the target: when you scaffold one, follow this file, and fix it where reality differs.
+**Scaffolded so far:** the Nx workspace, the DAL (`libs/sql`: `teams`, `players`, `team_players`, `games`, `standings`, `seasons`) and `web-app` (dashboard, standings, teams; with `dtos-teams` and `dtos-standings`, which no API serves yet). The other apps and libs below are the target: when you scaffold one, follow this file, and fix it where reality differs.
 
 **The data comes from [API Ninjas](https://api-ninjas.com/api/nba)** (`api.api-ninjas.com/v1/basketball*`); the requests are in the user's Postman collection. See `.claude/rules/data-fetcher.md`.
 
@@ -23,6 +23,9 @@ Node 24, pnpm, Nx. Every import alias is `@nba/<name>`, in `tsconfig.base.json`.
 - `apps/web-app`: React 19 + Vite SPA (MUI, React Query, React Router). The app is only its entry, `index.html`, `public/` and `app.tsx`; the rest is in `libs/web` (see `.claude/rules/web.md`):
   - `libs/web/core` (`@nba/web-core`): what isn't UI: `api()`, the React Query hooks (`queries.ts`), formatting
   - `libs/web/components/<group>` (`@nba/web-<group>-components`): components more than one page uses, a lib per group the same pages use
+    - `shell`: `AppShell` (providers, routes, the navbar around every page), the theme and the palette (`colors.scss`), `PageLoader`
+    - `design-system`: outly's MUI overrides, app-wide; only `main.tsx` imports it
+    - `table`: `useTableSort`
   - `libs/web/pages/<page>` (`@nba/web-<page>-page`): a lib per page, with the components only it uses
   - `libs/web/test-utils` (`@nba/web-test-utils`): spec-only fakes and render helpers
 - `libs/sql`: TypeORM, as Nx libs (see Server conventions):
