@@ -36,6 +36,13 @@ const statusLabels: Record<GameStatus, string> = {
 
 const ROWS_PER_PAGE = 50;
 
+// The viewer's day `days` ago, YYYY-MM-DD (the Canadian format is ISO's).
+const daysAgo = (days: number): string => {
+  const day = new Date();
+  day.setDate(day.getDate() - days);
+  return day.toLocaleDateString('en-CA');
+};
+
 function TeamCell({ id, name }: { id: string; name: string }) {
   return (
     <TableCell>
@@ -50,7 +57,8 @@ function TeamCell({ id, name }: { id: string; name: string }) {
   );
 }
 
-// Every team's games in the current season, by day, filtered and paged in the browser.
+// Every team's games in the current season, by day, filtered and paged in the browser; at first, those after two
+// days ago.
 export function GamesPage() {
   const seasons = useSeasons();
   const season = seasons.data && currentSeason(seasons.data);
@@ -69,18 +77,22 @@ export function GamesPage() {
     row.played
       ? (row.game.awayScore as number) + (row.game.homeScore as number)
       : null;
-  const filtered = useTableFilters(seasonRows, {
-    // The league's day (`date`), as schedules group them.
-    time: { label: 'Date', type: 'date', value: (row) => row.game.date },
-    away: { label: 'Away', type: 'select', value: (row) => row.away },
-    home: { label: 'Home', type: 'select', value: (row) => row.home },
-    score: { label: 'Total Points', type: 'number', value: totalOf },
-    status: {
-      label: 'Status',
-      type: 'select',
-      value: (row) => statusLabels[row.game.status],
+  const filtered = useTableFilters(
+    seasonRows,
+    {
+      // The league's day (`date`), as schedules group them.
+      time: { label: 'Date', type: 'date', value: (row) => row.game.date },
+      away: { label: 'Away', type: 'select', value: (row) => row.away },
+      home: { label: 'Home', type: 'select', value: (row) => row.home },
+      score: { label: 'Total Points', type: 'number', value: totalOf },
+      status: {
+        label: 'Status',
+        type: 'select',
+        value: (row) => statusLabels[row.game.status],
+      },
     },
-  });
+    [{ column: 'time', operator: 'after', values: [daysAgo(2)] }],
+  );
   const { rows, headCell } = useTableSort(filtered.rows, {
     time: (row) => row.game.startTime,
     away: (row) => row.away,

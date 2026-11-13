@@ -69,13 +69,15 @@ const matches = <Row,>(
 };
 
 // portal's filters box: a table's rows that pass every filter, and its filter bar (an "Add Filter" button that opens
-// the filters panel, and a chip per filter that removes it). Done in the browser: the tables have every row.
+// the filters panel, and a chip per filter that removes it), starting with `initial`. Done in the browser: the tables
+// have every row.
 // ponytail: not in the URL (portal's are) and no date modes but a range; add them when a table needs them.
 export function useTableFilters<Row, Column extends string>(
   rows: Row[],
   columns: Record<Column, FilterColumn<Row>>,
+  initial: Filter<NoInfer<Column>>[] = [],
 ) {
-  const [filters, setFilters] = useState<Filter<Column>[]>([]);
+  const [filters, setFilters] = useState(initial);
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const filtered = rows.filter((row) =>
     filters.every((filter) => matches(columns[filter.column], filter, row)),
