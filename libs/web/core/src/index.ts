@@ -26,6 +26,7 @@ export {
   useTeamGames,
   useTeamPlayers,
   useTeams,
+  useUpdateMe,
 } from './lib/queries';
 export { currentSeason } from './lib/seasons';
 export {

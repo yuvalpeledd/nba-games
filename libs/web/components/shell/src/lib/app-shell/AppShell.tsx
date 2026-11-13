@@ -12,6 +12,7 @@ export const PAGE_NAMES = [
   'DashboardPage',
   'GamesPage',
   'LoginPage',
+  'ProfilePage',
   'StandingsPage',
   'TeamSinglePage',
 ] as const;
@@ -39,6 +40,7 @@ export function AppShell({ pages }: { pages: Pages }) {
                 <Route index element={<pages.DashboardPage />} />
                 <Route path="games" element={<pages.GamesPage />} />
                 <Route path="standings" element={<pages.StandingsPage />} />
+                <Route path="profile" element={<pages.ProfilePage />} />
                 <Route path="teams/:id" element={<pages.TeamSinglePage />} />
               </Route>
             </Route>

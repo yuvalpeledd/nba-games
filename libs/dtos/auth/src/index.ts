@@ -25,6 +25,10 @@ export const signUpRequestSchema = object({
 });
 export type SignUpRequest = InferType<typeof signUpRequestSchema>;
 
+// PATCH /me: the signed-in user's name (their email and password are their Firebase account's).
+export const updateMeRequestSchema = object({ name: userNameSchema });
+export type UpdateMeRequest = InferType<typeof updateMeRequestSchema>;
+
 // What /login and /sign-up answer. Firebase keeps the session itself (and renews its tokens).
 export interface SessionDto {
   userId: string;

@@ -296,12 +296,11 @@ describe('LoginPage', () => {
     expect(window.location.pathname).toBe('/');
   });
 
-  it('logs out from the navbar, out of Firebase too, back to the login page', async () => {
+  it("logs out from the navbar's menu, out of Firebase too, back to the login page", async () => {
     stubApi({ 'GET /me': DANA });
     renderAt('/');
-    expect(await screen.findByText('Dana Levi')).toBeTruthy();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Log out' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Dana Levi' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Log out' }));
 
     expect(
       await screen.findByRole('heading', { name: 'Welcome back' }),

@@ -26,6 +26,10 @@ export class UserDalService {
     await this.repo.update({ id }, { email: normalizeEmail(email) });
   }
 
+  async updateName(id: string, name: string): Promise<void> {
+    await this.repo.update({ id }, { name });
+  }
+
   create(user: UserCreateObject): Promise<UserEntity> {
     return this.repo.save(
       this.repo.create({ ...user, email: normalizeEmail(user.email) }),

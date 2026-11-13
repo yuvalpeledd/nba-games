@@ -17,7 +17,8 @@ For the web app: `apps/web-app` and its libs in `libs/web` (CLAUDE.md's Layout).
 - **Auth:** Firebase signs people in (`firebase/auth`, its own session in IndexedDB); `firebase.ts` loads its config once (`GET /api/firebase-config`).
   The session (`session.ts`, localStorage) is the `userId` that `/login` or `/sign-up` answered, so `useSession()` stays synchronous; `clearSession()` signs out of Firebase too.
   `LoginPage` (`/login`, full-screen, outside the navbar's layout) is outly's: Log in and Sign up tabs, Verify (the emailed link), Finish signing up (a login's 404: the name) and Reset password, with Firebase's errors as the page's own messages.
-  Every page but `/login` is for someone signed in: `RequireAuth` (the shell's) wraps their routes and sends anyone else to `/login`; the navbar's end shows the user's name and Log out.
+  Every page but `/login` is for someone signed in: `RequireAuth` (the shell's) wraps their routes and sends anyone else to `/login`; the navbar's end is the user's name, whose menu has Profile and Log out.
+  `ProfilePage` (`/profile`) is outly's: Edit (the name, `PATCH /me`) and Change password (Firebase only: the current password signs in again, then `updatePassword`).
   `appWith`'s `renderAt` signs in first; `renderAt(path, { signedIn: false })` doesn't.
   Specs sign in with `signIn()` and fake Firebase's SDK (`firebase`, `firebaseError()` in test-utils).
 - **UI:** MUI components wherever one exists, icons from `@mui/icons-material`.

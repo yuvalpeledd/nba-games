@@ -3,18 +3,20 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import EventIcon from '@mui/icons-material/Event';
 import LeaderboardIcon from '@mui/icons-material/Leaderboard';
 import LogoutIcon from '@mui/icons-material/Logout';
+import PersonIcon from '@mui/icons-material/Person';
 import SportsBasketballIcon from '@mui/icons-material/SportsBasketball';
 import {
   Drawer,
   List,
-  ListItem,
   ListItemButton,
   ListItemIcon,
   ListItemText,
+  Menu,
+  MenuItem,
 } from '@mui/material';
 import { clearSession, useMe } from '@nba/web-core';
-import { ReactNode } from 'react';
-import { NavLink, useMatch } from 'react-router';
+import { ReactNode, useState } from 'react';
+import { NavLink, useMatch, useNavigate } from 'react-router';
 import './navbar.scss';
 
 const items: { to: string; label: string; icon: ReactNode }[] = [
@@ -34,33 +36,74 @@ function NavbarLink({ to, label, icon }: (typeof items)[number]) {
   );
 }
 
-// Who's signed in (every page with the navbar is for someone signed in, RequireAuth), and Log out.
-function Account() {
+// Who's signed in (every page with the navbar is for someone signed in, RequireAuth), and their menu (outly's):
+// Profile and Log out. The navbar stays open while it is.
+function Account({
+  onOpenChange,
+}: {
+  onOpenChange: (isOpen: boolean) => void;
+}) {
   const { data: me } = useMe();
+  const navigate = useNavigate();
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  const setMenu = (next: HTMLElement | null) => {
+    setAnchor(next);
+    onOpenChange(next !== null);
+  };
+
   return (
     <>
-      <ListItem>
+      <ListItemButton
+        aria-haspopup="menu"
+        aria-expanded={anchor !== null}
+        onClick={(event) => setMenu(event.currentTarget)}
+      >
         <ListItemIcon>
           <AccountCircleIcon />
         </ListItemIcon>
         <ListItemText primary={me?.name ?? ' '} className="navbar__label" />
-      </ListItem>
-      <ListItemButton onClick={clearSession}>
-        <ListItemIcon>
-          <LogoutIcon />
-        </ListItemIcon>
-        <ListItemText primary="Log out" className="navbar__label" />
       </ListItemButton>
+      <Menu
+        anchorEl={anchor}
+        open={anchor !== null}
+        onClose={() => setMenu(null)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        transformOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <MenuItem
+          onClick={() => {
+            setMenu(null);
+            navigate('/profile');
+          }}
+        >
+          <ListItemIcon>
+            <PersonIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Profile</ListItemText>
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            setMenu(null);
+            clearSession(); // RequireAuth then sends them to /login
+          }}
+        >
+          <ListItemIcon>
+            <LogoutIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Log out</ListItemText>
+        </MenuItem>
+      </Menu>
     </>
   );
 }
 
 export function Navbar() {
+  const [isMenuOpen, setMenuOpen] = useState(false);
   return (
     <Drawer
       variant="permanent"
       anchor="left"
-      className="navbar"
+      className={isMenuOpen ? 'navbar navbar--open' : 'navbar'}
       classes={{ paper: 'navbar__paper' }}
     >
       <div className="navbar__brand">
@@ -73,7 +116,7 @@ export function Navbar() {
         ))}
       </List>
       <List aria-label="Account" className="navbar__account">
-        <Account />
+        <Account onOpenChange={setMenuOpen} />
       </List>
     </Drawer>
   );
