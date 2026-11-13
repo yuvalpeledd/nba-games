@@ -6,6 +6,7 @@ import {
 import { GameDayDalService } from '@nba/sql-game-days';
 import { GameDalService } from '@nba/sql-games';
 import { SeasonDalService, SeasonEntity } from '@nba/sql-seasons';
+import { addWrites, describeWrites, NO_WRITES } from './counts';
 import { byDistanceFrom, daysBetween, easternDate } from './days';
 
 const DEFAULT_MAX_REQUESTS = 50;
@@ -35,17 +36,33 @@ export class GamesFetcherService {
     const maxRequests = Number(
       process.env['GAMES_MAX_REQUESTS'] ?? DEFAULT_MAX_REQUESTS,
     );
-    const pool = await this.pendingDays(season, today);
+    const { pool, neverChecked, scoresFrom } = await this.pendingDays(
+      season,
+      today,
+    );
+    const batch = pool.slice(0, maxRequests);
+    this.logger.log(
+      `${season.id}, today ${today}: ${pool.length} days to check (${neverChecked} never checked, ` +
+        `${pool.length - neverChecked} for scores from ${scoresFrom}); checking ${batch.length} now ` +
+        `(up to ${maxRequests} a run): ${batch.join(', ') || 'none'}`,
+    );
 
     let fetched = 0;
+    let total = NO_WRITES;
     const failed: string[] = [];
-    for (const day of pool.slice(0, maxRequests)) {
+    for (const day of batch) {
       try {
         const games = await this.client.games(day);
-        if (games.length) await this.games.upsert(games);
+        const written = await this.games.upsert(games);
         await this.gameDays.record([
           { date: day, games: games.length, checkedOn: today },
         ]);
+        this.logger.log(
+          games.length
+            ? `${day}: fetched ${games.length} games from the API: ${describeWrites(written)}`
+            : `${day}: fetched no games from the API`,
+        );
+        total = addWrites(total, written);
         fetched++;
       } catch (error) {
         if (error instanceof ApiNinjasError && error.status === 429) {
@@ -61,8 +78,8 @@ export class GamesFetcherService {
     }
 
     this.logger.log(
-      `${season.id}: ${pool.length} days to fetch, ${fetched} fetched, ${failed.length} failed, ` +
-        `${pool.length - fetched - failed.length} left for the next run`,
+      `${season.id}: checked ${fetched} of ${pool.length} days (${failed.length} failed, ` +
+        `${pool.length - fetched - failed.length} left for the next run); games ${describeWrites(total)}`,
     );
     if (failed.length) throw new Error(`Games failed for ${failed.join(', ')}`);
   }
@@ -83,10 +100,11 @@ export class GamesFetcherService {
     return season;
   }
 
+  // The pool, nearest to today first, and why: how many were never checked (the rest are for their scores).
   private async pendingDays(
     season: SeasonEntity,
     today: string,
-  ): Promise<string[]> {
+  ): Promise<{ pool: string[]; neverChecked: number; scoresFrom: string }> {
     const { startDate, endDate } = season;
     const checked = await this.gameDays.findBetween(startDate, endDate);
     const scoresFrom =
@@ -95,12 +113,14 @@ export class GamesFetcherService {
       const check = checked.get(day);
       return check?.games === 0 && check.checkedOn >= day;
     };
-    return daysBetween(startDate, endDate)
+    const pool = daysBetween(startDate, endDate)
       .filter(
         (day) =>
           !checked.has(day) ||
           (day >= scoresFrom && day <= today && !foundEmpty(day)),
       )
       .sort(byDistanceFrom(today));
+    const neverChecked = pool.filter((day) => !checked.has(day)).length;
+    return { pool, neverChecked, scoresFrom };
   }
 }

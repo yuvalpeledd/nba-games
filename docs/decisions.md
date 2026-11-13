@@ -10,6 +10,12 @@ Newest first. One entry per non-obvious choice: the decision, why, and when to r
 - **Games behind are computed on the web, from the conference's leader:** the provider's `games_behind` is from the division's, which reads wrong in a conference table. Move it into the API's `StandingDto` if another client needs it.
 - **Left out of outly's shell for now:** toasts (no mutations), the error boundary and error page, scroll-to-top, table paging (30 rows at most). Add each with the first page that needs it.
 
+## 2026-11-13: The fetchers' logs count every write
+
+- **Counted by Postgres, in the write itself** (`upsertCounted` in `@nba/sql-core`), as asked ("x fetched, a added, b updated, c deleted"): `ON CONFLICT DO UPDATE … WHERE` a value is distinct (TypeORM's `skipUpdateIfNoValuesChanged`), `RETURNING (xmax = 0)` (true for an inserted row). Unchanged is what came back unwritten. No read before the write, and an unchanged row's `updated_at` stays, so it now means "changed". Revisit if Postgres's `xmax` behavior changes (it's an implementation detail, stable for decades).
+- **`team_players`' day is diffed, not replaced:** the rows today's fetch no longer has are deleted and only the new ones inserted, so "deleted" counts real departures (a rerun the same day deletes 0, not 510).
+- **Deletes appear only where the fetchers delete** (a day's `team_players`), with released players (`team_id` null) beside them; teams, games and standings are never deleted, so their lines say added, updated and unchanged.
+
 ## 2026-11-13: `game_days`: the days the games fetcher checked
 
 - **A row per day fetched, empty days included** (its game count and `checked_on`), so a day without games is asked for once instead of every run. Chosen over a placeholder row in `games` (it would break its NOT NULLs and foreign keys for every reader), a list of off-days on `seasons` (by hand, wrong when the league reschedules) and inferring from `games` (an empty day looks like one never fetched). It also replaces "a day with no games" as the pool's test for the schedule: never checked is the test now.

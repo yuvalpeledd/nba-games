@@ -3,6 +3,7 @@ import { ApiNinjasClient } from '@nba/data-fetcher-api-ninjas-client';
 import type { PlayerCreateObject } from '@nba/sql-players';
 import { TeamPlayerDalService } from '@nba/sql-team-players';
 import { TeamDalService } from '@nba/sql-teams';
+import { describeWrites } from './counts';
 import { easternDate } from './days';
 
 // Every active team's roster, one request at a time (30), then all of them written at once for `today`: the players
@@ -30,12 +31,23 @@ export class PlayersFetcherService {
       if (!roster.length) {
         throw new Error(`${team.id}'s roster came back empty: nothing written`);
       }
+      this.logger.log(
+        `Fetched ${roster.length} players of ${team.id} from the API`,
+      );
       for (const player of roster) players.set(player.id, player);
     }
 
-    await this.teamPlayers.replaceRosters(today, [...players.values()]);
+    const written = await this.teamPlayers.replaceRosters(today, [
+      ...players.values(),
+    ]);
+    const { teamPlayers } = written;
     this.logger.log(
-      `${players.size} players on ${teams.length} rosters written for ${today}`,
+      `Fetched ${players.size} players on ${teams.length} rosters from the API: ` +
+        `${describeWrites(written.players)}, ${written.players.released} released (on no roster now)`,
+    );
+    this.logger.log(
+      `Rosters of ${today} (team_players): ${teamPlayers.inserted} added, ` +
+        `${teamPlayers.deleted} deleted, ${teamPlayers.unchanged} unchanged`,
     );
   }
 }
