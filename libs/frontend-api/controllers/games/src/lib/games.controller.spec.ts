@@ -14,9 +14,18 @@ describe('GamesController', () => {
     app = await TestApp.create([FrontendApiGamesControllerModule]);
   });
   afterAll(() => app.close());
-  beforeEach(() => app.clearDatabase());
+  beforeEach(async () => {
+    await app.clearDatabase();
+    await app.signIn();
+  });
 
   describe('GET /games', () => {
+    describe('auth', () => {
+      it('refuses a caller who is not signed in', async () => {
+        const { status } = await app.call('GET', '/games', undefined, null);
+        expect(status).toBe(401);
+      });
+    });
     describe('validation', () => {
       it.each([
         ['', 'from is a required field'],
@@ -208,6 +217,12 @@ describe('GamesController', () => {
   });
 
   describe('GET /games/:id', () => {
+    describe('auth', () => {
+      it('refuses a caller who is not signed in', async () => {
+        const { status } = await app.call('GET', '/games/x', undefined, null);
+        expect(status).toBe(401);
+      });
+    });
     describe('validation', () => {
       it('refuses an id over 100 characters', async () => {
         const { status, body } = await app.call(

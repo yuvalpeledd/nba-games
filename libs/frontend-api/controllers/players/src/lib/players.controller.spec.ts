@@ -7,9 +7,18 @@ describe('PlayersController', () => {
     app = await TestApp.create([FrontendApiPlayersControllerModule]);
   });
   afterAll(() => app.close());
-  beforeEach(() => app.clearDatabase());
+  beforeEach(async () => {
+    await app.clearDatabase();
+    await app.signIn();
+  });
 
   describe('GET /players', () => {
+    describe('auth', () => {
+      it('refuses a caller who is not signed in', async () => {
+        const { status } = await app.call('GET', '/players', undefined, null);
+        expect(status).toBe(401);
+      });
+    });
     describe('validation', () => {
       it.each([
         ['limit=0', 'limit must be greater than or equal to 1'],
@@ -73,6 +82,12 @@ describe('PlayersController', () => {
   });
 
   describe('GET /players/:id', () => {
+    describe('auth', () => {
+      it('refuses a caller who is not signed in', async () => {
+        const { status } = await app.call('GET', '/players/x', undefined, null);
+        expect(status).toBe(401);
+      });
+    });
     describe('validation', () => {
       it('refuses an id over 100 characters', async () => {
         const { status, body } = await app.call(
@@ -105,6 +120,17 @@ describe('PlayersController', () => {
   });
 
   describe('GET /players/:id/teams', () => {
+    describe('auth', () => {
+      it('refuses a caller who is not signed in', async () => {
+        const { status } = await app.call(
+          'GET',
+          '/players/x/teams',
+          undefined,
+          null,
+        );
+        expect(status).toBe(401);
+      });
+    });
     describe('behavior', () => {
       it("answers each team's first and last day, a trade's day on both", async () => {
         const [from, to] = [await app.createTeam(), await app.createTeam()];

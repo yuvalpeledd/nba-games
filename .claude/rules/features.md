@@ -36,7 +36,8 @@ Add a section per feature as it is built; delete what turns out wrong.
   `standings` holds the latest (a row per season and team); **`standings_history`** holds each day's (a row per day, season and team, the same columns: `StandingColumns`), written together by the standings fetcher, so a team's climb can be read back (`findByTeam`) or a day's table (`findByDate`).
   A day the fetcher didn't run has no rows; a second run that day overwrites its rows.
 - **Auth** (outly's, without organizations, roles, invitations or the audit log): Firebase (Identity Platform) signs people in with email and password; the API never sees a password.
-  The web sends the account's ID token: in the body of `POST /login` and `POST /sign-up`, then as `Authorization: Bearer` on guarded routes (`AccessGuard`).
+  The web sends the account's ID token: in the body of `POST /login` and `POST /sign-up`, then as `Authorization: Bearer` on every other route.
+  Everything is for signed-in users: `AccessGuard` is global, and only `/login`, `/sign-up`, `/firebase-config` and `/health` are `@Public()`.
   - `users` (uuid, `name`, `email` lower-cased and unique, `firebase_uid` unique): a row per Firebase account, made by `/sign-up` with a name.
     `/login` answers the account's user, 404 when it has none yet (the web asks for a name, then signs up).
   - Every account's email is verified first: an unverified one is 403 `EMAIL_NOT_VERIFIED` on every route.

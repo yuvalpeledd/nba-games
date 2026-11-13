@@ -44,7 +44,7 @@ export const fillIn = async (fields: Record<string, string>) => {
 // A page the spec doesn't drive: just its name, as a heading.
 const standInOf = (name: string) => () => <h1>{name}</h1>;
 
-// The app with the spec's pages, and stand-ins for the rest.
+// The app with the spec's pages, and stand-ins for the rest, for someone signed in (signIn()) unless `signedIn` is false.
 export const appWith = (pages: Partial<Pages>) => {
   const everyPage = {
     ...(Object.fromEntries(
@@ -52,7 +52,8 @@ export const appWith = (pages: Partial<Pages>) => {
     ) as Pages),
     ...pages,
   };
-  const renderAt = (path: string) => {
+  const renderAt = (path: string, { signedIn = true } = {}) => {
+    if (signedIn) signIn();
     window.history.pushState({}, '', path);
     render(<AppShell pages={everyPage} />);
   };

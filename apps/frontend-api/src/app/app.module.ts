@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { AccessGuard, FrontendApiAuthModule } from '@nba/frontend-api-auth';
 import { FrontendApiAuthControllerModule } from '@nba/frontend-api-auth-controller';
 import { FailureFilter } from '@nba/frontend-api-common';
 import { FrontendApiGamesControllerModule } from '@nba/frontend-api-games-controller';
@@ -14,6 +15,7 @@ import { AppController } from './app.controller';
   imports: [
     // The only app that runs migrations (CLAUDE.md's Database).
     SqlModule.forRoot({ runMigrations: true }),
+    FrontendApiAuthModule,
     FrontendApiAuthControllerModule,
     FrontendApiSeasonsControllerModule,
     FrontendApiTeamsControllerModule,
@@ -22,7 +24,11 @@ import { AppController } from './app.controller';
     FrontendApiStandingsControllerModule,
   ],
   controllers: [AppController],
-  // Nest's answers to failures, which it keeps for their request's log line (logRequests in main.ts).
-  providers: [{ provide: APP_FILTER, useClass: FailureFilter }],
+  providers: [
+    // Nest's answers to failures, which it keeps for their request's log line (logRequests in main.ts).
+    { provide: APP_FILTER, useClass: FailureFilter },
+    // Every route needs a signed-in caller but the @Public() ones (TestApp registers it too).
+    { provide: APP_GUARD, useExisting: AccessGuard },
+  ],
 })
 export class AppModule {}

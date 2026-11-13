@@ -7,9 +7,18 @@ describe('TeamsController', () => {
     app = await TestApp.create([FrontendApiTeamsControllerModule]);
   });
   afterAll(() => app.close());
-  beforeEach(() => app.clearDatabase());
+  beforeEach(async () => {
+    await app.clearDatabase();
+    await app.signIn();
+  });
 
   describe('GET /teams', () => {
+    describe('auth', () => {
+      it('refuses a caller who is not signed in', async () => {
+        const { status } = await app.call('GET', '/teams', undefined, null);
+        expect(status).toBe(401);
+      });
+    });
     describe('behavior', () => {
       it('lists every team by name, past franchises included', async () => {
         const nets = await app.createTeam({
@@ -34,6 +43,12 @@ describe('TeamsController', () => {
   });
 
   describe('GET /teams/:id', () => {
+    describe('auth', () => {
+      it('refuses a caller who is not signed in', async () => {
+        const { status } = await app.call('GET', '/teams/x', undefined, null);
+        expect(status).toBe(401);
+      });
+    });
     describe('validation', () => {
       it('refuses an id over 100 characters', async () => {
         const { status, body } = await app.call(

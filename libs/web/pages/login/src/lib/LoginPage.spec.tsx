@@ -15,7 +15,6 @@ import {
   fillIn,
   firebase,
   firebaseError,
-  signIn,
   stubApi,
 } from '@nba/web-test-utils';
 import { LoginPage } from './LoginPage';
@@ -28,20 +27,26 @@ const logIn = () =>
   fireEvent.click(screen.getByRole('button', { name: 'Log in' }));
 
 describe('LoginPage', () => {
-  it('opens from the navbar, full-screen', async () => {
-    renderAt('/');
-    fireEvent.click(await screen.findByRole('link', { name: 'Log in' }));
+  it.each(['/', '/games', '/standings', '/teams/nba-bos'])(
+    'sends a signed-out visitor from %s to the login page, full-screen, and asks the API nothing',
+    async (path) => {
+      const fetchMock = stubApi({});
+      renderAt(path, { signedIn: false });
 
-    expect(
-      await screen.findByRole('heading', { name: 'Welcome back' }),
-    ).toBeTruthy();
-    expect(window.location.pathname).toBe('/login');
-    expect(screen.queryByRole('navigation')).toBeNull();
-  });
+      expect(
+        await screen.findByRole('heading', { name: 'Welcome back' }),
+      ).toBeTruthy();
+      expect(window.location.pathname).toBe('/login');
+      expect(screen.queryByRole('navigation')).toBeNull();
+      expect(
+        fetchMock.mock.calls.filter(([url]) => url !== '/api/firebase-config'),
+      ).toEqual([]);
+    },
+  );
 
   it('validates the form with the shared schemas before calling Firebase or the API', async () => {
     const fetchMock = stubApi({});
-    renderAt('/login');
+    renderAt('/login', { signedIn: false });
     fireEvent.click(await screen.findByRole('button', { name: 'Log in' }));
 
     expect(await screen.findByText('Enter a valid email address')).toBeTruthy();
@@ -54,7 +59,7 @@ describe('LoginPage', () => {
       'POST /login': { userId: 'u1' },
       'GET /me': DANA,
     });
-    renderAt('/login');
+    renderAt('/login', { signedIn: false });
     await fillIn({ Email: ' Dana@NBA.dev', Password: 'correct horse' });
     logIn();
 
@@ -80,7 +85,7 @@ describe('LoginPage', () => {
     vi.mocked(signInWithEmailAndPassword)
       .mockRejectedValueOnce(firebaseError('auth/invalid-credential'))
       .mockRejectedValueOnce(firebaseError('auth/too-many-requests'));
-    renderAt('/login');
+    renderAt('/login', { signedIn: false });
     await fillIn({ Email: 'dana@nba.dev', Password: 'wrong horse' });
 
     logIn();
@@ -93,7 +98,7 @@ describe('LoginPage', () => {
   });
 
   it('switches between logging in and signing up in tabs, each under a title of its own, keeping what was typed', async () => {
-    renderAt('/login');
+    renderAt('/login', { signedIn: false });
     expect(
       await screen.findByRole('tab', { name: 'Log in', selected: true }),
     ).toBeTruthy();
@@ -123,7 +128,7 @@ describe('LoginPage', () => {
       'POST /sign-up': { userId: 'u1' },
       'GET /me': DANA,
     });
-    renderAt('/login');
+    renderAt('/login', { signedIn: false });
     fireEvent.click(await screen.findByRole('tab', { name: 'Sign up' }));
     await fillIn({
       Name: 'Dana Levi',
@@ -170,7 +175,7 @@ describe('LoginPage', () => {
     vi.mocked(createUserWithEmailAndPassword).mockRejectedValueOnce(
       firebaseError('auth/email-already-in-use'),
     );
-    renderAt('/login');
+    renderAt('/login', { signedIn: false });
     fireEvent.click(await screen.findByRole('tab', { name: 'Sign up' }));
     await fillIn({
       Name: 'Dana',
@@ -187,7 +192,7 @@ describe('LoginPage', () => {
   });
 
   it('asks for the password twice at sign-up, and marks a second one that differs without calling Firebase', async () => {
-    renderAt('/login');
+    renderAt('/login', { signedIn: false });
     fireEvent.click(await screen.findByRole('tab', { name: 'Sign up' }));
     await fillIn({
       Name: 'Dana',
@@ -212,7 +217,7 @@ describe('LoginPage', () => {
         code: 'Email Not Verified',
       }),
     });
-    renderAt('/login');
+    renderAt('/login', { signedIn: false });
     await fillIn({ Email: 'dana@nba.dev', Password: 'correct horse' });
     logIn();
 
@@ -241,7 +246,7 @@ describe('LoginPage', () => {
       'POST /sign-up': { userId: 'u1' },
       'GET /me': DANA,
     });
-    renderAt('/login');
+    renderAt('/login', { signedIn: false });
     await fillIn({ Email: 'dana@nba.dev', Password: 'correct horse' });
     logIn();
 
@@ -262,7 +267,7 @@ describe('LoginPage', () => {
   });
 
   it('sends a password reset link, saying the same whether or not the email has an account', async () => {
-    renderAt('/login');
+    renderAt('/login', { signedIn: false });
     fireEvent.click(
       await screen.findByRole('button', { name: 'Forgot your password?' }),
     );
@@ -285,34 +290,35 @@ describe('LoginPage', () => {
 
   it('sends someone signed in on to the dashboard', async () => {
     stubApi({ 'GET /me': DANA });
-    signIn();
     renderAt('/login');
 
     expect(await screen.findByText('DashboardPage')).toBeTruthy();
     expect(window.location.pathname).toBe('/');
   });
 
-  it('logs out from the navbar, out of Firebase too', async () => {
+  it('logs out from the navbar, out of Firebase too, back to the login page', async () => {
     stubApi({ 'GET /me': DANA });
-    signIn();
     renderAt('/');
     expect(await screen.findByText('Dana Levi')).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'Log out' }));
 
-    expect(await screen.findByRole('link', { name: 'Log in' })).toBeTruthy();
-    expect(screen.queryByText('Dana Levi')).toBeNull();
+    expect(
+      await screen.findByRole('heading', { name: 'Welcome back' }),
+    ).toBeTruthy();
+    expect(window.location.pathname).toBe('/login');
     expect(signOut).toHaveBeenCalled();
   });
 
-  it('ends a session the API no longer accepts', async () => {
+  it('ends a session the API no longer accepts, back to the login page', async () => {
     stubApi({
       'GET /me': new Failure(401, { statusCode: 401, message: 'Invalid' }),
     });
-    signIn();
     renderAt('/');
 
-    expect(await screen.findByRole('link', { name: 'Log in' })).toBeTruthy();
+    expect(
+      await screen.findByRole('heading', { name: 'Welcome back' }),
+    ).toBeTruthy();
     expect(signOut).toHaveBeenCalled();
   });
 });
