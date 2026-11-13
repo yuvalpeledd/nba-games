@@ -73,11 +73,13 @@ describe('GroupsController', () => {
           status: GroupStatus.ACTIVE,
           owner: { id: user.id, name: 'Dana Levi' },
           memberCount: 1,
+          isMember: true,
         });
         expect(await members().findVisibleTo(user.id)).toMatchObject([
           {
             group: { id: body.data.id, ownerId: user.id },
             memberCount: 1,
+            isMember: true,
           },
         ]);
       });
@@ -122,6 +124,7 @@ describe('GroupsController', () => {
             status: GroupStatus.ACTIVE,
             owner: { id: user.id, name: 'Dana Levi' },
             memberCount: 1,
+            isMember: true,
           },
           {
             id: expect.any(String),
@@ -130,8 +133,93 @@ describe('GroupsController', () => {
             status: GroupStatus.ACTIVE,
             owner: { id: omer.id, name: 'Omer Cohen' },
             memberCount: 1,
+            isMember: false,
           },
         ]);
+      });
+    });
+  });
+
+  describe('GET /groups/:id', () => {
+    const get = (id: string, token?: string | null) =>
+      app.call('GET', `/groups/${id}`, undefined, token);
+
+    describe('auth', () => {
+      it('refuses a caller who is not signed in', async () => {
+        const group = await members().createGroup({
+          name: 'Open Court',
+          ownerId: user.id,
+          public: true,
+        });
+        const { status } = await get(group.id, null);
+        expect(status).toBe(401);
+      });
+    });
+
+    describe('validation', () => {
+      it('takes only a uuid', async () => {
+        const { status, body } = await get('nope');
+        expect(status).toBe(400);
+        expect(body.message).toContain('id must be a uuid');
+      });
+    });
+
+    describe('behavior', () => {
+      it('answers a public group the caller is not in, with its members by name', async () => {
+        const omer = await app.createUser({ name: 'Omer Cohen' });
+        const group = await members().createGroup({
+          name: 'Open Court',
+          ownerId: omer.id,
+          public: true,
+        });
+
+        const { status, body } = await get(group.id);
+
+        expect(status).toBe(200);
+        expect(body.data).toEqual({
+          id: group.id,
+          name: 'Open Court',
+          public: true,
+          status: GroupStatus.ACTIVE,
+          owner: { id: omer.id, name: 'Omer Cohen' },
+          memberCount: 1,
+          isMember: false,
+          members: [{ id: omer.id, name: 'Omer Cohen' }],
+        });
+      });
+
+      it("answers the caller's private group", async () => {
+        const group = await members().createGroup({
+          name: 'Friday League',
+          ownerId: user.id,
+          public: false,
+        });
+
+        const { status, body } = await get(group.id);
+
+        expect(status).toBe(200);
+        expect(body.data).toMatchObject({
+          name: 'Friday League',
+          isMember: true,
+          members: [{ id: user.id, name: 'Dana Levi' }],
+        });
+      });
+
+      it("is 404 for a private group the caller isn't in", async () => {
+        const omer = await app.createUser({ name: 'Omer Cohen' });
+        const group = await members().createGroup({
+          name: "Omer's Secret",
+          ownerId: omer.id,
+          public: false,
+        });
+
+        const { status } = await get(group.id);
+        expect(status).toBe(404);
+      });
+
+      it('is 404 for a group that does not exist', async () => {
+        const { status } = await get('00000000-0000-4000-8000-000000000000');
+        expect(status).toBe(404);
       });
     });
   });

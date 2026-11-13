@@ -6,7 +6,11 @@ import type {
   UserDto,
 } from '@nba/dtos-auth';
 import type { GameDto } from '@nba/dtos-games';
-import type { CreateGroupRequest, GroupDto } from '@nba/dtos-groups';
+import type {
+  CreateGroupRequest,
+  GroupDetailsDto,
+  GroupDto,
+} from '@nba/dtos-groups';
 import type { PlayerDto } from '@nba/dtos-players';
 import type { PredictionDto } from '@nba/dtos-predictions';
 import type { ScanDto } from '@nba/dtos-scans';
@@ -158,6 +162,13 @@ export const useGroups = () =>
   useQuery({
     queryKey: ['groups'],
     queryFn: () => api<GroupDto[]>('GET', '/groups'),
+  });
+
+// One group the signed-in user may see, with its members.
+export const useGroup = (id: string) =>
+  useQuery({
+    queryKey: ['groups', id],
+    queryFn: () => api<GroupDetailsDto>('GET', `/groups/${id}`),
   });
 
 // Makes a group the signed-in user owns, then reloads the groups.

@@ -14,6 +14,7 @@ export {
 } from './lib/format';
 export {
   useCreateGroup,
+  useGroup,
   useGroups,
   useSeasonGames,
   useHeadToHead,
