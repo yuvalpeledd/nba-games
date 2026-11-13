@@ -14,12 +14,23 @@
     "sharedGlobals": []
   },
   "plugins": [
-    { "plugin": "@nx/eslint/plugin", "options": { "targetName": "lint" } },
-    { "plugin": "@nx/jest/plugin", "options": { "targetName": "test" } }
+    {
+      "plugin": "@nx/eslint/plugin",
+      "options": {
+        "targetName": "lint"
+      }
+    },
+    {
+      "plugin": "@nx/jest/plugin",
+      "options": {
+        "targetName": "test"
+      }
+    }
   ],
   "targetDefaults": {
     "test": {
-      "inputs": ["default", "^production", "{workspaceRoot}/migrations/**/*"]
+      "inputs": ["default", "^production", "{workspaceRoot}/migrations/**/*"],
+      "parallelism": false
     }
   }
 }

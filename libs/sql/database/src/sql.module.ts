@@ -1,5 +1,5 @@
 import { DynamicModule, Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { join } from 'node:path';
 import { DataSourceOptions } from 'typeorm';
 import { DatabaseLogger } from './database-logger';
@@ -38,6 +38,18 @@ export function postgresOptions(env: NodeJS.ProcessEnv): DataSourceOptions {
     namingStrategy: new SnakeNamingStrategy(),
     logger: new DatabaseLogger(),
     maxQueryExecutionTime: 1000,
+  };
+}
+
+// The specs' connection: the local container's `nba_test` database (never the dev one), dropped and rebuilt through
+// the migrations by each spec file. Nx runs the test targets one at a time (nx.json), as they share it.
+export function testPostgresOptions(): TypeOrmModuleOptions {
+  return {
+    ...postgresOptions({ ...process.env, DB_NAME: 'nba_test' }),
+    entities: [],
+    autoLoadEntities: true,
+    dropSchema: true,
+    migrationsRun: true,
   };
 }
 

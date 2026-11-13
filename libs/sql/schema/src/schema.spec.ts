@@ -1,109 +1,28 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { postgresOptions } from '@nba/sql';
-import {
-  GameCreateObject,
-  GameDalService,
-  GameModule,
-  GameStatus,
-} from '@nba/sql-games';
-import {
-  PlayerCreateObject,
-  PlayerDalService,
-  PlayerModule,
-} from '@nba/sql-players';
-import {
-  StandingCreateObject,
-  StandingDalService,
-  StandingModule,
-} from '@nba/sql-standings';
+import { testPostgresOptions } from '@nba/sql';
+import { GameDalService, GameModule, GameStatus } from '@nba/sql-games';
+import { PlayerDalService, PlayerModule } from '@nba/sql-players';
+import { StandingDalService, StandingModule } from '@nba/sql-standings';
 import { SeasonDalService, SeasonModule } from '@nba/sql-seasons';
 import { TeamPlayerDalService, TeamPlayerModule } from '@nba/sql-team-players';
-import { TeamCreateObject, TeamDalService, TeamModule } from '@nba/sql-teams';
+import { TeamDalService, TeamModule } from '@nba/sql-teams';
 import { DataSource } from 'typeorm';
-import games from './__fixtures__/games.json';
-import players from './__fixtures__/players.json';
-import standings from './__fixtures__/standings.json';
-import teams from './__fixtures__/teams.json';
+import {
+  gameOf,
+  playerOf,
+  standingOf,
+  teamOf,
+} from '@nba/data-fetcher-api-ninjas-client';
+import {
+  games,
+  players,
+  standings,
+  teams,
+} from '@nba/data-fetcher-api-ninjas-client/fixtures';
 
-// Every table against the real migrations, with API Ninjas' real responses (__fixtures__, from the Postman
-// collection's requests). Runs on the local container's `nba_test` database, which it resets: never the dev one.
-
-// ponytail: the provider → row mapping lives here until data-fetcher's client exists; then the spec uses the client's.
-type Raw<T> = T extends (infer R)[] ? R : never;
-const teamOf = (t: Raw<typeof teams>): TeamCreateObject => ({
-  id: t.team_id,
-  abbreviation: t.abbreviation,
-  name: t.name,
-  nickname: t.nickname,
-  city: t.city,
-  conference: t.conference,
-  division: t.division,
-  venue: t.venue,
-  active: t.active,
-});
-const playerOf = (p: Raw<typeof players>): PlayerCreateObject => ({
-  id: p.player_id,
-  teamId: p.team?.team_id ?? null,
-  name: p.name,
-  firstName: p.first_name,
-  lastName: p.last_name,
-  position: p.position,
-  jerseyNumber: p.jersey_number,
-  heightIn: p.height_in,
-  weightLb: p.weight_lb,
-  birthDate: p.birth_date,
-  birthPlace: p.birth_place,
-  rosterStatus: p.roster_status,
-  college: p.college ?? null, // left out, not null, for players who didn't go to college
-
-  experienceYears: p.experience_years,
-});
-const gameOf = (g: Raw<typeof games>): GameCreateObject => ({
-  id: g.game_id,
-  season: g.season,
-  seasonType: g.season_type as GameCreateObject['seasonType'],
-  date: g.date,
-  startTime: new Date(g.start_time),
-  status: g.status as GameStatus,
-  statusDetail: g.status_detail,
-  period: g.period,
-  clock: g.clock,
-  homeTeamId: g.home_team.team_id,
-  awayTeamId: g.away_team.team_id,
-  homeScore: g.home_score,
-  awayScore: g.away_score,
-  periodScores: g.period_scores,
-  decidedIn: g.decided_in,
-  winnerTeamId: g.winner,
-  venue: g.venue,
-  neutralSite: g.neutral_site,
-  originalDate: g.original_date,
-});
-const standingOf = (s: Raw<typeof standings>): StandingCreateObject => ({
-  season: s.season,
-  teamId: s.team.team_id,
-  conference: s.conference,
-  division: s.division,
-  gamesPlayed: s.games_played,
-  wins: s.wins,
-  losses: s.losses,
-  winPct: s.win_pct,
-  gamesBehind: s.games_behind,
-  pointsFor: s.points_for,
-  pointsAgainst: s.points_against,
-  pointDifferential: s.point_differential,
-  streak: s.streak,
-  homeRecord: s.home_record,
-  awayRecord: s.away_record,
-  divisionRecord: s.division_record,
-  conferenceRecord: s.conference_record,
-  last10: s.last_10,
-  leagueRank: s.league_rank,
-  conferenceRank: s.conference_rank,
-  divisionRank: s.division_rank,
-  final: s.final,
-});
+// Every table against the real migrations, with API Ninjas' real responses mapped by the client's mappers. Runs on
+// the local container's `nba_test` database, which it rebuilds: never the dev one.
 
 describe('schema', () => {
   let module: TestingModule;
@@ -112,13 +31,7 @@ describe('schema', () => {
   beforeAll(async () => {
     module = await Test.createTestingModule({
       imports: [
-        TypeOrmModule.forRoot({
-          ...postgresOptions({ ...process.env, DB_NAME: 'nba_test' }),
-          entities: [],
-          autoLoadEntities: true,
-          dropSchema: true,
-          migrationsRun: true,
-        }),
+        TypeOrmModule.forRoot(testPostgresOptions()),
         TeamModule,
         PlayerModule,
         GameModule,

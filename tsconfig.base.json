@@ -15,6 +15,15 @@
     "skipDefaultLibCheck": true,
     "strict": true,
     "paths": {
+      "@nba/data-fetcher-api-ninjas-client": [
+        "./libs/data-fetcher/api-ninjas-client/src/index.ts"
+      ],
+      "@nba/data-fetcher-api-ninjas-client/fixtures": [
+        "./libs/data-fetcher/api-ninjas-client/src/fixtures.ts"
+      ],
+      "@nba/data-fetcher-fetchers": [
+        "./libs/data-fetcher/fetchers/src/index.ts"
+      ],
       "@nba/sql": ["./libs/sql/database/src/index.ts"],
       "@nba/sql-core": ["./libs/sql/core/src/index.ts"],
       "@nba/sql-games": ["./libs/sql/tables/games/src/index.ts"],
