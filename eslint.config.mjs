@@ -30,6 +30,10 @@ export default [
               onlyDependOnLibsWithTags: ['scope:data-fetcher', 'scope:shared'],
             },
             {
+              sourceTag: 'scope:score-manager',
+              onlyDependOnLibsWithTags: ['scope:score-manager', 'scope:shared'],
+            },
+            {
               sourceTag: 'scope:shared',
               onlyDependOnLibsWithTags: ['scope:shared'],
             },

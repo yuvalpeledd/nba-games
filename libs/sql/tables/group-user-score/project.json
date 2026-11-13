@@ -1,0 +1,8 @@
+{
+  "name": "sql-group-user-score",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/sql/tables/group-user-score/src",
+  "projectType": "library",
+  "tags": ["scope:shared"],
+  "targets": {}
+}

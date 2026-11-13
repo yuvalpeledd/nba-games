@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { IsNull, Not } from 'typeorm';
 import { PredictionCreateObject, PredictionEntity } from './prediction.entity';
 import { PredictionRepo } from './prediction.repo';
 
@@ -18,5 +19,10 @@ export class PredictionDalService {
   // The user's predictions of a season's games (the year it starts in).
   findBySeason(userId: string, season: number): Promise<PredictionEntity[]> {
     return this.repo.find({ where: { userId, game: { season } } });
+  }
+
+  // A game's predictions that have a pick (a taken-back one isn't a prediction).
+  findByGame(gameId: string): Promise<PredictionEntity[]> {
+    return this.repo.find({ where: { gameId, pick: Not(IsNull()) } });
   }
 }

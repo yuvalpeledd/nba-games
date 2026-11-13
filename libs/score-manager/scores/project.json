@@ -1,0 +1,8 @@
+{
+  "name": "score-manager-scores",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/score-manager/scores/src",
+  "projectType": "library",
+  "tags": ["scope:score-manager"],
+  "targets": {}
+}
