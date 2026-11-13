@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ApiNinjasModule } from '@nba/data-fetcher-api-ninjas-client';
+import { GameDayModule } from '@nba/sql-game-days';
 import { GameModule } from '@nba/sql-games';
 import { SeasonModule } from '@nba/sql-seasons';
 import { StandingHistoryModule } from '@nba/sql-standings-history';
@@ -24,6 +25,7 @@ const FETCHERS = [
     TeamPlayerModule,
     StandingHistoryModule,
     GameModule,
+    GameDayModule,
     SeasonModule,
   ],
   providers: FETCHERS,

@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { testPostgresOptions } from '@nba/sql';
+import { GameDayDalService, GameDayModule } from '@nba/sql-game-days';
 import { GameDalService, GameModule, GameStatus } from '@nba/sql-games';
 import { PlayerDalService, PlayerModule } from '@nba/sql-players';
 import { StandingDalService, StandingModule } from '@nba/sql-standings';
@@ -43,6 +44,7 @@ describe('schema', () => {
         TeamPlayerModule,
         SeasonModule,
         StandingHistoryModule,
+        GameDayModule,
       ],
     }).compile();
     dataSource = module.get(DataSource);
@@ -51,7 +53,7 @@ describe('schema', () => {
   // Not seasons: the migrations load them.
   beforeEach(() =>
     dataSource.query(
-      'TRUNCATE teams, players, games, standings, standings_history, team_players',
+      'TRUNCATE teams, players, games, game_days, standings, standings_history, team_players',
     ),
   );
 
@@ -186,6 +188,50 @@ describe('schema', () => {
       }
       expect(await dal.findByDate('2026-10-19')).toBeNull();
       expect(await dal.findByDate('2027-04-12')).toBeNull();
+    });
+  });
+
+  describe('game_days', () => {
+    it('records a checked day once, with its latest count', async () => {
+      const dal = module.get(GameDayDalService);
+      await dal.record([
+        { date: '2026-11-26', games: 0, checkedOn: '2026-11-20' },
+      ]);
+      await dal.record([
+        { date: '2026-11-26', games: 0, checkedOn: '2026-11-26' },
+      ]);
+
+      expect([
+        ...(await dal.findBetween('2026-11-01', '2026-11-30')).values(),
+      ]).toMatchObject([
+        { date: '2026-11-26', games: 0, checkedOn: '2026-11-26' },
+      ]);
+    });
+
+    it('is filled from the games already stored when its migration runs', async () => {
+      await module.get(TeamDalService).upsert(teams.map(teamOf));
+      await module.get(GameDalService).upsert(games.map(gameOf));
+      const migration = dataSource.migrations.find((m) =>
+        m.name?.startsWith('GameDays'),
+      );
+      const runner = dataSource.createQueryRunner();
+      try {
+        await migration?.down(runner);
+        await migration?.up(runner);
+      } finally {
+        await runner.release();
+      }
+
+      expect(
+        (
+          await module
+            .get(GameDayDalService)
+            .findBetween('2026-11-11', '2026-11-11')
+        ).get('2026-11-11'),
+      ).toMatchObject({
+        games: games.length,
+        checkedOn: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+      });
     });
   });
 

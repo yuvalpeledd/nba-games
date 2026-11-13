@@ -43,16 +43,6 @@ export class GameDalService {
     return this.repo.findOneBy({ id });
   }
 
-  // The days from `from` to `to` ('YYYY-MM-DD') that have games.
-  async datesWithGames(from: string, to: string): Promise<Set<string>> {
-    const rows: { date: string }[] = await this.repo
-      .createQueryBuilder('game')
-      .select('DISTINCT game.date::text', 'date')
-      .where('game.date BETWEEN :from AND :to', { from, to })
-      .getRawMany();
-    return new Set(rows.map(({ date }) => date));
-  }
-
   // The last day from `from` to `to` with a game that has its score; null when none has.
   async lastScoredDate(from: string, to: string): Promise<string | null> {
     const row: { date: string | null } | undefined = await this.repo

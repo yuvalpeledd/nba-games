@@ -1,0 +1,8 @@
+{
+  "name": "sql-game-days",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/sql/tables/game-days/src",
+  "projectType": "library",
+  "tags": ["scope:shared"],
+  "targets": {}
+}

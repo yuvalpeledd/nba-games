@@ -51,6 +51,7 @@
       ],
       "@nba/sql": ["./libs/sql/database/src/index.ts"],
       "@nba/sql-core": ["./libs/sql/core/src/index.ts"],
+      "@nba/sql-game-days": ["./libs/sql/tables/game-days/src/index.ts"],
       "@nba/sql-games": ["./libs/sql/tables/games/src/index.ts"],
       "@nba/sql-games/enums": ["./libs/sql/tables/games/src/enums.ts"],
       "@nba/sql-players": ["./libs/sql/tables/players/src/index.ts"],
