@@ -21,7 +21,7 @@
 - web-app: predictions show in the games tables and as the dashboard's counters (no page of a user's picks), and their toast is the prediction cell's own snackbar (the profile and groups pages' too) until an app-wide toast exists.
 - score-manager: nothing calls `POST /api/games/:gameId/score` yet: the data-fetcher (once its games turn final) or a schedule should; no route reads the scores (a group's leaderboard), and joining a group later doesn't score that user's past games.
   When deployed, keep it internal (no public ingress) or put a secret or IAM in front.
-- Groups: a user can make one (name, public) and see the list; nothing joins, invites, leaves or closes one, there's no group page, and the list isn't paged.
+- Groups: a user can make one (name, public), see theirs beside the public ones they're not in, and open one (its members); nothing joins, invites, leaves or closes one, and the list isn't paged.
 - Auth: the profile page changes the name and password, not the email (outly's does, through Firebase's verify-before-update link); no account deletion; the navbar shows the name only while the rail is open.
   Add them when users ask.
 - data-fetcher: a bundle and a Cloud Run Job (and its schedule) when it's deployed; it runs from its sources for now.

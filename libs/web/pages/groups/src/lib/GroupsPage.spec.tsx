@@ -17,12 +17,13 @@ const group = (
   status: GroupStatus.ACTIVE,
   owner: { id: `user-${owner}`, name: owner },
   memberCount: 1,
+  isMember: false,
   ...overrides,
 });
 
-// The table's rows, each its cells' text.
-const rows = async () =>
-  within(await screen.findByRole('table', { name: 'Groups' }))
+// A table's rows, each its cells' text.
+const rows = async (name: string) =>
+  within(await screen.findByRole('table', { name }))
     .getAllByRole('row')
     .slice(1)
     .map((row) =>
@@ -37,11 +38,16 @@ const openNewGroup = async () => {
 };
 
 describe('GroupsPage', () => {
-  it('lists the groups, from the navbar', async () => {
+  it("lists the user's groups and, beside them, the public ones they're not in, from the navbar", async () => {
     stubApi({
       'GET /groups': [
-        group('Friday League', 'Dana Levi', { public: false, memberCount: 3 }),
+        group('Friday League', 'Dana Levi', {
+          public: false,
+          memberCount: 3,
+          isMember: true,
+        }),
         group('Open Court', 'Omer Cohen', { status: GroupStatus.CLOSED }),
+        group('Sunday Hoops', 'Omer Cohen', { isMember: true }),
       ],
     });
     renderAt('/');
@@ -55,10 +61,45 @@ describe('GroupsPage', () => {
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Groups' }),
     ).toBeTruthy();
-    expect(await rows()).toEqual([
+    expect(await rows('My groups')).toEqual([
       ['Friday League', '3', 'Dana Levi', 'No', 'Active'],
+      ['Sunday Hoops', '1', 'Omer Cohen', 'Yes', 'Active'],
+    ]);
+    expect(await rows('Public groups')).toEqual([
       ['Open Court', '1', 'Omer Cohen', 'Yes', 'Closed'],
     ]);
+  });
+
+  it('opens a group from either list', async () => {
+    stubApi({
+      'GET /groups': [
+        group('Friday League', 'Dana Levi', { id: 'friday', isMember: true }),
+        group('Open Court', 'Omer Cohen', { id: 'open' }),
+      ],
+    });
+    renderAt('/groups');
+
+    const publicGroups = await screen.findByRole('table', {
+      name: 'Public groups',
+    });
+    expect(
+      within(publicGroups)
+        .getByRole('link', { name: 'Open Court' })
+        .getAttribute('href'),
+    ).toBe('/groups/open');
+    expect(
+      within(screen.getByRole('table', { name: 'My groups' }))
+        .getByRole('link', { name: 'Friday League' })
+        .getAttribute('href'),
+    ).toBe('/groups/friday');
+  });
+
+  it('says when either list is empty', async () => {
+    stubApi({ 'GET /groups': [] });
+    renderAt('/groups');
+
+    expect(await screen.findByText("You're in no groups yet.")).toBeTruthy();
+    expect(screen.getByText("No public groups you're not in.")).toBeTruthy();
   });
 
   it('makes a group with New Group, then says so', async () => {
@@ -67,7 +108,7 @@ describe('GroupsPage', () => {
       'POST /groups': group('Friday League', 'Dana Levi'),
     });
     renderAt('/groups');
-    expect(await screen.findByText('No groups yet.')).toBeTruthy();
+    expect(await screen.findByText("You're in no groups yet.")).toBeTruthy();
 
     const dialog = await openNewGroup();
     fireEvent.change(within(dialog).getByRole('textbox', { name: /Name/ }), {

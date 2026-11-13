@@ -101,6 +101,9 @@
         "./libs/web/components/design-system/src/index.ts"
       ],
       "@nba/web-groups-page": ["./libs/web/pages/groups/src/index.ts"],
+      "@nba/web-group-single-page": [
+        "./libs/web/pages/group-single/src/index.ts"
+      ],
       "@nba/web-login-page": ["./libs/web/pages/login/src/index.ts"],
       "@nba/web-profile-page": ["./libs/web/pages/profile/src/index.ts"],
       "@nba/web-predictions-components": [

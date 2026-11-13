@@ -8,7 +8,17 @@ export interface GroupDto {
   status: GroupStatus;
   owner: { id: string; name: string };
   memberCount: number;
+  // Whether the signed-in user is in it.
+  isMember: boolean;
 }
+
+// GET /groups/:id: a group, with who is in it, by name.
+export interface GroupDetailsDto extends GroupDto {
+  members: { id: string; name: string }[];
+}
+
+// A group's id, in a path.
+export const groupIdSchema = string().uuid('id must be a uuid').required();
 
 // POST /groups: the signed-in user's new group, which they own.
 export const createGroupRequestSchema = object({

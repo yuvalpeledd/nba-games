@@ -58,7 +58,8 @@ Add a section per feature as it is built; delete what turns out wrong.
   - A game that ends without a result (`canceled`) voids its predictions instead of scoring them.
 - **Groups** (`groups`: uuid, `name` up to 100, `owner_id`, `public`, `status` `Active` or `Closed`; `group_members`: uuid, `group_id`, `user_id`, unique on both): users who play together.
   `POST /groups` (`{ name, public }`) makes an `Active` group the caller owns, with the caller as its first member, in one transaction (`GroupMemberDalService.createGroup`: the write spans both tables, so it's in the lower one's DAL).
-  `GET /groups` answers what the caller may see: every public group, and the private ones they're in, by name, each with its owner and member count.
+  `GET /groups` answers what the caller may see: every public group, and the private ones they're in, by name, each with its owner, member count and `isMember` (the web splits them into the caller's and the public ones they're not in).
+  `GET /groups/:id` (a uuid, else 400) answers one with its members by name; a private group the caller isn't in is 404, like a missing one, so an id gives nothing away.
   Nothing joins, leaves or closes a group yet.
 - **Scores** (`group_user_score`: uuid, `group_id`, `user_id`, `game_id`, `score` int, unique on the three): what a member's prediction of a game scored in a group, 1 right or 0 wrong.
   `score-manager`'s internal `POST /api/games/:gameId/score` writes them: every prediction of the game with a pick, scored by `scorePrediction`, a row in each group its user is in.

@@ -1,56 +1,17 @@
 import AddIcon from '@mui/icons-material/Add';
-import {
-  Button,
-  Snackbar,
-  Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Typography,
-} from '@mui/material';
+import { Button, Snackbar, Stack, Typography } from '@mui/material';
 import { useGroups } from '@nba/web-core';
 import { PageLoader } from '@nba/web-shell-components';
-import { useTableFilters, useTableSort } from '@nba/web-table-components';
 import { useState } from 'react';
+import { GroupsTable } from './groups-table/GroupsTable';
 import { NewGroupDialog } from './new-group-dialog/NewGroupDialog';
 
-const yesNo = (value: boolean) => (value ? 'Yes' : 'No');
-
-// The groups the signed-in user may see (every public one and theirs), and New Group to make one.
+// The signed-in user's groups and, beside them, the public ones they're not in; New Group makes one.
 // ponytail: its own snackbar, as PredictionCell's and the profile page's, until an app-wide toast exists.
 export function GroupsPage() {
   const groups = useGroups();
   const [isNewOpen, setIsNewOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  const filtered = useTableFilters(groups.data ?? [], {
-    name: { label: 'Name', type: 'select', value: (group) => group.name },
-    members: {
-      label: 'Members',
-      type: 'number',
-      value: (group) => group.memberCount,
-    },
-    owner: {
-      label: 'Owner',
-      type: 'select',
-      value: (group) => group.owner.name,
-    },
-    public: {
-      label: 'Public',
-      type: 'select',
-      value: (group) => yesNo(group.public),
-    },
-    status: { label: 'Status', type: 'select', value: (group) => group.status },
-  });
-  const { rows, headCell } = useTableSort(filtered.rows, {
-    name: (group) => group.name,
-    members: (group) => group.memberCount,
-    owner: (group) => group.owner.name,
-    public: (group) => yesNo(group.public),
-    status: (group) => group.status,
-  });
 
   return (
     <Stack spacing={3}>
@@ -69,35 +30,20 @@ export function GroupsPage() {
       </Stack>
       {!groups.data ? (
         <PageLoader error={groups.isError} />
-      ) : groups.data.length === 0 ? (
-        <Typography color="text.secondary">No groups yet.</Typography>
       ) : (
-        <Stack spacing={2}>
-          {filtered.filterBar}
-          <TableContainer>
-            <Table aria-label="Groups">
-              <TableHead>
-                <TableRow>
-                  {headCell('name', 'Name')}
-                  {headCell('members', 'Members', 'right')}
-                  {headCell('owner', 'Owner')}
-                  {headCell('public', 'Public')}
-                  {headCell('status', 'Status')}
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {rows.map((group) => (
-                  <TableRow key={group.id}>
-                    <TableCell>{group.name}</TableCell>
-                    <TableCell align="right">{group.memberCount}</TableCell>
-                    <TableCell>{group.owner.name}</TableCell>
-                    <TableCell>{yesNo(group.public)}</TableCell>
-                    <TableCell>{group.status}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+        <Stack direction="row" useFlexGap sx={{ flexWrap: 'wrap', gap: 4 }}>
+          <GroupsTable
+            label="My groups"
+            groups={groups.data.filter((group) => group.isMember)}
+            empty="You're in no groups yet."
+          />
+          <GroupsTable
+            label="Public groups"
+            groups={groups.data.filter(
+              (group) => group.public && !group.isMember,
+            )}
+            empty="No public groups you're not in."
+          />
         </Stack>
       )}
       {isNewOpen && (
