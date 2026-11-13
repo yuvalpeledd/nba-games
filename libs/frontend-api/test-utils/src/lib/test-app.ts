@@ -16,6 +16,7 @@ import {
   PlayerDalService,
   PlayerModule,
 } from '@nba/sql-players';
+import { PredictionModule } from '@nba/sql-predictions';
 import {
   SeasonCreateObject,
   SeasonEntity,
@@ -103,6 +104,7 @@ export class TestApp {
         StandingModule,
         SeasonModule,
         UserModule,
+        PredictionModule,
         ...imports,
       ],
       providers: [{ provide: APP_FILTER, useClass: FailureFilter }],

@@ -15,10 +15,16 @@ import {
   currentSeason,
   formatSeason,
   formatTime,
+  usePredictions,
   useSeasonGames,
   useSeasons,
+  useSession,
   useTeams,
 } from '@nba/web-core';
+import {
+  PredictionCell,
+  predictionLabel,
+} from '@nba/web-predictions-components';
 import { PageLoader } from '@nba/web-shell-components';
 import { useTableFilters, useTableSort } from '@nba/web-table-components';
 import { useState } from 'react';
@@ -64,6 +70,11 @@ export function GamesPage() {
   const season = seasons.data && currentSeason(seasons.data);
   const teams = useTeams();
   const games = useSeasonGames(season?.year);
+  const session = useSession();
+  const predictions = usePredictions(season?.year);
+  const picks = new Map(
+    predictions.data?.map(({ gameId, pick }) => [gameId, pick]),
+  );
   const [page, setPage] = useState(0);
   const nameOf = (id: string) =>
     teams.data?.find((team) => team.id === id)?.name ?? id;
@@ -72,6 +83,7 @@ export function GamesPage() {
     away: nameOf(game.awayTeamId),
     home: nameOf(game.homeTeamId),
     played: game.awayScore !== null && game.homeScore !== null,
+    pick: picks.get(game.id),
   }));
   const totalOf = (row: (typeof seasonRows)[number]) =>
     row.played
@@ -90,6 +102,11 @@ export function GamesPage() {
         type: 'select',
         value: (row) => statusLabels[row.game.status],
       },
+      prediction: {
+        label: 'Prediction',
+        type: 'select',
+        value: (row) => predictionLabel(row.pick),
+      },
     },
     [{ column: 'time', operator: 'after', values: [daysAgo(2)] }],
   );
@@ -99,6 +116,7 @@ export function GamesPage() {
     home: (row) => row.home,
     score: totalOf,
     status: (row) => statusLabels[row.game.status],
+    prediction: (row) => row.pick ?? null,
   });
   // Back to the last page there is when filters leave fewer rows.
   const shownPage = Math.min(
@@ -135,6 +153,7 @@ export function GamesPage() {
                   {headCell('home', 'Home')}
                   {headCell('score', 'Score', 'right')}
                   {headCell('status', 'Status')}
+                  {session && headCell('prediction', 'Prediction')}
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -143,7 +162,7 @@ export function GamesPage() {
                     shownPage * ROWS_PER_PAGE,
                     (shownPage + 1) * ROWS_PER_PAGE,
                   )
-                  .map(({ game, away, home, played }) => (
+                  .map(({ game, away, home, played, pick }) => (
                     <TableRow key={game.id}>
                       <TableCell>{formatTime(game.startTime)}</TableCell>
                       <TeamCell id={game.awayTeamId} name={away} />
@@ -152,6 +171,7 @@ export function GamesPage() {
                         {played ? `${game.awayScore}-${game.homeScore}` : 'N/A'}
                       </TableCell>
                       <TableCell>{statusLabels[game.status]}</TableCell>
+                      {session && <PredictionCell game={game} pick={pick} />}
                     </TableRow>
                   ))}
               </TableBody>

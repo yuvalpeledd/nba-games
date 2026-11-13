@@ -7,4 +7,6 @@ export enum ErrorCode {
   USER_EXISTS = 'User Exists',
   // A Firebase account whose email isn't verified yet: no session until it is.
   EMAIL_NOT_VERIFIED = 'Email Not Verified',
+  // A prediction of a game that has started (or ended): picks lock at tip-off.
+  PREDICTION_LOCKED = 'Prediction Locked',
 }

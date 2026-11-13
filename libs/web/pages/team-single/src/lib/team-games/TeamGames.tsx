@@ -15,7 +15,16 @@ import {
 } from '@mui/material';
 import type { GameDto } from '@nba/dtos-games';
 import { GameStatus } from '@nba/sql-games/enums';
-import { formatTime, useTeamGames } from '@nba/web-core';
+import {
+  formatTime,
+  usePredictions,
+  useSession,
+  useTeamGames,
+} from '@nba/web-core';
+import {
+  PredictionCell,
+  predictionLabel,
+} from '@nba/web-predictions-components';
 import { PageLoader } from '@nba/web-shell-components';
 import { useTableFilters, useTableSort } from '@nba/web-table-components';
 import { useState } from 'react';
@@ -69,8 +78,16 @@ export function TeamGames({
   teamNames: Map<string, string>;
 }) {
   const { data: games, isError } = useTeamGames(teamId, season);
+  const session = useSession();
+  const predictions = usePredictions(season);
+  const picks = new Map(
+    predictions.data?.map(({ gameId, pick }) => [gameId, pick]),
+  );
   const filtered = useTableFilters(
-    (games ?? []).map((game) => sideOf(game, teamId, teamNames)),
+    (games ?? []).map((game) => ({
+      ...sideOf(game, teamId, teamNames),
+      pick: picks.get(game.id),
+    })),
     {
       // The league's day (`date`), as schedules group them.
       time: { label: 'Date', type: 'date', value: (row) => row.game.date },
@@ -89,6 +106,11 @@ export function TeamGames({
         type: 'select',
         value: (row) => (row.won === null ? 'N/A' : row.won ? 'W' : 'L'),
       },
+      prediction: {
+        label: 'Prediction',
+        type: 'select',
+        value: (row) => predictionLabel(row.pick),
+      },
     },
   );
   const { rows, headCell } = useTableSort(filtered.rows, {
@@ -96,6 +118,7 @@ export function TeamGames({
     opponent: (row) => row.opponent,
     home: (row) => Number(row.isHome),
     result: (row) => row.margin,
+    prediction: (row) => row.pick ?? null,
   });
   const [menu, setMenu] = useState<
     (OpponentOf & { anchor: HTMLElement }) | null
@@ -122,63 +145,69 @@ export function TeamGames({
               {headCell('opponent', 'Opponent')}
               {headCell('home', 'Home')}
               {headCell('result', 'Result', 'right')}
+              {session && headCell('prediction', 'Prediction')}
               <TableCell aria-label="Actions" />
             </TableRow>
           </TableHead>
           <TableBody>
-            {rows.map(({ game, isHome, opponentId, opponent, won, result }) => (
-              <TableRow key={game.id}>
-                <TableCell>{formatTime(game.startTime)}</TableCell>
-                <TableCell>
-                  <Stack
-                    direction="row"
-                    spacing={1}
-                    sx={{ alignItems: 'center' }}
-                  >
-                    {/* Decorative: the name beside it says which team. */}
-                    <img
-                      src={`/logos/${opponentId}.svg`}
-                      alt=""
-                      width={24}
-                      height={24}
-                    />
-                    <Link component={RouterLink} to={`/teams/${opponentId}`}>
-                      {opponent}
-                    </Link>
-                  </Stack>
-                </TableCell>
-                <TableCell>{isHome ? 'Yes' : 'No'}</TableCell>
-                <TableCell align="right">
-                  {/* On its own element: the design system colors every cell. */}
-                  <Typography
-                    component="span"
-                    variant="inherit"
-                    color={won === null ? undefined : won ? 'success' : 'error'}
-                  >
-                    {result}
-                  </Typography>
-                </TableCell>
-                <TableCell align="right" sx={{ py: 0 }}>
-                  <IconButton
-                    className="row-menu"
-                    aria-label="Actions"
-                    aria-haspopup="menu"
-                    aria-expanded={menu?.gameId === game.id}
-                    onClick={(event) =>
-                      setMenu({
-                        gameId: game.id,
-                        startTime: game.startTime,
-                        opponentId,
-                        opponent,
-                        anchor: event.currentTarget,
-                      })
-                    }
-                  >
-                    <MoreVertIcon />
-                  </IconButton>
-                </TableCell>
-              </TableRow>
-            ))}
+            {rows.map(
+              ({ game, isHome, opponentId, opponent, won, result, pick }) => (
+                <TableRow key={game.id}>
+                  <TableCell>{formatTime(game.startTime)}</TableCell>
+                  <TableCell>
+                    <Stack
+                      direction="row"
+                      spacing={1}
+                      sx={{ alignItems: 'center' }}
+                    >
+                      {/* Decorative: the name beside it says which team. */}
+                      <img
+                        src={`/logos/${opponentId}.svg`}
+                        alt=""
+                        width={24}
+                        height={24}
+                      />
+                      <Link component={RouterLink} to={`/teams/${opponentId}`}>
+                        {opponent}
+                      </Link>
+                    </Stack>
+                  </TableCell>
+                  <TableCell>{isHome ? 'Yes' : 'No'}</TableCell>
+                  <TableCell align="right">
+                    {/* On its own element: the design system colors every cell. */}
+                    <Typography
+                      component="span"
+                      variant="inherit"
+                      color={
+                        won === null ? undefined : won ? 'success' : 'error'
+                      }
+                    >
+                      {result}
+                    </Typography>
+                  </TableCell>
+                  {session && <PredictionCell game={game} pick={pick} />}
+                  <TableCell align="right" sx={{ py: 0 }}>
+                    <IconButton
+                      className="row-menu"
+                      aria-label="Actions"
+                      aria-haspopup="menu"
+                      aria-expanded={menu?.gameId === game.id}
+                      onClick={(event) =>
+                        setMenu({
+                          gameId: game.id,
+                          startTime: game.startTime,
+                          opponentId,
+                          opponent,
+                          anchor: event.currentTarget,
+                        })
+                      }
+                    >
+                      <MoreVertIcon />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ),
+            )}
           </TableBody>
         </Table>
         <Menu

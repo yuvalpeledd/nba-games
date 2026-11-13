@@ -46,8 +46,8 @@ Add a section per feature as it is built; delete what turns out wrong.
   - Config (`firebaseSettings`): production needs `GOOGLE_CLOUD_PROJECT`, `FIREBASE_API_KEY` and `FIREBASE_AUTH_DOMAIN`.
     Elsewhere it's the dev project, `yuval-nba-test-882ca`, whose web API key is still required (`FIREBASE_API_KEY` in `.env`): local sign-ups are real accounts there.
     `GET /firebase-config` hands the web what it needs, so one build serves every environment.
-- **Predictions:** see `docs/backlog.md` for the open questions (who predicts, and what).
-  Whatever the answer, these hold:
-  - A prediction locks when its game starts (`start_time`), checked on the server: a write after that is 409 `PREDICTION_LOCKED`, whatever the web shows.
+- **Predictions** (`predictions`: uuid, `user_id`, `game_id`, unique on both): a signed-in user picks a game's winner, `pick` `Home` or `Away`, null when they took it back.
+  `GET /predictions?season=` answers the caller's for a season's games, `PUT /predictions/:gameId` (`{ pick }`) makes or replaces one; both take `AccessGuard`.
+  - A prediction locks when its game starts (`start_time`), or once its status is anything but `scheduled`, `postponed` or `delayed` (`isPredictionLocked` in `@nba/dtos-predictions`, which the web runs too), checked on the server: a write after that is 409 `PREDICTION_LOCKED`, whatever the web shows.
   - Scoring is a plain function in the predictions dtos lib (`scorePrediction(prediction, game)`), run by the API when reading and covered by its own spec; scores are derived, never stored, until that gets slow.
   - A game that ends without a result (`canceled`) voids its predictions instead of scoring them.

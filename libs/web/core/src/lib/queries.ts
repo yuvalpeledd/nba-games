@@ -6,11 +6,13 @@ import type {
 } from '@nba/dtos-auth';
 import type { GameDto } from '@nba/dtos-games';
 import type { PlayerDto } from '@nba/dtos-players';
+import type { PredictionDto } from '@nba/dtos-predictions';
 import type { SeasonDto } from '@nba/dtos-seasons';
 import type { StandingDto } from '@nba/dtos-standings';
 import type { TeamDto } from '@nba/dtos-teams';
 import { GameStatus } from '@nba/sql-games/enums';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import type { PredictionPick } from '@nba/sql-predictions/enums';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './api';
 import { startSession, useSession } from './session';
 
@@ -97,3 +99,36 @@ export const useSignUp = () =>
       api<SessionDto>('POST', '/sign-up', body),
     onSuccess: startSession,
   });
+
+// The signed-in user's predictions of a season's games (by its year); waits for a session and a season.
+export const usePredictions = (season: number | undefined) => {
+  const session = useSession();
+  return useQuery({
+    queryKey: ['predictions', session?.userId, season],
+    queryFn: () => api<PredictionDto[]>('GET', `/predictions?season=${season}`),
+    enabled: session !== null && season !== undefined,
+  });
+};
+
+// Picks a game's winner (null takes the pick back), then puts it in its season's predictions.
+export const useSetPrediction = () => {
+  const session = useSession();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      game,
+      pick,
+    }: {
+      game: GameDto;
+      pick: PredictionPick | null;
+    }) => api<PredictionDto>('PUT', `/predictions/${game.id}`, { pick }),
+    onSuccess: (prediction, { game }) =>
+      queryClient.setQueryData<PredictionDto[]>(
+        ['predictions', session?.userId, game.season],
+        (predictions = []) => [
+          ...predictions.filter(({ gameId }) => gameId !== prediction.gameId),
+          prediction,
+        ],
+      ),
+  });
+};

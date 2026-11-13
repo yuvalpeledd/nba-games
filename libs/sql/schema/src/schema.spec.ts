@@ -13,6 +13,11 @@ import {
 import { TeamPlayerDalService, TeamPlayerModule } from '@nba/sql-team-players';
 import { TeamDalService, TeamModule } from '@nba/sql-teams';
 import { UserDalService, UserModule } from '@nba/sql-users';
+import {
+  PredictionDalService,
+  PredictionModule,
+  PredictionPick,
+} from '@nba/sql-predictions';
 import { DataSource } from 'typeorm';
 import {
   gameOf,
@@ -47,6 +52,7 @@ describe('schema', () => {
         StandingHistoryModule,
         GameDayModule,
         UserModule,
+        PredictionModule,
       ],
     }).compile();
     dataSource = module.get(DataSource);
@@ -55,7 +61,7 @@ describe('schema', () => {
   // Not seasons: the migrations load them.
   beforeEach(() =>
     dataSource.query(
-      'TRUNCATE teams, players, games, game_days, standings, standings_history, team_players, users',
+      'TRUNCATE teams, players, games, game_days, standings, standings_history, team_players, users, predictions',
     ),
   );
 
@@ -368,6 +374,28 @@ describe('schema', () => {
       await expect(
         dal.create({ ...user, email: 'other@nba.dev' }),
       ).rejects.toThrow(/duplicate key/);
+    });
+  });
+
+  describe('predictions', () => {
+    it("keeps one pick per user and game, replaced by the next, and reads a user's by season", async () => {
+      await module.get(TeamDalService).upsert(teams.map(teamOf));
+      await module.get(GameDalService).upsert(games.map(gameOf));
+      const { id: userId } = await module.get(UserDalService).create({
+        name: 'Dana Levi',
+        email: 'dana@nba.dev',
+        firebaseUid: 'firebase-dana',
+      });
+      const dal = module.get(PredictionDalService);
+      const gameId = games[0].game_id;
+
+      await dal.set({ userId, gameId, pick: PredictionPick.HOME });
+      await dal.set({ userId, gameId, pick: null });
+
+      expect(await dal.findBySeason(userId, games[0].season)).toMatchObject([
+        { userId, gameId, pick: null },
+      ]);
+      expect(await dal.findBySeason(userId, games[0].season - 1)).toEqual([]);
     });
   });
 });

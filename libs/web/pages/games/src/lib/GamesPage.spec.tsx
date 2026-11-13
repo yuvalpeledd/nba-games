@@ -1,7 +1,17 @@
 import type { GameDto } from '@nba/dtos-games';
 import { GameStatus } from '@nba/sql-games/enums';
 import { formatTime } from '@nba/web-core';
-import { appWith, game, season, stubApi, team } from '@nba/web-test-utils';
+import { ErrorCode } from '@nba/enums';
+import {
+  appWith,
+  callsOf,
+  Failure,
+  game,
+  season,
+  signIn,
+  stubApi,
+  team,
+} from '@nba/web-test-utils';
 import { fireEvent, screen, within } from '@testing-library/react';
 import { GamesPage } from './GamesPage';
 
@@ -214,5 +224,84 @@ describe('GamesPage', () => {
         'Something went wrong. Refresh the page to try again.',
       ),
     ).toBeTruthy();
+  });
+
+  describe('predictions', () => {
+    // The last game (tonight, postponed) hasn't begun; the one before (final) has.
+    const [, played, tonight] = games;
+    const predictionRoutes = {
+      ...routes(games),
+      'GET /predictions?season=2026': [{ gameId: played.id, pick: 'Away' }],
+      [`PUT /predictions/${tonight.id}`]: { gameId: tonight.id, pick: 'Home' },
+    };
+
+    const rowOf = async (team: string) =>
+      (
+        await screen.findAllByRole('row', {
+          name: new RegExp(team),
+        })
+      )[0];
+
+    it('has no column when signed out', async () => {
+      renderAt('/games');
+
+      await rows();
+      expect(screen.queryByRole('columnheader', { name: 'Prediction' })).toBe(
+        null,
+      );
+    });
+
+    it("shows the user's pick of a game that has begun, and picks one that hasn't", async () => {
+      signIn();
+      const fetchMock = stubApi(predictionRoutes);
+      renderAt('/games');
+
+      expect((await rows()).map((cells) => cells[5])).toEqual([
+        'Away',
+        'AwayHome',
+      ]);
+      fireEvent.click(
+        within(await rowOf('Boston Celtics.*Los Angeles Lakers')).getByRole(
+          'button',
+          { name: 'Home' },
+        ),
+      );
+
+      expect(await screen.findByText('Predicted: Home wins')).toBeTruthy();
+      expect(callsOf(fetchMock, 'PUT')).toEqual([
+        [`/api/predictions/${tonight.id}`, { pick: 'Home' }],
+      ]);
+      expect(
+        within(await rowOf('Boston Celtics.*Los Angeles Lakers'))
+          .getByRole('button', { name: 'Home' })
+          .getAttribute('aria-pressed'),
+      ).toBe('true');
+    });
+
+    it('says so when the game began meanwhile', async () => {
+      signIn();
+      stubApi({
+        ...predictionRoutes,
+        [`PUT /predictions/${tonight.id}`]: new Failure(409, {
+          statusCode: 409,
+          message: 'Locked',
+          code: ErrorCode.PREDICTION_LOCKED,
+        }),
+      });
+      renderAt('/games');
+
+      fireEvent.click(
+        within(await rowOf('Boston Celtics.*Los Angeles Lakers')).getByRole(
+          'button',
+          { name: 'Away' },
+        ),
+      );
+
+      expect(
+        await screen.findByText(
+          'This game has begun: its predictions are locked',
+        ),
+      ).toBeTruthy();
+    });
   });
 });

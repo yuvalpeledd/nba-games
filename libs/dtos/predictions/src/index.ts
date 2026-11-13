@@ -1,0 +1,44 @@
+import { GameStatus } from '@nba/sql-games/enums';
+import { PredictionPick } from '@nba/sql-predictions/enums';
+import { InferType, mixed, number, object } from 'yup';
+
+// A user's pick of a game's winner; null: no prediction.
+export interface PredictionDto {
+  gameId: string;
+  pick: PredictionPick | null;
+}
+
+// GET /predictions: the signed-in user's, of a season's games (the year it starts in).
+export const predictionsQuerySchema = object({
+  season: number()
+    .typeError('season must be a year')
+    .integer('season must be a year')
+    .required(),
+});
+export type PredictionsQuery = InferType<typeof predictionsQuerySchema>;
+
+// PUT /predictions/:gameId: the pick, or null to take it back.
+export const setPredictionRequestSchema = object({
+  pick: mixed<PredictionPick>()
+    .nullable()
+    .defined('pick is required')
+    .oneOf(
+      [...Object.values(PredictionPick), null],
+      `pick must be one of ${Object.values(PredictionPick).join(', ')} or null`,
+    ),
+});
+export type SetPredictionRequest = InferType<typeof setPredictionRequestSchema>;
+
+// A game can be predicted until it begins: before its start time, and while it hasn't started, ended or been called
+// off (a postponed game takes picks for its new start).
+const OPEN_STATUSES = [
+  GameStatus.SCHEDULED,
+  GameStatus.POSTPONED,
+  GameStatus.DELAYED,
+];
+export const isPredictionLocked = (
+  game: { startTime: string | Date; status: GameStatus },
+  now = Date.now(),
+): boolean =>
+  new Date(game.startTime).getTime() <= now ||
+  !OPEN_STATUSES.includes(game.status);
