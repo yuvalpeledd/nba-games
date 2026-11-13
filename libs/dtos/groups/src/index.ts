@@ -1,4 +1,5 @@
 import type { GroupStatus } from '@nba/sql-groups/enums';
+import type { PredictionPick } from '@nba/sql-predictions/enums';
 import { boolean, InferType, object, string } from 'yup';
 
 export interface GroupDto {
@@ -12,9 +13,18 @@ export interface GroupDto {
   isMember: boolean;
 }
 
-// GET /groups/:id: a group, with who is in it, by name.
+// GET /groups/:id: a group, with who is in it, by name, and each one's score in it (a point per right pick).
 export interface GroupDetailsDto extends GroupDto {
-  members: { id: string; name: string }[];
+  members: { id: string; name: string; score: number }[];
+}
+
+// GET /groups/:id/games/:gameId/predictions: each member's pick of the game, by name. Until the game locks, only
+// whether they picked (`pick` null), so no one copies another's.
+export interface GroupMemberPredictionDto {
+  id: string;
+  name: string;
+  picked: boolean;
+  pick: PredictionPick | null;
 }
 
 // A group's id, in a path.

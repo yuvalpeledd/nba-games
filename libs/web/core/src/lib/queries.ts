@@ -10,6 +10,7 @@ import type {
   CreateGroupRequest,
   GroupDetailsDto,
   GroupDto,
+  GroupMemberPredictionDto,
 } from '@nba/dtos-groups';
 import type { PlayerDto } from '@nba/dtos-players';
 import type { PredictionDto } from '@nba/dtos-predictions';
@@ -164,11 +165,22 @@ export const useGroups = () =>
     queryFn: () => api<GroupDto[]>('GET', '/groups'),
   });
 
-// One group the signed-in user may see, with its members.
+// One group the signed-in user may see, with its members and their scores.
 export const useGroup = (id: string) =>
   useQuery({
     queryKey: ['groups', id],
     queryFn: () => api<GroupDetailsDto>('GET', `/groups/${id}`),
+  });
+
+// Each of a group's members' pick of a game (which pick only once it locks).
+export const useGroupPredictions = (groupId: string, gameId: string) =>
+  useQuery({
+    queryKey: ['groups', groupId, 'predictions', gameId],
+    queryFn: () =>
+      api<GroupMemberPredictionDto[]>(
+        'GET',
+        `/groups/${groupId}/games/${gameId}/predictions`,
+      ),
   });
 
 // Makes a group the signed-in user owns, then reloads the groups.

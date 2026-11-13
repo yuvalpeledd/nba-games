@@ -25,4 +25,10 @@ export const statHints = {
     "This week's games (Monday to Sunday) you haven't picked yet that haven't begun",
   predictionsSuccess:
     'The share of your picks that were right, of the games that ended with a winner',
+  groupScore:
+    'A point for each right pick, of the games scored since joining the group',
+  groupPicked: "The group's members who picked this game's winner",
+  groupPickShare:
+    'How many of those who picked chose this team, and their share',
+  groupRight: 'How many of the picks were right, and their share',
 } as const;

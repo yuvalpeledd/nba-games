@@ -15,6 +15,7 @@ export {
 export {
   useCreateGroup,
   useGroup,
+  useGroupPredictions,
   useGroups,
   useSeasonGames,
   useHeadToHead,

@@ -34,6 +34,9 @@ The tables it writes are in CLAUDE.md's Server conventions; what the data means 
     Started nearest to today first, one request per day (`basketballgames?date=`), `FETCH_CONCURRENCY` at a time (pMap), up to `GAMES_MAX_REQUESTS` (default 50); every day fetched is recorded in `game_days` (`GameDayDalService.record`: its count and `checked_on`, today), empty ones too, and the next run picks up the rest.
     A failed day isn't recorded, so it's retried.
     A 429 starts no more days (those in flight finish) without failing the run; another failure skips the day and fails the run at the end.
+    **Scoring:** a game the day's fetch made final with a winner (or whose final score or winner changed), and that was known before it, is sent to score-manager (`POST $SCORE_MANAGER_URL/api/games/:gameId/score`, with a timeout), which scores its predictions.
+    A game first seen final has no predictions to score (a prediction needs its row).
+    A refused call is logged and fails the run at the end; the next run doesn't retry it (the game is unchanged by then).
 - **Parallel with pMap** (`p-map` 4: 5+ are ES modules only, which Jest's CommonJS can't load), never a loop of awaits: `FETCH_CONCURRENCY` requests in flight (default 5, `concurrency.ts`).
   A mapper that must not stop the others (a games day) catches its own errors; one whose failure must stop everything (a roster) throws, and pMap rejects.
   Per-item log lines come in the order items finish: specs compare them as a set.
@@ -45,7 +48,7 @@ The tables it writes are in CLAUDE.md's Server conventions; what the data means 
 - **Logs:** every write is counted (CLAUDE.md's Server conventions), and a fetcher says what it fetched and what that did, in one wording (`describeWrites` in `counts.ts`): `Fetched 30 teams from the API: 0 added, 2 updated, 28 unchanged`.
   - players: a line per roster (`Fetched 17 players of nba-por from the API`), then the players (`…, 2 released (on no roster now)`) and the day's rosters (`Rosters of <day> (team_players): 5 added, 3 deleted, 507 unchanged`);
   - standings: both tables (`…; history of <day>: 30 added, 0 updated, 0 unchanged`);
-  - games: first the pool and the days it checks now (`<season>, today <day>: 174 days to check (170 never checked, 4 for scores from <day>); checking 50 now (up to 50 a run): <days>`), then a line per day (`<day>: fetched 10 games from the API: 0 added, 10 updated, 0 unchanged`, or `fetched no games`), then the run's (`checked 50 of 174 days (0 failed, 124 left for the next run); games …`).
+  - games: first the pool and the days it checks now (`<season>, today <day>: 174 days to check (170 never checked, 4 for scores from <day>); checking 50 now (up to 50 a run): <days>`), then a line per day (`<day>: fetched 10 games from the API: 0 added, 10 updated, 0 unchanged`, or `fetched no games`, and `<day>: scored 3 of 3 games that turned final (score-manager)`), then the run's (`checked 50 of 174 days (0 failed, 124 left for the next run); games …`).
   - And per fetcher `<name> done in <ms>`.
     A failure is an error line with its stack.
     Never the key.
@@ -53,5 +56,5 @@ The tables it writes are in CLAUDE.md's Server conventions; what the data means 
 - **Tests** (`fetchers.spec.ts`): the real client and fetchers against the test DB, with only `fetch` faked, answering with `fixtures.ts`'s real responses (`answerWith(url => ...)`); a test changes the answers to make a trade, a quota or a failure.
   The client's own spec checks the requests and the mapping.
   Never call the real provider from a test.
-- Env: `API_NINJAS_KEY` (required: the run fails at boot without it; put it in `.env`, see `.env.example`), `SEASON_ID`, `GAMES_MAX_REQUESTS`, `FETCH_CONCURRENCY`, plus the `DB_*` from CLAUDE.md's Database.
+- Env: `API_NINJAS_KEY` (required: the run fails at boot without it; put it in `.env`, see `.env.example`), `SEASON_ID`, `GAMES_MAX_REQUESTS`, `FETCH_CONCURRENCY`, `SCORE_MANAGER_URL` (default `http://localhost:3001`: run score-manager beside a local run, or games that turn final fail it), plus the `DB_*` from CLAUDE.md's Database.
   Never commit the key or log it; the Postman collection holds one, so keep it out of the repo.

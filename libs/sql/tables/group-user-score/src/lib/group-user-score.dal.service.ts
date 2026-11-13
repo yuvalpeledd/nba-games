@@ -20,4 +20,16 @@ export class GroupUserScoreDalService {
   findByGame(gameId: string): Promise<GroupUserScoreEntity[]> {
     return this.repo.find({ where: { gameId } });
   }
+
+  // Each user's total in a group (every game scored there), by user id; a user with no scores isn't in it.
+  async totalsByGroup(groupId: string): Promise<Map<string, number>> {
+    const rows: { user_id: string; total: string }[] = await this.repo
+      .createQueryBuilder('s')
+      .select('s.user_id', 'user_id')
+      .addSelect('SUM(s.score)', 'total')
+      .where('s.group_id = :groupId', { groupId })
+      .groupBy('s.user_id')
+      .getRawMany();
+    return new Map(rows.map((row) => [row.user_id, Number(row.total)]));
+  }
 }

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { upsertCounted, WriteCounts } from '@nba/sql-core';
-import { Between } from 'typeorm';
+import { Between, In } from 'typeorm';
 import { GameCreateObject, GameEntity } from './game.entity';
 import { GameRepo } from './game.repo';
 
@@ -67,6 +67,11 @@ export class GameDalService {
 
   findById(id: string): Promise<GameEntity | null> {
     return this.repo.findOneBy({ id });
+  }
+
+  // The ones of these ids that are known.
+  findByIds(ids: string[]): Promise<GameEntity[]> {
+    return ids.length ? this.repo.findBy({ id: In(ids) }) : Promise.resolve([]);
   }
 
   // The last day from `from` to `to` with a game that has its score; null when none has.

@@ -436,6 +436,64 @@ describe('fetchers', () => {
       );
     });
 
+    describe('scoring', () => {
+      // 2026-11-11's games known as scheduled; the provider answers them final.
+      const finals = games.map(gameOf).filter((game) => game.winnerTeamId);
+      const scored = () =>
+        fetch.mock.calls
+          .map(([input]) => new URL(String(input)))
+          .filter((url) => url.port === '3001')
+          .map((url) => url.pathname);
+      const scoreManager =
+        (status: number): Answer =>
+        (url) =>
+          url.port === '3001' ? Response.json({}, { status }) : provider(url);
+
+      beforeEach(async () => {
+        process.env['GAMES_MAX_REQUESTS'] = '1';
+        await module.get(GameDalService).upsert(
+          games.map((game) => ({
+            ...gameOf(game),
+            status: GameStatus.SCHEDULED,
+            homeScore: null,
+            awayScore: null,
+            periodScores: null,
+            decidedIn: null,
+            winnerTeamId: null,
+          })),
+        );
+      });
+
+      it('asks score-manager to score each known game that turned final, once', async () => {
+        answerWith(scoreManager(200));
+        await module.get(GamesFetcherService).run('2026-11-11');
+
+        expect(finals.length).toBeGreaterThan(0);
+        expect(scored().sort()).toEqual(
+          finals.map(({ id }) => `/api/games/${id}/score`).sort(),
+        );
+        expect(logged()).toContain(
+          `2026-11-11: scored ${finals.length} of ${finals.length} games that turned final (score-manager)`,
+        );
+
+        // Unchanged since: nothing to score again.
+        fetch.mockClear();
+        await module.get(GamesFetcherService).run('2026-11-11');
+        expect(scored()).toEqual([]);
+      });
+
+      it('fails the run when score-manager refuses, the games still written', async () => {
+        answerWith(scoreManager(500));
+
+        await expect(
+          module.get(GamesFetcherService).run('2026-11-11'),
+        ).rejects.toThrow('Scoring failed for');
+        expect(
+          (await module.get(GameDalService).findById(finals[0].id))?.status,
+        ).toBe(GameStatus.FINAL);
+      });
+    });
+
     it('goes on past a failed day, and fails the run at the end', async () => {
       process.env['GAMES_MAX_REQUESTS'] = '3';
       answerWith((url) =>
