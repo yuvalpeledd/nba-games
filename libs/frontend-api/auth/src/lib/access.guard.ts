@@ -4,7 +4,9 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import type { UserEntity } from '@nba/sql-users';
+import { PUBLIC_KEY } from './public.decorator';
 import { TokenService } from './token.service';
 
 export interface AuthRequest {
@@ -20,13 +22,21 @@ const bearerToken = ({ headers }: AuthRequest): string => {
   return token;
 };
 
-// Signed-in routes (`@UseGuards(AccessGuard)`): the bearer token's user, for @CurrentUser(). Everyone is a plain user:
-// no roles yet.
+// Every route but a @Public() one (it's global, APP_GUARD): the bearer token's user, for @CurrentUser(). Everyone is a
+// plain user: no roles yet.
 @Injectable()
 export class AccessGuard implements CanActivate {
-  constructor(private readonly tokens: TokenService) {}
+  constructor(
+    private readonly reflector: Reflector,
+    private readonly tokens: TokenService,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    const isPublic = this.reflector.getAllAndOverride<boolean | undefined>(
+      PUBLIC_KEY,
+      [context.getHandler(), context.getClass()],
+    );
+    if (isPublic) return true;
     const request = context.switchToHttp().getRequest<AuthRequest>();
     request.user = await this.tokens.verifyAccessToken(bearerToken(request));
     return true;

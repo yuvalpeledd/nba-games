@@ -7,9 +7,18 @@ describe('StandingsController', () => {
     app = await TestApp.create([FrontendApiStandingsControllerModule]);
   });
   afterAll(() => app.close());
-  beforeEach(() => app.clearDatabase());
+  beforeEach(async () => {
+    await app.clearDatabase();
+    await app.signIn();
+  });
 
   describe('GET /standings', () => {
+    describe('auth', () => {
+      it('refuses a caller who is not signed in', async () => {
+        const { status } = await app.call('GET', '/standings', undefined, null);
+        expect(status).toBe(401);
+      });
+    });
     describe('validation', () => {
       it.each([
         ['', 'season is a required field'],

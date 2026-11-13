@@ -1,11 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  HttpCode,
-  Post,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Post } from '@nestjs/common';
 import type { DataResponse } from '@nba/dtos';
 import {
   type FirebaseConfigDto,
@@ -17,20 +10,18 @@ import {
   type UserDto,
 } from '@nba/dtos-auth';
 import { YupPipe } from '@nba/frontend-api-common';
-import {
-  AccessGuard,
-  CurrentUser,
-  firebaseSettings,
-} from '@nba/frontend-api-auth';
+import { CurrentUser, firebaseSettings, Public } from '@nba/frontend-api-auth';
 import type { UserEntity } from '@nba/sql-users';
 import { AuthService } from './auth.service';
 
 // Where sessions start: Firebase signs people in (the web), and /login and /sign-up take its ID token in the body.
+// They and /firebase-config are public; /me, like every other route, needs a signed-in caller (AccessGuard).
 @Controller()
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
   @Post('login')
+  @Public()
   @HttpCode(200)
   async login(
     @Body(new YupPipe(loginRequestSchema)) { idToken }: LoginRequest,
@@ -39,6 +30,7 @@ export class AuthController {
   }
 
   @Post('sign-up')
+  @Public()
   async signUp(
     @Body(new YupPipe(signUpRequestSchema)) { idToken, name }: SignUpRequest,
   ): Promise<DataResponse<SessionDto>> {
@@ -46,13 +38,13 @@ export class AuthController {
   }
 
   @Get('me')
-  @UseGuards(AccessGuard)
   me(@CurrentUser() { id, name, email }: UserEntity): DataResponse<UserDto> {
     return { data: { id, name, email } };
   }
 
   // What the web needs before anyone signs in: the server's env, so one web build serves every environment.
   @Get('firebase-config')
+  @Public()
   firebaseConfig(): DataResponse<FirebaseConfigDto> {
     const { apiKey, authDomain } = firebaseSettings();
     return { data: { apiKey, authDomain } };

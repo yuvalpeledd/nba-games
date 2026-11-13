@@ -2,7 +2,6 @@ import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import EventIcon from '@mui/icons-material/Event';
 import LeaderboardIcon from '@mui/icons-material/Leaderboard';
-import LoginIcon from '@mui/icons-material/Login';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SportsBasketballIcon from '@mui/icons-material/SportsBasketball';
 import {
@@ -13,7 +12,7 @@ import {
   ListItemIcon,
   ListItemText,
 } from '@mui/material';
-import { clearSession, useMe, useSession } from '@nba/web-core';
+import { clearSession, useMe } from '@nba/web-core';
 import { ReactNode } from 'react';
 import { NavLink, useMatch } from 'react-router';
 import './navbar.scss';
@@ -35,20 +34,9 @@ function NavbarLink({ to, label, icon }: (typeof items)[number]) {
   );
 }
 
-// Signed in: their name and Log out; else Log in. The pages are open to everyone.
+// Who's signed in (every page with the navbar is for someone signed in, RequireAuth), and Log out.
 function Account() {
-  const session = useSession();
   const { data: me } = useMe();
-  if (!session) {
-    return (
-      <ListItemButton component={NavLink} to="/login">
-        <ListItemIcon>
-          <LoginIcon />
-        </ListItemIcon>
-        <ListItemText primary="Log in" className="navbar__label" />
-      </ListItemButton>
-    );
-  }
   return (
     <>
       <ListItem>
