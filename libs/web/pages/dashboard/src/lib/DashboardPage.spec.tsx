@@ -99,6 +99,26 @@ describe('DashboardPage', () => {
       expect(wholeSeason.getByText('2 of 3 right')).toBeTruthy();
     });
 
+    it("leads from the games left to the games table, filtered to this week's games without a pick", async () => {
+      stubApi(routes([]));
+      renderAt('/');
+
+      fireEvent.click(
+        await (await counter('Left this week')).findByRole('link'),
+      );
+      expect(
+        await screen.findByRole('heading', { name: 'GamesPage' }),
+      ).toBeTruthy();
+      expect(window.location.pathname).toBe('/games');
+      expect(window.history.state.usr).toEqual({
+        filters: [
+          { column: 'time', operator: 'after', values: ['2026-11-08'] },
+          { column: 'time', operator: 'before', values: ['2026-11-16'] },
+          { column: 'prediction', operator: 'is', values: ['None'] },
+        ],
+      });
+    });
+
     it('shows no success rate before any pick is scored', async () => {
       stubApi(routes([]));
       renderAt('/');

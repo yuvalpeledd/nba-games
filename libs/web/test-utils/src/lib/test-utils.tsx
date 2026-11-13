@@ -44,7 +44,8 @@ export const fillIn = async (fields: Record<string, string>) => {
 // A page the spec doesn't drive: just its name, as a heading.
 const standInOf = (name: string) => () => <h1>{name}</h1>;
 
-// The app with the spec's pages, and stand-ins for the rest, for someone signed in (signIn()) unless `signedIn` is false.
+// The app with the spec's pages, and stand-ins for the rest, for someone signed in (signIn()) unless `signedIn` is false,
+// opened as a link with navigation `state` would (React Router keeps it in history's state, as `usr`).
 export const appWith = (pages: Partial<Pages>) => {
   const everyPage = {
     ...(Object.fromEntries(
@@ -52,9 +53,16 @@ export const appWith = (pages: Partial<Pages>) => {
     ) as Pages),
     ...pages,
   };
-  const renderAt = (path: string, { signedIn = true } = {}) => {
+  const renderAt = (
+    path: string,
+    { signedIn = true, state }: { signedIn?: boolean; state?: unknown } = {},
+  ) => {
     if (signedIn) signIn();
-    window.history.pushState({}, '', path);
+    window.history.pushState(
+      state === undefined ? {} : { usr: state, key: 'linked', idx: 0 },
+      '',
+      path,
+    );
     render(<AppShell pages={everyPage} />);
   };
   return { renderAt };

@@ -90,6 +90,29 @@ describe('GamesPage', () => {
     ]);
   });
 
+  it("opens on a link's filters instead (the dashboard's games left to pick this week)", async () => {
+    renderAt('/games', {
+      state: {
+        filters: [
+          { column: 'time', operator: 'after', values: ['2026-11-08'] },
+          { column: 'time', operator: 'before', values: ['2026-11-13'] },
+          { column: 'prediction', operator: 'is', values: ['None'] },
+        ],
+      },
+    });
+
+    expect((await rows()).map(([time]) => time)).toEqual([
+      tipOff('2026-11-12'),
+    ]);
+    for (const chip of [
+      'Date after 08/11/2026',
+      'Date before 13/11/2026',
+      'Prediction is None',
+    ]) {
+      expect(screen.getByRole('button', { name: chip })).toBeTruthy();
+    }
+  });
+
   it("lists every team's games in the season, every day, without that filter", async () => {
     renderAt('/games');
     await showEveryDay();

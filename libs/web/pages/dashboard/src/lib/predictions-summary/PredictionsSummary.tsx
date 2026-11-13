@@ -1,4 +1,11 @@
-import { Card, CardContent, Stack, Tooltip, Typography } from '@mui/material';
+import {
+  Card,
+  CardActionArea,
+  CardContent,
+  Stack,
+  Tooltip,
+  Typography,
+} from '@mui/material';
 import type { GameDto } from '@nba/dtos-games';
 import {
   isPredictionLocked,
@@ -13,18 +20,26 @@ import {
   useSeasonGames,
   useSeasons,
 } from '@nba/web-core';
+import { predictionLabel } from '@nba/web-predictions-components';
 import { PageLoader } from '@nba/web-shell-components';
+import type { Filter } from '@nba/web-table-components';
+import { Link as RouterLink } from 'react-router';
 
-const day = (date: Date) => date.toLocaleDateString('en-CA'); // YYYY-MM-DD
-
-// Monday to Sunday around the viewer's today, as league days (GameDto.date).
-const thisWeek = (now = new Date()): [string, string] => {
-  const monday = new Date(now);
-  monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-  return [day(monday), day(sunday)];
+// The day (YYYY-MM-DD) `offset` days from the viewer's today's Monday.
+const fromMonday = (offset: number, now = new Date()) => {
+  const day = new Date(now);
+  day.setDate(now.getDate() - ((now.getDay() + 6) % 7) + offset);
+  return day.toLocaleDateString('en-CA');
 };
+
+// The games table's filters for this week's games without a pick: GamesPage opens with the `filters` of the
+// navigation's state. The date filters' bounds are exclusive: the Sunday before and the Monday after.
+// ponytail: names the games table's columns; put filters in the URL when a second page links into a table.
+const unpickedThisWeek = (): Filter<'time' | 'prediction'>[] => [
+  { column: 'time', operator: 'after', values: [fromMonday(-1)] },
+  { column: 'time', operator: 'before', values: [fromMonday(7)] },
+  { column: 'prediction', operator: 'is', values: [predictionLabel(null)] },
+];
 
 // The share of scored predictions that were right, and how many of how many; — before any is scored.
 const successRate = (
@@ -48,23 +63,35 @@ function Counter({
   hint,
   value,
   detail,
+  link,
 }: {
   label: string;
   hint: string;
   value: string;
   detail: string;
+  // Where a click goes, and the navigation's state.
+  link?: { to: string; state: unknown };
 }) {
+  const content = (
+    <CardContent>
+      <Tooltip title={hint} describeChild>
+        <Typography variant="overline">{label}</Typography>
+      </Tooltip>
+      <Typography variant="h2" component="p">
+        {value}
+      </Typography>
+      <Typography variant="body2">{detail}</Typography>
+    </CardContent>
+  );
   return (
     <Card variant="outlined" role="group" aria-label={label} sx={{ flex: 1 }}>
-      <CardContent>
-        <Tooltip title={hint} describeChild>
-          <Typography variant="overline">{label}</Typography>
-        </Tooltip>
-        <Typography variant="h2" component="p">
-          {value}
-        </Typography>
-        <Typography variant="body2">{detail}</Typography>
-      </CardContent>
+      {link ? (
+        <CardActionArea component={RouterLink} to={link.to} state={link.state}>
+          {content}
+        </CardActionArea>
+      ) : (
+        content
+      )}
     </Card>
   );
 }
@@ -100,7 +127,7 @@ function Counters({
   predictions: PredictionDto[];
 }) {
   const picks = new Map(predictions.map((p) => [p.gameId, p]));
-  const [monday, sunday] = thisWeek();
+  const [monday, sunday] = [fromMonday(0), fromMonday(6)];
   const week = games.filter(({ date }) => date >= monday && date <= sunday);
   const left = week.filter(
     (game) => !isPredictionLocked(game) && !picks.get(game.id)?.pick,
@@ -114,6 +141,7 @@ function Counters({
         hint={statHints.predictionsLeft}
         value={String(left)}
         detail={`of ${week.length} games this week`}
+        link={{ to: '/games', state: { filters: unpickedThisWeek() } }}
       />
       <Counter
         label="Success this week"

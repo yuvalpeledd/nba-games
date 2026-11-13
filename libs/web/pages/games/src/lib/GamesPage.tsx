@@ -25,9 +25,13 @@ import {
   predictionLabel,
 } from '@nba/web-predictions-components';
 import { PageLoader } from '@nba/web-shell-components';
-import { useTableFilters, useTableSort } from '@nba/web-table-components';
+import {
+  type Filter,
+  useTableFilters,
+  useTableSort,
+} from '@nba/web-table-components';
 import { useState } from 'react';
-import { Link as RouterLink } from 'react-router';
+import { Link as RouterLink, useLocation } from 'react-router';
 
 const statusLabels: Record<GameStatus, string> = {
   [GameStatus.SCHEDULED]: 'Scheduled',
@@ -63,8 +67,11 @@ function TeamCell({ id, name }: { id: string; name: string }) {
 }
 
 // Every team's games in the current season, by day, filtered and paged in the browser; at first, those after two
-// days ago.
+// days ago, or the `filters` of the navigation's state (the dashboard's link to this week's games left to pick).
 export function GamesPage() {
+  const linkedFilters = (
+    useLocation().state as { filters?: Filter<'time' | 'prediction'>[] } | null
+  )?.filters;
   const seasons = useSeasons();
   const season = seasons.data && currentSeason(seasons.data);
   const teams = useTeams();
@@ -106,7 +113,9 @@ export function GamesPage() {
         value: (row) => predictionLabel(row.pick),
       },
     },
-    [{ column: 'time', operator: 'after', values: [daysAgo(2)] }],
+    linkedFilters ?? [
+      { column: 'time', operator: 'after', values: [daysAgo(2)] },
+    ],
   );
   const { rows, headCell } = useTableSort(filtered.rows, {
     time: (row) => row.game.startTime,
