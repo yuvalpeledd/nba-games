@@ -70,7 +70,9 @@ function TeamCell({ id, name }: { id: string; name: string }) {
 // days ago, or the `filters` of the navigation's state (the dashboard's link to this week's games left to pick).
 export function GamesPage() {
   const linkedFilters = (
-    useLocation().state as { filters?: Filter<'time' | 'prediction'>[] } | null
+    useLocation().state as {
+      filters?: Filter<'time' | 'status' | 'prediction'>[];
+    } | null
   )?.filters;
   const seasons = useSeasons();
   const season = seasons.data && currentSeason(seasons.data);
