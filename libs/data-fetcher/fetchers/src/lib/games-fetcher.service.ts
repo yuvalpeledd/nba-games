@@ -6,6 +6,8 @@ import {
 import { GameDayDalService } from '@nba/sql-game-days';
 import { GameDalService } from '@nba/sql-games';
 import { SeasonDalService, SeasonEntity } from '@nba/sql-seasons';
+import pMap from 'p-map';
+import { fetchConcurrency } from './concurrency';
 import { addWrites, describeWrites, NO_WRITES } from './counts';
 import { byDistanceFrom, daysBetween, easternDate } from './days';
 
@@ -17,7 +19,8 @@ const DEFAULT_MAX_REQUESTS = 50;
 //    so the games played since come back with their scores, and that day's late ones too. Not a day already found
 //    empty on or after it (Thanksgiving, the All-Star break): it has no games to score. One found empty before it
 //    came (a schedule not out yet) is checked again on its day.
-// Then it fetches them one at a time, up to GAMES_MAX_REQUESTS (the quota: the free plan's 100 an hour), records each
+// Then it fetches up to GAMES_MAX_REQUESTS of them (the quota: the free plan's 100 an hour), FETCH_CONCURRENCY at a
+// time (pMap), starting with the nearest, records each
 // day fetched in `game_days` (empty ones too; a failed one isn't, so it's retried), and the next run picks up where
 // it stopped.
 @Injectable()
@@ -50,38 +53,51 @@ export class GamesFetcherService {
     let fetched = 0;
     let total = NO_WRITES;
     const failed: string[] = [];
-    for (const day of batch) {
-      try {
-        const games = await this.client.games(day);
-        const written = await this.games.upsert(games);
-        await this.gameDays.record([
-          { date: day, games: games.length, checkedOn: today },
-        ]);
-        this.logger.log(
-          games.length
-            ? `${day}: fetched ${games.length} games from the API: ${describeWrites(written)}`
-            : `${day}: fetched no games from the API`,
-        );
-        total = addWrites(total, written);
-        fetched++;
-      } catch (error) {
-        if (error instanceof ApiNinjasError && error.status === 429) {
-          this.logger.warn(`Quota reached at ${day}: the next run goes on`);
-          break;
+    let quotaReached = false;
+    // FETCH_CONCURRENCY days at a time, started nearest first. A day never throws out of here: a failure is counted,
+    // and after a 429 the days not started yet are left for the next run.
+    await pMap(
+      batch,
+      async (day) => {
+        if (quotaReached) return;
+        try {
+          const games = await this.client.games(day);
+          const written = await this.games.upsert(games);
+          await this.gameDays.record([
+            { date: day, games: games.length, checkedOn: today },
+          ]);
+          this.logger.log(
+            games.length
+              ? `${day}: fetched ${games.length} games from the API: ${describeWrites(written)}`
+              : `${day}: fetched no games from the API`,
+          );
+          total = addWrites(total, written);
+          fetched++;
+        } catch (error) {
+          if (error instanceof ApiNinjasError && error.status === 429) {
+            if (!quotaReached) {
+              this.logger.warn(`Quota reached at ${day}: the next run goes on`);
+            }
+            quotaReached = true;
+            return;
+          }
+          failed.push(day);
+          this.logger.error(
+            `${day}'s games failed: ${(error as Error).message}`,
+            (error as Error).stack,
+          );
         }
-        failed.push(day);
-        this.logger.error(
-          `${day}'s games failed: ${(error as Error).message}`,
-          (error as Error).stack,
-        );
-      }
-    }
+      },
+      { concurrency: fetchConcurrency() },
+    );
 
     this.logger.log(
       `${season.id}: checked ${fetched} of ${pool.length} days (${failed.length} failed, ` +
         `${pool.length - fetched - failed.length} left for the next run); games ${describeWrites(total)}`,
     );
-    if (failed.length) throw new Error(`Games failed for ${failed.join(', ')}`);
+    if (failed.length) {
+      throw new Error(`Games failed for ${failed.sort().join(', ')}`);
+    }
   }
 
   // SEASON_ID, else the newest season.
