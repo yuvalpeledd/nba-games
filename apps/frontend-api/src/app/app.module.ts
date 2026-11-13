@@ -4,6 +4,7 @@ import { AccessGuard, FrontendApiAuthModule } from '@nba/frontend-api-auth';
 import { FrontendApiAuthControllerModule } from '@nba/frontend-api-auth-controller';
 import { FailureFilter } from '@nba/frontend-api-common';
 import { FrontendApiGamesControllerModule } from '@nba/frontend-api-games-controller';
+import { FrontendApiGroupsControllerModule } from '@nba/frontend-api-groups-controller';
 import { FrontendApiPlayersControllerModule } from '@nba/frontend-api-players-controller';
 import { FrontendApiPredictionsControllerModule } from '@nba/frontend-api-predictions-controller';
 import { FrontendApiScansControllerModule } from '@nba/frontend-api-scans-controller';
@@ -26,6 +27,7 @@ import { AppController } from './app.controller';
     FrontendApiStandingsControllerModule,
     FrontendApiPredictionsControllerModule,
     FrontendApiScansControllerModule,
+    FrontendApiGroupsControllerModule,
   ],
   controllers: [AppController],
   providers: [

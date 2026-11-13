@@ -1,0 +1,8 @@
+{
+  "name": "sql-groups",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/sql/tables/groups/src",
+  "projectType": "library",
+  "tags": ["scope:shared"],
+  "targets": {}
+}

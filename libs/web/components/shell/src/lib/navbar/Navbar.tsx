@@ -1,6 +1,7 @@
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import EventIcon from '@mui/icons-material/Event';
+import GroupsIcon from '@mui/icons-material/Groups';
 import LeaderboardIcon from '@mui/icons-material/Leaderboard';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SportsBasketballIcon from '@mui/icons-material/SportsBasketball';
@@ -21,6 +22,7 @@ const items: { to: string; label: string; icon: ReactNode }[] = [
   { to: '/', label: 'Dashboard', icon: <DashboardIcon /> },
   { to: '/games', label: 'Games', icon: <EventIcon /> },
   { to: '/standings', label: 'Standings', icon: <LeaderboardIcon /> },
+  { to: '/groups', label: 'Groups', icon: <GroupsIcon /> },
 ];
 
 function NavbarLink({ to, label, icon }: (typeof items)[number]) {

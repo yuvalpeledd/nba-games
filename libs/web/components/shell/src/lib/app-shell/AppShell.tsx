@@ -11,6 +11,7 @@ import { ThemeRoot } from '../theme';
 export const PAGE_NAMES = [
   'DashboardPage',
   'GamesPage',
+  'GroupsPage',
   'LoginPage',
   'StandingsPage',
   'TeamSinglePage',
@@ -40,6 +41,7 @@ export function AppShell({ pages }: { pages: Pages }) {
                 <Route path="games" element={<pages.GamesPage />} />
                 <Route path="standings" element={<pages.StandingsPage />} />
                 <Route path="teams/:id" element={<pages.TeamSinglePage />} />
+                <Route path="groups" element={<pages.GroupsPage />} />
               </Route>
             </Route>
             {/* Full-screen, without the navbar. */}

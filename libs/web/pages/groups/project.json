@@ -1,0 +1,8 @@
+{
+  "name": "web-groups-page",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/web/pages/groups/src",
+  "projectType": "library",
+  "tags": ["scope:web"],
+  "targets": {}
+}

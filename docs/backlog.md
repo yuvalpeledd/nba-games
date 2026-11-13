@@ -19,6 +19,7 @@
   Should players gone for a season be deleted, with their days?
 - Next: a first real run (`API_NINJAS_KEY` in `.env`, then `pnpm nx run data-fetcher:run`: 32 calls plus up to 50 for the games), then the web-app's next pages (players).
 - web-app: predictions show in the games tables and as the dashboard's counters (no page of a user's picks), and their toast is the prediction cell's own snackbar until an app-wide toast exists.
+- Groups: a user can make one (name, public) and see the list; nothing joins, invites, leaves or closes one, there's no group page, and the list isn't paged.
 - Auth: no profile page (changing the name, email or password), no account deletion, and the navbar shows the name only while the rail is open.
   Add them when users ask.
 - data-fetcher: a bundle and a Cloud Run Job (and its schedule) when it's deployed; it runs from its sources for now.

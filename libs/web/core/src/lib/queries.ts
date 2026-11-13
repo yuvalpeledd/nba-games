@@ -5,6 +5,7 @@ import type {
   UserDto,
 } from '@nba/dtos-auth';
 import type { GameDto } from '@nba/dtos-games';
+import type { CreateGroupRequest, GroupDto } from '@nba/dtos-groups';
 import type { PlayerDto } from '@nba/dtos-players';
 import type { PredictionDto } from '@nba/dtos-predictions';
 import type { ScanDto } from '@nba/dtos-scans';
@@ -138,5 +139,22 @@ export const useSetPrediction = () => {
           prediction,
         ],
       ),
+  });
+};
+
+// The groups the signed-in user may see (every public one and theirs), by name.
+export const useGroups = () =>
+  useQuery({
+    queryKey: ['groups'],
+    queryFn: () => api<GroupDto[]>('GET', '/groups'),
+  });
+
+// Makes a group the signed-in user owns, then reloads the groups.
+export const useCreateGroup = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CreateGroupRequest) =>
+      api<GroupDto>('POST', '/groups', body),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['groups'] }),
   });
 };

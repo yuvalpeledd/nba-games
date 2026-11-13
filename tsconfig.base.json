@@ -27,6 +27,7 @@
       "@nba/dtos": ["./libs/dtos/common/src/index.ts"],
       "@nba/dtos-auth": ["./libs/dtos/auth/src/index.ts"],
       "@nba/dtos-games": ["./libs/dtos/games/src/index.ts"],
+      "@nba/dtos-groups": ["./libs/dtos/groups/src/index.ts"],
       "@nba/dtos-players": ["./libs/dtos/players/src/index.ts"],
       "@nba/dtos-predictions": ["./libs/dtos/predictions/src/index.ts"],
       "@nba/dtos-scans": ["./libs/dtos/scans/src/index.ts"],
@@ -41,6 +42,9 @@
       "@nba/frontend-api-common": ["./libs/frontend-api/common/src/index.ts"],
       "@nba/frontend-api-games-controller": [
         "./libs/frontend-api/controllers/games/src/index.ts"
+      ],
+      "@nba/frontend-api-groups-controller": [
+        "./libs/frontend-api/controllers/groups/src/index.ts"
       ],
       "@nba/frontend-api-players-controller": [
         "./libs/frontend-api/controllers/players/src/index.ts"
@@ -68,6 +72,11 @@
       "@nba/sql-game-days": ["./libs/sql/tables/game-days/src/index.ts"],
       "@nba/sql-games": ["./libs/sql/tables/games/src/index.ts"],
       "@nba/sql-games/enums": ["./libs/sql/tables/games/src/enums.ts"],
+      "@nba/sql-group-members": [
+        "./libs/sql/tables/group-members/src/index.ts"
+      ],
+      "@nba/sql-groups": ["./libs/sql/tables/groups/src/index.ts"],
+      "@nba/sql-groups/enums": ["./libs/sql/tables/groups/src/enums.ts"],
       "@nba/sql-players": ["./libs/sql/tables/players/src/index.ts"],
       "@nba/sql-predictions": ["./libs/sql/tables/predictions/src/index.ts"],
       "@nba/sql-predictions/enums": [
@@ -87,6 +96,7 @@
       "@nba/web-design-system-components": [
         "./libs/web/components/design-system/src/index.ts"
       ],
+      "@nba/web-groups-page": ["./libs/web/pages/groups/src/index.ts"],
       "@nba/web-login-page": ["./libs/web/pages/login/src/index.ts"],
       "@nba/web-predictions-components": [
         "./libs/web/components/predictions/src/index.ts"

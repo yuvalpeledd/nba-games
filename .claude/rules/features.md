@@ -53,3 +53,7 @@ Add a section per feature as it is built; delete what turns out wrong.
   - Scoring is a plain function in the predictions dtos lib (`scorePrediction(prediction, game)`: right, wrong, or null until the game is final with a winner), covered by its own spec; scores are derived, never stored, until that gets slow.
     The web runs it: the dashboard's Predictions counts the current season's games and the caller's picks (`GET /games?season=`, `GET /predictions?season=`).
   - A game that ends without a result (`canceled`) voids its predictions instead of scoring them.
+- **Groups** (`groups`: uuid, `name` up to 100, `owner_id`, `public`, `status` `Active` or `Closed`; `group_members`: uuid, `group_id`, `user_id`, unique on both): users who play together.
+  `POST /groups` (`{ name, public }`) makes an `Active` group the caller owns, with the caller as its first member, in one transaction (`GroupMemberDalService.createGroup`: the write spans both tables, so it's in the lower one's DAL).
+  `GET /groups` answers what the caller may see: every public group, and the private ones they're in, by name, each with its owner and member count.
+  Nothing joins, leaves or closes a group yet.

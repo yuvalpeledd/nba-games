@@ -1,5 +1,6 @@
 import { DashboardPage } from '@nba/web-dashboard-page';
 import { GamesPage } from '@nba/web-games-page';
+import { GroupsPage } from '@nba/web-groups-page';
 import { LoginPage } from '@nba/web-login-page';
 import { AppShell, type Pages } from '@nba/web-shell-components';
 import { StandingsPage } from '@nba/web-standings-page';
@@ -9,6 +10,7 @@ import { TeamSinglePage } from '@nba/web-team-single-page';
 export const pages: Pages = {
   DashboardPage,
   GamesPage,
+  GroupsPage,
   LoginPage,
   StandingsPage,
   TeamSinglePage,

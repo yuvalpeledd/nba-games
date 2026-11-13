@@ -17,6 +17,8 @@ import {
   PlayerDalService,
   PlayerModule,
 } from '@nba/sql-players';
+import { GroupMemberModule } from '@nba/sql-group-members';
+import { GroupModule } from '@nba/sql-groups';
 import { PredictionModule } from '@nba/sql-predictions';
 import {
   SeasonCreateObject,
@@ -109,6 +111,8 @@ export class TestApp {
         SeasonModule,
         UserModule,
         PredictionModule,
+        GroupModule,
+        GroupMemberModule,
         FrontendApiAuthModule,
         ...imports,
       ],

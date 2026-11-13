@@ -19,6 +19,11 @@ import {
   PredictionModule,
   PredictionPick,
 } from '@nba/sql-predictions';
+import {
+  GroupMemberDalService,
+  GroupMemberModule,
+} from '@nba/sql-group-members';
+import { GroupModule, GroupStatus } from '@nba/sql-groups';
 import { DataSource } from 'typeorm';
 import {
   gameOf,
@@ -55,6 +60,8 @@ describe('schema', () => {
         UserModule,
         ScanModule,
         PredictionModule,
+        GroupModule,
+        GroupMemberModule,
       ],
     }).compile();
     dataSource = module.get(DataSource);
@@ -63,7 +70,7 @@ describe('schema', () => {
   // Not seasons: the migrations load them.
   beforeEach(() =>
     dataSource.query(
-      'TRUNCATE teams, players, games, game_days, standings, standings_history, team_players, users, scans, predictions',
+      'TRUNCATE teams, players, games, game_days, standings, standings_history, team_players, users, scans, predictions, groups, group_members',
     ),
   );
 
@@ -398,6 +405,39 @@ describe('schema', () => {
         { userId, gameId, pick: null },
       ]);
       expect(await dal.findBySeason(userId, games[0].season - 1)).toEqual([]);
+    });
+  });
+
+  describe('groups', () => {
+    it('makes a group with its owner in it, and lists the public ones and those a user is in', async () => {
+      const users = module.get(UserDalService);
+      const dana = await users.create({
+        name: 'Dana Levi',
+        email: 'dana@nba.dev',
+        firebaseUid: 'firebase-dana',
+      });
+      const omer = await users.create({
+        name: 'Omer Cohen',
+        email: 'omer@nba.dev',
+        firebaseUid: 'firebase-omer',
+      });
+      const dal = module.get(GroupMemberDalService);
+
+      const group = await dal.createGroup({
+        name: 'Friday League',
+        ownerId: dana.id,
+        public: false,
+      });
+      await dal.createGroup({ name: 'Open', ownerId: omer.id, public: true });
+
+      expect(group).toMatchObject({ status: GroupStatus.ACTIVE });
+      expect(await dal.findVisibleTo(dana.id)).toMatchObject([
+        { group: { name: 'Friday League', owner: { name: 'Dana Levi' } } },
+        { group: { name: 'Open' }, memberCount: 1 },
+      ]);
+      expect(
+        (await dal.findVisibleTo(omer.id)).map(({ group }) => group.name),
+      ).toEqual(['Open']);
     });
   });
 

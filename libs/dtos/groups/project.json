@@ -1,0 +1,8 @@
+{
+  "name": "dtos-groups",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/dtos/groups/src",
+  "projectType": "library",
+  "tags": ["scope:shared"],
+  "targets": {}
+}

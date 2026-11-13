@@ -1,0 +1,8 @@
+{
+  "name": "frontend-api-groups-controller",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/frontend-api/controllers/groups/src",
+  "projectType": "library",
+  "tags": ["scope:frontend-api"],
+  "targets": {}
+}
