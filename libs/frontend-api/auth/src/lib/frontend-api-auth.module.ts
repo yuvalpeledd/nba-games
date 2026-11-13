@@ -10,18 +10,11 @@ import { TokenService } from './token.service';
   imports: [UserModule],
   providers: [
     // Checks ID tokens against the project's public keys (no credentials needed); TestApp replaces it with a fake.
-    // On the emulator, firebase-admin trusts its unsigned tokens, which it reads from FIREBASE_AUTH_EMULATOR_HOST
-    // (set here when firebaseSettings defaults to it; refused in production).
     {
       provide: Auth,
       useFactory: () => {
-        const { projectId, emulatorHost } = firebaseSettings();
-        if (emulatorHost) {
-          process.env['FIREBASE_AUTH_EMULATOR_HOST'] = emulatorHost;
-        }
-        new Logger('Auth').log(
-          `Sign-in through Firebase project ${projectId}${emulatorHost ? `, on the Auth emulator at ${emulatorHost}` : ''}`,
-        );
+        const { projectId } = firebaseSettings();
+        new Logger('Auth').log(`Sign-in through Firebase project ${projectId}`);
         return getAuth(initializeApp({ projectId }));
       },
     },

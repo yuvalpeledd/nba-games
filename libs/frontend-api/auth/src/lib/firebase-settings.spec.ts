@@ -13,7 +13,6 @@ describe('firebaseSettings', () => {
       projectId: 'nba-production',
       apiKey: 'browser-key',
       authDomain: 'nba-production.firebaseapp.com',
-      emulatorHost: null,
     });
   });
 
@@ -26,35 +25,15 @@ describe('firebaseSettings', () => {
     },
   );
 
-  it('refuses the emulator in production: firebase-admin would trust any token', () => {
-    expect(() =>
-      firebaseSettings({
-        ...production,
-        FIREBASE_AUTH_EMULATOR_HOST: '127.0.0.1:9099',
-      }),
-    ).toThrow('FIREBASE_AUTH_EMULATOR_HOST must be unset in production');
+  it('falls back to the dev project elsewhere, with the key from the env', () => {
+    expect(firebaseSettings({ FIREBASE_API_KEY: 'dev-key' })).toEqual({
+      projectId: 'yuval-nba-test-882ca',
+      apiKey: 'dev-key',
+      authDomain: 'yuval-nba-test-882ca.firebaseapp.com',
+    });
   });
 
-  it('runs on the emulator elsewhere, without a real project', () => {
-    expect(firebaseSettings({})).toEqual({
-      projectId: 'demo-nba',
-      apiKey: 'demo-key',
-      authDomain: 'demo-nba.firebaseapp.com',
-      emulatorHost: '127.0.0.1:9099',
-    });
-    expect(
-      firebaseSettings({ FIREBASE_AUTH_EMULATOR_HOST: 'localhost:9199' }),
-    ).toMatchObject({ emulatorHost: 'localhost:9199' });
-  });
-
-  it('takes a real project elsewhere once FIREBASE_API_KEY names one, and asks for the rest', () => {
-    const { NODE_ENV: _, ...local } = production;
-    expect(firebaseSettings(local)).toMatchObject({
-      projectId: 'nba-production',
-      emulatorHost: null,
-    });
-    expect(() =>
-      firebaseSettings({ ...local, FIREBASE_AUTH_DOMAIN: '' }),
-    ).toThrow('FIREBASE_API_KEY needs');
+  it('refuses to boot without the key, naming it', () => {
+    expect(() => firebaseSettings({})).toThrow('FIREBASE_API_KEY is required');
   });
 });

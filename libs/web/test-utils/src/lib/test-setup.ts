@@ -56,7 +56,6 @@ vi.mock('firebase/auth', () => {
   };
   return {
     getAuth: () => auth,
-    connectAuthEmulator: vi.fn(),
     signInWithEmailAndPassword: vi.fn(async (_auth: unknown, email: string) =>
       signedIn(email, true),
     ),
@@ -96,7 +95,6 @@ export class Failure {
 const FIREBASE_CONFIG = {
   apiKey: 'test-key',
   authDomain: 'nba-test.firebaseapp.com',
-  emulatorHost: null,
 };
 
 // Fake frontend-api: maps "METHOD /path" to the `data` it returns (or a Failure); anything else is a 404.

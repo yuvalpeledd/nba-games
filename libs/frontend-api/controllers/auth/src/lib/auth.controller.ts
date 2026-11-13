@@ -54,7 +54,7 @@ export class AuthController {
   // What the web needs before anyone signs in: the server's env, so one web build serves every environment.
   @Get('firebase-config')
   firebaseConfig(): DataResponse<FirebaseConfigDto> {
-    const { apiKey, authDomain, emulatorHost } = firebaseSettings();
-    return { data: { apiKey, authDomain, emulatorHost } };
+    const { apiKey, authDomain } = firebaseSettings();
+    return { data: { apiKey, authDomain } };
   }
 }

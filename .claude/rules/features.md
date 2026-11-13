@@ -43,8 +43,8 @@ Add a section per feature as it is built; delete what turns out wrong.
     An email another account's user has is 409 `USER_EXISTS` at sign-up.
     A token Firebase refuses, or an account with no user, is 401.
   - A user's email follows their account's (changed through Firebase), unless another user has it: then it stays (logged).
-  - Config (`firebaseSettings`): production needs `GOOGLE_CLOUD_PROJECT`, `FIREBASE_API_KEY` and `FIREBASE_AUTH_DOMAIN`, and refuses `FIREBASE_AUTH_EMULATOR_HOST` (the emulator's tokens are unsigned).
-    Elsewhere, without `FIREBASE_API_KEY`, it's the Auth emulator (`pnpm firebase:emulator`, project `demo-nba`).
+  - Config (`firebaseSettings`): production needs `GOOGLE_CLOUD_PROJECT`, `FIREBASE_API_KEY` and `FIREBASE_AUTH_DOMAIN`.
+    Elsewhere it's the dev project, `yuval-nba-test-882ca`, whose web API key is still required (`FIREBASE_API_KEY` in `.env`): local sign-ups are real accounts there.
     `GET /firebase-config` hands the web what it needs, so one build serves every environment.
 - **Predictions:** see `docs/backlog.md` for the open questions (who predicts, and what).
   Whatever the answer, these hold:

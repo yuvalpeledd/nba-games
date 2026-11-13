@@ -1,12 +1,7 @@
 import type { DataResponse } from '@nba/dtos';
 import type { FirebaseConfigDto } from '@nba/dtos-auth';
 import { getApps, initializeApp } from 'firebase/app';
-import {
-  type Auth,
-  connectAuthEmulator,
-  getAuth,
-  signOut,
-} from 'firebase/auth';
+import { type Auth, getAuth, signOut } from 'firebase/auth';
 
 // This deployment's Identity Platform, from the API (the server's env, not the build), then Firebase's Auth with its
 // session (IndexedDB) loaded. It renews the ID token before it expires.
@@ -15,15 +10,10 @@ async function load(): Promise<Auth> {
   if (!response.ok) {
     throw new Error(`/api/firebase-config answered ${response.status}`);
   }
-  const { apiKey, authDomain, emulatorHost } = (
+  const { apiKey, authDomain } = (
     (await response.json()) as DataResponse<FirebaseConfigDto>
   ).data;
   const auth = getAuth(getApps()[0] ?? initializeApp({ apiKey, authDomain }));
-  if (emulatorHost) {
-    connectAuthEmulator(auth, `http://${emulatorHost}`, {
-      disableWarnings: true,
-    });
-  }
   await auth.authStateReady();
   return auth;
 }

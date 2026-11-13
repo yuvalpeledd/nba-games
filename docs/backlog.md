@@ -10,8 +10,8 @@
     This decides the `predictions` table and whether a `libs/model` lib exists.
   - **Who uses it?** Accounts are in (outly's Firebase auth).
     Should the app be private (every page behind login), and do friends compete in groups (a leaderboard, roles)?
-  - **Firebase project:** none yet; local sign-in runs on the Auth emulator.
-    Create one (or one per environment) when it's deployed, and set `GOOGLE_CLOUD_PROJECT`, `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`.
+  - **Firebase in production:** local runs sign in against `yuval-nba-test-882ca`.
+    Does production get a project of its own when it's deployed (set `GOOGLE_CLOUD_PROJECT`, `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`), or share it?
   - **How much history?** The free plan has the current season only.
   - **Where does it run?** GCP as outly (Cloud Run for the API, a Cloud Run Job for the fetcher, Cloud SQL), or only locally for now?
 - **What may the players fetcher delete?** As built, nothing is deleted but the day's `team_players` rows it replaces: a player on no roster keeps their row with `team_id` null (their days point at them), and teams stay (everything points at them).

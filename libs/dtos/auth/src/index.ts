@@ -42,6 +42,4 @@ export interface UserDto {
 export interface FirebaseConfigDto {
   apiKey: string;
   authDomain: string;
-  // Firebase's Auth emulator (local, offline), when the API uses it; null otherwise (always in production).
-  emulatorHost: string | null;
 }
