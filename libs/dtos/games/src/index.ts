@@ -46,8 +46,9 @@ const daysFrom = (from: string, to: string): number =>
   (Date.parse(to) - Date.parse(from)) / 86_400_000 + 1;
 
 // GET /games: the days from `from` to `to` (both included; `to` defaults to `from`), only a team's when `teamId` is given;
-// or, with `season` (the year it starts in) instead of the days, a team's whole season, every type of game (a team
-// plays ~100: no paging); or, with `opponentId` instead, every game between `teamId` and it, every season.
+// or, with `season` (the year it starts in) instead of the days, the whole season, every type of game, only a team's
+// when `teamId` is given; or, with `opponentId` instead, every game between `teamId` and it, every season.
+// ponytail: a season isn't paged (~1,300 games, the web filters them in the browser); page it if that gets slow.
 export const gamesQuerySchema = object({
   from: daySchema.when(['season', 'opponentId'], {
     is: (season?: number, opponentId?: string) =>
@@ -85,14 +86,9 @@ export const gamesQuerySchema = object({
         parent.to === undefined &&
         parent.season === undefined),
   ),
-  teamId: idSchema
-    .when('season', {
-      is: (season?: number) => season !== undefined,
-      then: (schema) => schema.required('teamId is required with season'),
-    })
-    .when('opponentId', {
-      is: (opponentId?: string) => opponentId !== undefined,
-      then: (schema) => schema.required('teamId is required with opponentId'),
-    }),
+  teamId: idSchema.when('opponentId', {
+    is: (opponentId?: string) => opponentId !== undefined,
+    then: (schema) => schema.required('teamId is required with opponentId'),
+  }),
 });
 export type GamesQuery = InferType<typeof gamesQuerySchema>;

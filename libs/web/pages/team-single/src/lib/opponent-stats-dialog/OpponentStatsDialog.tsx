@@ -97,7 +97,8 @@ export function OpponentStatsDialog({
       type: 'select',
       value: (row) => formatSeason(row.game.season),
     },
-    time: { label: 'Time', type: 'date', value: (row) => row.game.startTime },
+    // The league's day (`date`), as schedules group them.
+    time: { label: 'Date', type: 'date', value: (row) => row.game.date },
     where: {
       label: 'Where',
       type: 'select',

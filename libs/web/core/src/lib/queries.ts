@@ -36,11 +36,13 @@ export const useStandings = (season: number | undefined) =>
     enabled: season !== undefined,
   });
 
-// Every team's games on a league day ('YYYY-MM-DD', US Eastern), by tip-off; refetched each minute while one is live.
-export const useGames = (date: string) =>
+// Every team's games in a season (by its year), every type, by day; waits for a season, and is refetched each minute
+// while one is live.
+export const useSeasonGames = (season: number | undefined) =>
   useQuery({
-    queryKey: ['games', { date }],
-    queryFn: () => api<GameDto[]>('GET', `/games?from=${date}`),
+    queryKey: ['games', { season }],
+    queryFn: () => api<GameDto[]>('GET', `/games?season=${season}`),
+    enabled: season !== undefined,
     refetchInterval: ({ state }) =>
       state.data?.some(({ status }) => status === GameStatus.IN_PROGRESS)
         ? 60_000

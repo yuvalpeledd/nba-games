@@ -19,7 +19,7 @@ export interface Filter<Column extends string = string> {
 }
 
 // How a table filters by a column: its name in the filters, and its value in a row. A select's options are the
-// values its rows have; a date's value is a moment (ISO), compared by its day on the viewer's clock.
+// values its rows have; a date's value is a day (YYYY-MM-DD; a game's league `date`).
 export type FilterColumn<Row> = { label: string } & (
   | { type: 'select'; value: (row: Row) => string | null }
   | { type: 'number'; value: (row: Row) => number | null }
@@ -46,9 +46,6 @@ export const valueLabel = (value: string, operator: FilterOperator) =>
       ? value.split('-').reverse().join('/')
       : value;
 
-// A moment's day on the viewer's clock, as YYYY-MM-DD (the Canadian format is ISO's).
-const dayOf = (iso: string) => new Date(iso).toLocaleDateString('en-CA');
-
 const matches = <Row,>(
   column: FilterColumn<Row>,
   { operator, values: [bound], values }: Filter,
@@ -65,20 +62,22 @@ const matches = <Row,>(
     case 'lessThan':
       return value !== null && Number(value) < Number(bound);
     case 'after':
-      return value !== null && dayOf(String(value)) > bound;
+      return value !== null && String(value) > bound;
     case 'before':
-      return value !== null && dayOf(String(value)) < bound;
+      return value !== null && String(value) < bound;
   }
 };
 
 // portal's filters box: a table's rows that pass every filter, and its filter bar (an "Add Filter" button that opens
-// the filters panel, and a chip per filter that removes it). Done in the browser: the tables have every row.
+// the filters panel, and a chip per filter that removes it), starting with `initial`. Done in the browser: the tables
+// have every row.
 // ponytail: not in the URL (portal's are) and no date modes but a range; add them when a table needs them.
 export function useTableFilters<Row, Column extends string>(
   rows: Row[],
   columns: Record<Column, FilterColumn<Row>>,
+  initial: Filter<NoInfer<Column>>[] = [],
 ) {
-  const [filters, setFilters] = useState<Filter<Column>[]>([]);
+  const [filters, setFilters] = useState(initial);
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const filtered = rows.filter((row) =>
     filters.every((filter) => matches(columns[filter.column], filter, row)),

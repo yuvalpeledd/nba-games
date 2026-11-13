@@ -28,7 +28,7 @@ export const toGameDto = (game: GameEntity): GameDto => ({
 export class GamesService {
   constructor(private readonly games: GameDalService) {}
 
-  // The schema requires `from` without `season` or `opponentId`, and `teamId` with either.
+  // The schema requires `from` without `season` or `opponentId`, and `teamId` with `opponentId`.
   async find({
     from,
     to,
@@ -40,7 +40,7 @@ export class GamesService {
       opponentId !== undefined
         ? await this.games.findBetweenTeams(teamId as string, opponentId)
         : season !== undefined
-          ? await this.games.findByTeamSeason(teamId as string, season)
+          ? await this.games.findBySeason(season, teamId)
           : await this.games.findBetween(
               from as string,
               to ?? (from as string),
