@@ -164,12 +164,12 @@ describe('TeamSinglePage', () => {
     ]);
   });
 
-  it('filters the games by the day they tip off on', async () => {
+  it("filters the games by the league's day", async () => {
     stubApi(routes());
     renderAt('/teams/nba-bos');
 
     fireEvent.click(await screen.findByRole('button', { name: 'Add Filter' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Time' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Date' }));
     fireEvent.change(screen.getByLabelText('After'), {
       target: { value: '2026-11-01' },
     });
@@ -183,7 +183,7 @@ describe('TeamSinglePage', () => {
       tipOff('2026-11-22'),
     ]);
     expect(
-      screen.getByRole('button', { name: 'Time after 01/11/2026' }),
+      screen.getByRole('button', { name: 'Date after 01/11/2026' }),
     ).toBeTruthy();
   });
 

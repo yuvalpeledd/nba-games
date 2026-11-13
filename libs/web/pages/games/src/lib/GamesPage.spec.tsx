@@ -1,7 +1,7 @@
 import type { GameDto } from '@nba/dtos-games';
 import { GameStatus } from '@nba/sql-games/enums';
 import { formatTime } from '@nba/web-core';
-import { appWith, game, stubApi, team } from '@nba/web-test-utils';
+import { appWith, game, season, stubApi, team } from '@nba/web-test-utils';
 import { fireEvent, screen, within } from '@testing-library/react';
 import { GamesPage } from './GamesPage';
 
@@ -30,6 +30,19 @@ const final = (
 
 const tipOff = (date: string) => formatTime(`${date}T23:30:00.000Z`);
 
+// The API with the 2026-27 season's games.
+const routes = (games: GameDto[]) => ({
+  'GET /seasons': [season(2026)],
+  'GET /teams': teams,
+  'GET /games?season=2026': games,
+});
+
+const games = [
+  final('nba-bos', 'nba-nyk', '2026-10-21', 110, 102),
+  final('nba-gsw', 'nba-lal', '2026-11-12', 99, 120),
+  game('nba-lal', 'nba-bos', '2026-11-13', { status: GameStatus.POSTPONED }),
+];
+
 const rows = async () =>
   within(await screen.findByRole('table', { name: 'Games' }))
     .getAllByRole('row')
@@ -42,30 +55,19 @@ const rows = async () =>
 
 describe('GamesPage', () => {
   beforeEach(() => {
-    stubApi({
-      'GET /teams': teams,
-      'GET /games?from=2026-11-12': [
-        final('nba-bos', 'nba-nyk', '2026-11-12', 110, 102),
-        final('nba-gsw', 'nba-lal', '2026-11-12', 99, 120),
-      ],
-      'GET /games?from=2026-11-13': [
-        game('nba-lal', 'nba-bos', '2026-11-13', {
-          status: GameStatus.POSTPONED,
-        }),
-      ],
-      'GET /games?from=2026-11-14': [],
-    });
+    stubApi(routes(games));
   });
 
-  it("lists every team's games on the day", async () => {
-    renderAt('/games?date=2026-11-12');
+  it("lists every team's games in the season, every day", async () => {
+    renderAt('/games');
 
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Games' }),
     ).toBeTruthy();
+    expect(screen.getByText('2026-27')).toBeTruthy();
     expect(await rows()).toEqual([
       [
-        tipOff('2026-11-12'),
+        tipOff('2026-10-21'),
         'New York Knicks',
         'Boston Celtics',
         '102-110',
@@ -78,59 +80,41 @@ describe('GamesPage', () => {
         '120-99',
         'Final',
       ],
+      [
+        tipOff('2026-11-13'),
+        'Boston Celtics',
+        'Los Angeles Lakers',
+        'N/A',
+        'Postponed',
+      ],
     ]);
     expect(
-      screen.getByRole('link', { name: 'Boston Celtics' }).getAttribute('href'),
+      screen
+        .getAllByRole('link', { name: 'Boston Celtics' })[0]
+        .getAttribute('href'),
     ).toBe('/teams/nba-bos');
   });
 
-  it('moves a day at a time, or to the day picked', async () => {
-    renderAt('/games?date=2026-11-12');
-    await rows();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Next day' }));
-    expect(await screen.findByText('Postponed')).toBeTruthy();
-    expect(window.location.search).toBe('?date=2026-11-13');
-
-    fireEvent.click(screen.getByRole('button', { name: 'Next day' }));
-    expect(await screen.findByText('No games this day.')).toBeTruthy();
-
-    fireEvent.change(screen.getByLabelText('Day'), {
-      target: { value: '2026-11-12' },
-    });
-    expect((await rows()).length).toBe(2);
-  });
-
-  it("opens on the viewer's today", async () => {
-    const today = new Date().toLocaleDateString('en-CA');
-    stubApi({
-      'GET /teams': teams,
-      [`GET /games?from=${today}`]: [game('nba-bos', 'nba-nyk', today)],
-    });
+  it("filters by the league's day", async () => {
     renderAt('/games');
 
-    expect((await rows())[0]).toEqual([
-      tipOff(today),
-      'New York Knicks',
-      'Boston Celtics',
-      'N/A',
-      'Scheduled',
-    ]);
-  });
-
-  it('sorts by score', async () => {
-    renderAt('/games?date=2026-11-12');
-
-    fireEvent.click(await screen.findByRole('button', { name: 'Score' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Score' }));
-    expect((await rows()).map(([, , , score]) => score)).toEqual([
-      '120-99',
-      '102-110',
+    fireEvent.click(await screen.findByRole('button', { name: 'Add Filter' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Date' }));
+    fireEvent.change(screen.getByLabelText('After'), {
+      target: { value: '2026-11-01' },
+    });
+    fireEvent.change(screen.getByLabelText('Before'), {
+      target: { value: '2026-11-13' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Add Filter' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Apply Filters' }));
+    expect((await rows()).map(([time]) => time)).toEqual([
+      tipOff('2026-11-12'),
     ]);
   });
 
   it('filters by any of the checked values, or none, until the filter is removed', async () => {
-    renderAt('/games?date=2026-11-12');
+    renderAt('/games');
     const homes = async () => (await rows()).map(([, , home]) => home);
 
     fireEvent.click(await screen.findByRole('button', { name: 'Add Filter' }));
@@ -148,19 +132,56 @@ describe('GamesPage', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'Add Filter' }));
     fireEvent.click(screen.getByRole('button', { name: 'Apply Filters' }));
-    expect(await homes()).toEqual(['Golden State Warriors']);
+    expect(await homes()).toEqual([
+      'Golden State Warriors',
+      'Los Angeles Lakers',
+    ]);
 
     fireEvent.click(
       within(
         screen.getByRole('button', { name: 'Home is not Boston Celtics' }),
       ).getByTestId('CancelIcon'),
     );
-    expect(await homes()).toHaveLength(2);
+    expect(await homes()).toHaveLength(3);
+  });
+
+  it('sorts by score, the unplayed last', async () => {
+    renderAt('/games');
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Score' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Score' }));
+    expect((await rows()).map(([, , , score]) => score)).toEqual([
+      '120-99',
+      '102-110',
+      'N/A',
+    ]);
+  });
+
+  it('shows 50 games a page', async () => {
+    stubApi(
+      routes(
+        Array.from({ length: 51 }, (_, i) =>
+          game('nba-bos', 'nba-nyk', '2026-11-01', { id: `game-${i}` }),
+        ),
+      ),
+    );
+    renderAt('/games');
+
+    expect(await rows()).toHaveLength(50);
+    fireEvent.click(screen.getByRole('button', { name: 'Go to next page' }));
+    expect(await rows()).toHaveLength(1);
+  });
+
+  it('says when the season has no games yet', async () => {
+    stubApi(routes([]));
+    renderAt('/games');
+
+    expect(await screen.findByText('No games this season.')).toBeTruthy();
   });
 
   it("says so when they can't be loaded", async () => {
-    stubApi({ 'GET /teams': teams });
-    renderAt('/games?date=2026-11-12');
+    stubApi({ 'GET /seasons': [season(2026)], 'GET /teams': teams });
+    renderAt('/games');
 
     expect(
       await screen.findByText(

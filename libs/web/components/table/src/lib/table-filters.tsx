@@ -19,7 +19,7 @@ export interface Filter<Column extends string = string> {
 }
 
 // How a table filters by a column: its name in the filters, and its value in a row. A select's options are the
-// values its rows have; a date's value is a moment (ISO), compared by its day on the viewer's clock.
+// values its rows have; a date's value is a day (YYYY-MM-DD; a game's league `date`).
 export type FilterColumn<Row> = { label: string } & (
   | { type: 'select'; value: (row: Row) => string | null }
   | { type: 'number'; value: (row: Row) => number | null }
@@ -46,9 +46,6 @@ export const valueLabel = (value: string, operator: FilterOperator) =>
       ? value.split('-').reverse().join('/')
       : value;
 
-// A moment's day on the viewer's clock, as YYYY-MM-DD (the Canadian format is ISO's).
-const dayOf = (iso: string) => new Date(iso).toLocaleDateString('en-CA');
-
 const matches = <Row,>(
   column: FilterColumn<Row>,
   { operator, values: [bound], values }: Filter,
@@ -65,9 +62,9 @@ const matches = <Row,>(
     case 'lessThan':
       return value !== null && Number(value) < Number(bound);
     case 'after':
-      return value !== null && dayOf(String(value)) > bound;
+      return value !== null && String(value) > bound;
     case 'before':
-      return value !== null && dayOf(String(value)) < bound;
+      return value !== null && String(value) < bound;
   }
 };
 

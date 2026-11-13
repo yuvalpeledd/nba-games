@@ -13,7 +13,7 @@ export {
   formatWinPct,
 } from './lib/format';
 export {
-  useGames,
+  useSeasonGames,
   useHeadToHead,
   useLogin,
   useMe,

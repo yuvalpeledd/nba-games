@@ -40,13 +40,16 @@ export class GameDalService {
     });
   }
 
-  // A team's games (home or away) in a season (the year it starts in), every type; by day, then tip-off.
-  findByTeamSeason(teamId: string, season: number): Promise<GameEntity[]> {
+  // A season's games (the year it starts in), every type, only a team's (home or away) when given; by day, then
+  // tip-off.
+  findBySeason(season: number, teamId?: string): Promise<GameEntity[]> {
     return this.repo.find({
-      where: [
-        { season, homeTeamId: teamId },
-        { season, awayTeamId: teamId },
-      ],
+      where: teamId
+        ? [
+            { season, homeTeamId: teamId },
+            { season, awayTeamId: teamId },
+          ]
+        : { season },
       order: { date: 'ASC', startTime: 'ASC', id: 'ASC' },
     });
   }

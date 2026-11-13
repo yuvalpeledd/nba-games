@@ -72,7 +72,8 @@ export function TeamGames({
   const filtered = useTableFilters(
     (games ?? []).map((game) => sideOf(game, teamId, teamNames)),
     {
-      time: { label: 'Time', type: 'date', value: (row) => row.game.startTime },
+      // The league's day (`date`), as schedules group them.
+      time: { label: 'Date', type: 'date', value: (row) => row.game.date },
       opponent: {
         label: 'Opponent',
         type: 'select',

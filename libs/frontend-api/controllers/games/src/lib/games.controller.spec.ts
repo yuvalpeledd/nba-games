@@ -32,7 +32,6 @@ describe('GamesController', () => {
           `from=2026-11-11&teamId=${'x'.repeat(101)}`,
           'teamId must be at most 100 characters',
         ],
-        ['season=2026', 'teamId is required with season'],
         ['season=last&teamId=nba-bos', 'season must be a year'],
         ['season=2026.5&teamId=nba-bos', 'season must be a year'],
         [
@@ -161,6 +160,24 @@ describe('GamesController', () => {
 
         expect(status).toBe(200);
         expect(body.data).toEqual([opener, playoff].map(asDto));
+      });
+
+      it("answers the league's whole season, by day, with season alone", async () => {
+        const [a, b, c] = [
+          await app.createTeam(),
+          await app.createTeam(),
+          await app.createTeam(),
+        ];
+        const later = await app.createGame(b.id, c.id, { date: '2026-11-02' });
+        const opener = await app.createGame(a.id, b.id, {
+          date: '2026-10-21',
+        });
+        await app.createGame(a.id, c.id, { season: 2025, date: '2026-04-01' });
+
+        const { status, body } = await app.call('GET', '/games?season=2026');
+
+        expect(status).toBe(200);
+        expect(body.data).toEqual([opener, later].map(asDto));
       });
 
       it('answers every game between two teams, either at home, every season, with teamId and opponentId', async () => {
