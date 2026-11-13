@@ -59,6 +59,42 @@ describe('TeamsPage', () => {
     ]);
   });
 
+  it('filters by any of the checked values, or none, until the filter is removed', async () => {
+    renderAt('/teams');
+    const filterBy = (mode: string) => {
+      fireEvent.click(screen.getByRole('button', { name: 'Add Filter' }));
+      fireEvent.click(screen.getByRole('button', { name: /^Conference/ }));
+      fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Filter by' }));
+      fireEvent.click(screen.getByRole('option', { name: mode }));
+      fireEvent.click(screen.getByRole('button', { name: 'Add Filter' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Apply Filters' }));
+    };
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Add Filter' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Conference' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Western' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add Filter' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Apply Filters' }));
+    expect(await rows()).toEqual([['Dallas Mavericks', 'Western']]);
+    expect(
+      screen.getByRole('button', { name: 'Conference is Western' }),
+    ).toBeTruthy();
+
+    filterBy('none of the selected');
+    expect((await rows()).map(([name]) => name)).toEqual([
+      'Atlanta Hawks',
+      'Boston Celtics',
+      'Philadelphia 76ers',
+    ]);
+
+    fireEvent.click(
+      within(
+        screen.getByRole('button', { name: 'Conference is not Western' }),
+      ).getByTestId('CancelIcon'),
+    );
+    expect(await rows()).toHaveLength(4);
+  });
+
   it("says so when they can't be loaded", async () => {
     stubApi({});
     renderAt('/teams');

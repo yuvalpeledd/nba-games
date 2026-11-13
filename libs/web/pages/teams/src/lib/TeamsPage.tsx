@@ -11,14 +11,22 @@ import {
 } from '@mui/material';
 import { useTeams } from '@nba/web-core';
 import { PageLoader } from '@nba/web-shell-components';
-import { useTableSort } from '@nba/web-table-components';
+import { useTableFilters, useTableSort } from '@nba/web-table-components';
 import { Link as RouterLink } from 'react-router';
 
 // Today's teams (`/teams` has past franchises too).
 export function TeamsPage() {
   const { data: teams, isError } = useTeams();
   const active = teams?.filter((team) => team.active) ?? [];
-  const { rows, headCell } = useTableSort(active, {
+  const filtered = useTableFilters(active, {
+    name: { label: 'Team', type: 'select', value: (team) => team.name },
+    conference: {
+      label: 'Conference',
+      type: 'select',
+      value: (team) => team.conference,
+    },
+  });
+  const { rows, headCell } = useTableSort(filtered.rows, {
     name: (team) => team.name,
     conference: (team) => team.conference,
   });
@@ -27,6 +35,7 @@ export function TeamsPage() {
   return (
     <Stack spacing={3}>
       <Typography variant="h1">Teams</Typography>
+      {filtered.filterBar}
       <TableContainer>
         <Table aria-label="Teams">
           <TableHead>

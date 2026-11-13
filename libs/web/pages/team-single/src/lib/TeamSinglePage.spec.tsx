@@ -186,6 +186,29 @@ describe('TeamSinglePage', () => {
     ]);
   });
 
+  it('filters the games by the day they tip off on', async () => {
+    stubApi(routes());
+    renderAt('/teams/nba-bos');
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Add Filter' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Time' }));
+    fireEvent.change(screen.getByLabelText('After'), {
+      target: { value: '2026-11-01' },
+    });
+    fireEvent.change(screen.getByLabelText('Before'), {
+      target: { value: '2027-01-01' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Add Filter' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Apply Filters' }));
+    expect((await rowsOf('Games')).map(([time]) => time)).toEqual([
+      tipOff('2026-11-20'),
+      tipOff('2026-11-22'),
+    ]);
+    expect(
+      screen.getByRole('button', { name: 'Time after 01/11/2026' }),
+    ).toBeTruthy();
+  });
+
   it("shows the team's record against a game's opponent before that game, from its menu", async () => {
     stubApi(
       routes({
