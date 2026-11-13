@@ -10,6 +10,10 @@ import {
   SeasonType,
 } from '@nba/sql-games';
 import {
+  GroupGameScoreDalService,
+  GroupGameScoreModule,
+} from '@nba/sql-group-game-score';
+import {
   GroupMemberDalService,
   GroupMemberModule,
 } from '@nba/sql-group-members';
@@ -80,6 +84,7 @@ describe('ScoresController', () => {
         PredictionModule,
         GroupMemberModule,
         GroupUserScoreModule,
+        GroupGameScoreModule,
         ScoreManagerScoresModule,
       ],
     }).compile();
@@ -91,7 +96,7 @@ describe('ScoresController', () => {
   afterAll(() => app?.close());
   beforeEach(async () => {
     await get(DataSource).query(
-      'TRUNCATE teams, games, users, predictions, groups, group_members, group_user_score CASCADE',
+      'TRUNCATE teams, games, users, predictions, groups, group_members, group_user_score, group_game_score CASCADE',
     );
     await get(TeamDalService).upsert([team('bos'), team('nyk')]);
   });
@@ -166,6 +171,41 @@ describe('ScoresController', () => {
         [
           [friday.id, dana.id, 1],
           [office.id, dana.id, 1],
+          [office.id, omer.id, 0],
+        ].sort(),
+      );
+    });
+
+    it("scores a right pick the game's score in its group, where the owner set one", async () => {
+      await get(GameDalService).upsert([finalGame]);
+      const dana = await createUser('dana');
+      const omer = await createUser('omer');
+      const friday = await createGroup('Friday', dana.id);
+      const office = await createGroup('Office', omer.id);
+      await get(DataSource).query(
+        'INSERT INTO group_members (group_id, user_id) VALUES ($1, $2)',
+        [office.id, dana.id],
+      );
+      await get(GroupGameScoreDalService).set({
+        groupId: office.id,
+        gameId: GAME_ID,
+        score: 3,
+      });
+      await predict(dana.id, PredictionPick.HOME);
+      await predict(omer.id, PredictionPick.AWAY);
+
+      const { body } = await score(GAME_ID);
+
+      expect(body).toEqual({ data: { gameId: GAME_ID, scores: 3, right: 2 } });
+      const rows = await get(GroupUserScoreDalService).findByGame(GAME_ID);
+      expect(
+        rows
+          .map(({ groupId, userId, score }) => [groupId, userId, score])
+          .sort(),
+      ).toEqual(
+        [
+          [friday.id, dana.id, 1],
+          [office.id, dana.id, 3],
           [office.id, omer.id, 0],
         ].sort(),
       );

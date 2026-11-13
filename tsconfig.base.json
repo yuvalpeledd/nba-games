@@ -76,6 +76,9 @@
       "@nba/sql-group-members": [
         "./libs/sql/tables/group-members/src/index.ts"
       ],
+      "@nba/sql-group-game-score": [
+        "./libs/sql/tables/group-game-score/src/index.ts"
+      ],
       "@nba/sql-group-user-score": [
         "./libs/sql/tables/group-user-score/src/index.ts"
       ],

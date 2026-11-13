@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { GameModule } from '@nba/sql-games';
+import { GroupGameScoreModule } from '@nba/sql-group-game-score';
 import { GroupMemberModule } from '@nba/sql-group-members';
 import { GroupUserScoreModule } from '@nba/sql-group-user-score';
 import { PredictionModule } from '@nba/sql-predictions';
@@ -12,6 +13,7 @@ import { ScoresService } from './scores.service';
     PredictionModule,
     GroupMemberModule,
     GroupUserScoreModule,
+    GroupGameScoreModule,
   ],
   controllers: [ScoresController],
   providers: [ScoresService],

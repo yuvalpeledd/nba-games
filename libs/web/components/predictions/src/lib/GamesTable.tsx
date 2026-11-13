@@ -14,9 +14,10 @@ import type { GameDto } from '@nba/dtos-games';
 import type { TeamDto } from '@nba/dtos-teams';
 import { GameStatus } from '@nba/sql-games/enums';
 import type { PredictionPick } from '@nba/sql-predictions/enums';
-import { formatTime } from '@nba/web-core';
+import { formatTime, statHints } from '@nba/web-core';
 import {
   type Filter,
+  type FilterColumn,
   useTableFilters,
   useTableSort,
 } from '@nba/web-table-components';
@@ -60,18 +61,21 @@ function TeamCell({ id, name }: { id: string; name: string }) {
 }
 
 // Games with the signed-in user's picks, by day, filtered and paged in the browser; at first, those after two days
-// ago, or `filters`. `actions` adds a last cell per row (a row's menu).
+// ago, or `filters`. `gameScore` adds a column of what a right pick of each is worth (a group's); `actions` a last
+// cell per row (a row's menu).
 export function GamesTable({
   games,
   teams,
   picks,
   filters,
+  gameScore,
   actions,
 }: {
   games: GameDto[];
   teams: TeamDto[];
   picks: Map<string, PredictionPick | null>;
   filters?: GamesTableFilter[];
+  gameScore?: (game: GameDto) => number;
   actions?: (game: GameDto) => ReactNode;
 }) {
   const [page, setPage] = useState(0);
@@ -83,6 +87,7 @@ export function GamesTable({
     home: nameOf(game.homeTeamId),
     played: game.awayScore !== null && game.homeScore !== null,
     pick: picks.get(game.id),
+    gameScore: gameScore?.(game) ?? null,
   }));
   const totalOf = (row: (typeof allRows)[number]) =>
     row.played
@@ -106,6 +111,16 @@ export function GamesTable({
         type: 'select',
         value: (row) => predictionLabel(row.pick),
       },
+      // Only where the column shows (a group's games).
+      ...((gameScore
+        ? {
+            gameScore: {
+              label: 'Game Score',
+              type: 'number',
+              value: (row) => row.gameScore,
+            },
+          }
+        : {}) as Record<'gameScore', FilterColumn<(typeof allRows)[number]>>),
     },
     filters ?? [{ column: 'time', operator: 'after', values: [daysAgo(2)] }],
   );
@@ -116,6 +131,7 @@ export function GamesTable({
     score: totalOf,
     status: (row) => statusLabels[row.game.status],
     prediction: (row) => row.pick ?? null,
+    gameScore: (row) => row.gameScore,
   });
   // Back to the last page there is when filters leave fewer rows.
   const shownPage = Math.min(
@@ -141,13 +157,20 @@ export function GamesTable({
               {headCell('score', 'Score', 'right')}
               {headCell('status', 'Status')}
               {headCell('prediction', 'Prediction')}
+              {gameScore &&
+                headCell(
+                  'gameScore',
+                  'Game Score',
+                  'right',
+                  statHints.gameScore,
+                )}
               {actions && <TableCell aria-label="Actions" />}
             </TableRow>
           </TableHead>
           <TableBody>
             {rows
               .slice(shownPage * ROWS_PER_PAGE, (shownPage + 1) * ROWS_PER_PAGE)
-              .map(({ game, away, home, played, pick }) => (
+              .map(({ game, away, home, played, pick, gameScore: worth }) => (
                 <TableRow key={game.id}>
                   <TableCell>{formatTime(game.startTime)}</TableCell>
                   <TeamCell id={game.awayTeamId} name={away} />
@@ -157,6 +180,7 @@ export function GamesTable({
                   </TableCell>
                   <TableCell>{statusLabels[game.status]}</TableCell>
                   <PredictionCell game={game} pick={pick} />
+                  {gameScore && <TableCell align="right">{worth}</TableCell>}
                   {actions && (
                     <TableCell align="right" sx={{ py: 0 }}>
                       {actions(game)}

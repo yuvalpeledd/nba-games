@@ -25,6 +25,10 @@ import {
 } from '@nba/sql-group-members';
 import { GroupModule, GroupStatus } from '@nba/sql-groups';
 import {
+  GroupGameScoreDalService,
+  GroupGameScoreModule,
+} from '@nba/sql-group-game-score';
+import {
   GroupUserScoreDalService,
   GroupUserScoreModule,
 } from '@nba/sql-group-user-score';
@@ -67,6 +71,7 @@ describe('schema', () => {
         GroupModule,
         GroupMemberModule,
         GroupUserScoreModule,
+        GroupGameScoreModule,
       ],
     }).compile();
     dataSource = module.get(DataSource);
@@ -75,7 +80,7 @@ describe('schema', () => {
   // Not seasons: the migrations load them.
   beforeEach(() =>
     dataSource.query(
-      'TRUNCATE teams, players, games, game_days, standings, standings_history, team_players, users, scans, predictions, groups, group_members, group_user_score',
+      'TRUNCATE teams, players, games, game_days, standings, standings_history, team_players, users, scans, predictions, groups, group_members, group_user_score, group_game_score',
     ),
   );
 
@@ -481,6 +486,35 @@ describe('schema', () => {
       expect(
         await module.get(GroupMemberDalService).findByUsers([userId]),
       ).toMatchObject([{ groupId, userId }]);
+    });
+  });
+
+  describe('group_game_score', () => {
+    it("keeps one score per group and game, replaced by the next, and reads a group's and a game's", async () => {
+      await module.get(TeamDalService).upsert(teams.map(teamOf));
+      await module.get(GameDalService).upsert(games.map(gameOf));
+      const { id: ownerId } = await module.get(UserDalService).create({
+        name: 'Dana Levi',
+        email: 'dana@nba.dev',
+        firebaseUid: 'firebase-dana',
+      });
+      const { id: groupId } = await module
+        .get(GroupMemberDalService)
+        .createGroup({ name: 'Friday League', ownerId, public: true });
+      const dal = module.get(GroupGameScoreDalService);
+      const gameId = games[0].game_id;
+
+      await dal.set({ groupId, gameId, score: 3 });
+      expect(await dal.set({ groupId, gameId, score: 2 })).toMatchObject({
+        groupId,
+        gameId,
+        score: 2,
+      });
+
+      expect(await dal.findByGroup(groupId)).toMatchObject([
+        { gameId, score: 2 },
+      ]);
+      expect(await dal.findByGame(gameId)).toEqual(new Map([[groupId, 2]]));
     });
   });
 

@@ -10,6 +10,7 @@ import type {
   CreateGroupRequest,
   GroupDetailsDto,
   GroupDto,
+  GroupGameScoreDto,
   GroupMemberPredictionDto,
   UpdateGroupRequest,
 } from '@nba/dtos-groups';
@@ -201,6 +202,28 @@ export const useUpdateGroup = () => {
     mutationFn: ({ id, ...body }: UpdateGroupRequest & { id: string }) =>
       api<GroupDto>('PATCH', `/groups/${id}`, body),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['groups'] }),
+  });
+};
+
+// Its owner sets what a right pick of a game scores in a group, then reloads the group.
+export const useSetGroupGameScore = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      groupId,
+      gameId,
+      score,
+    }: GroupGameScoreDto & { groupId: string }) =>
+      api<GroupGameScoreDto>(
+        'PUT',
+        `/groups/${groupId}/games/${gameId}/score`,
+        { score },
+      ),
+    onSuccess: (_, { groupId }) =>
+      queryClient.invalidateQueries({
+        queryKey: ['groups', groupId],
+        exact: true,
+      }),
   });
 };
 

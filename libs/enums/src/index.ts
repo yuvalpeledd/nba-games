@@ -11,4 +11,6 @@ export enum ErrorCode {
   PREDICTION_LOCKED = 'Prediction Locked',
   // Scoring a game that isn't final with a winner (yet, or ever: a canceled one voids its predictions).
   GAME_NOT_FINAL = 'Game Not Final',
+  // Setting a group's score for a game that is completed (final or canceled): its picks are scored, or void.
+  GAME_COMPLETED = 'Game Completed',
 }

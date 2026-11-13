@@ -90,7 +90,7 @@ describe('fetchers', () => {
     await module
       .get(DataSource)
       .query(
-        'TRUNCATE teams, players, games, game_days, standings, standings_history, team_players, scans, predictions, group_user_score',
+        'TRUNCATE teams, players, games, game_days, standings, standings_history, team_players, scans, predictions, group_user_score, group_game_score',
       );
     fetch = jest.spyOn(global, 'fetch');
     answerWith(provider);

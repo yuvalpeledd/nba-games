@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
 } from '@nestjs/common';
 import { type DataResponse, idSchema } from '@nba/dtos';
 import {
@@ -14,8 +15,11 @@ import {
   createGroupRequestSchema,
   type GroupDetailsDto,
   type GroupDto,
+  type GroupGameScoreDto,
   groupIdSchema,
   type GroupMemberPredictionDto,
+  type SetGameScoreRequest,
+  setGameScoreRequestSchema,
   type UpdateGroupRequest,
   updateGroupRequestSchema,
 } from '@nba/dtos-groups';
@@ -25,7 +29,7 @@ import type { UserEntity } from '@nba/sql-users';
 import { GroupsService } from './groups.service';
 
 // Groups of users: the ones the caller may see, one with its members' scores, their picks of a game, making one,
-// and its owner's edit and delete.
+// and its owner's edit, delete and games' scores.
 @Controller('groups')
 export class GroupsController {
   constructor(private readonly groups: GroupsService) {}
@@ -52,6 +56,18 @@ export class GroupsController {
     @Param('gameId', new YupPipe(idSchema.required())) gameId: string,
   ): Promise<DataResponse<GroupMemberPredictionDto[]>> {
     return { data: await this.groups.findPredictions(id, gameId, user.id) };
+  }
+
+  @Put(':id/games/:gameId/score')
+  async setGameScore(
+    @CurrentUser() user: UserEntity,
+    @Param('id', new YupPipe(groupIdSchema)) id: string,
+    @Param('gameId', new YupPipe(idSchema.required())) gameId: string,
+    @Body(new YupPipe(setGameScoreRequestSchema)) request: SetGameScoreRequest,
+  ): Promise<DataResponse<GroupGameScoreDto>> {
+    return {
+      data: await this.groups.setGameScore(id, gameId, user.id, request.score),
+    };
   }
 
   @Post()

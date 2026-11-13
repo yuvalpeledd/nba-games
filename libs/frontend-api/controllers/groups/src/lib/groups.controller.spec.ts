@@ -1,5 +1,7 @@
 import { TestApp, TestUser } from '@nba/frontend-api-test-utils';
+import { ErrorCode } from '@nba/enums';
 import { GameStatus } from '@nba/sql-games';
+import { GroupGameScoreDalService } from '@nba/sql-group-game-score';
 import { GroupMemberDalService } from '@nba/sql-group-members';
 import { GroupUserScoreDalService } from '@nba/sql-group-user-score';
 import { GroupDalService, GroupStatus } from '@nba/sql-groups';
@@ -212,6 +214,7 @@ describe('GroupsController', () => {
           memberCount: 1,
           isMember: false,
           members: [{ id: omer.id, name: 'Omer Cohen', score: 0 }],
+          gameScores: [],
         });
       });
 
@@ -584,6 +587,144 @@ describe('GroupsController', () => {
         });
         const stranger = await app.createUser({ name: 'Stranger' });
         const { status } = await get(groupId, id, stranger.token);
+        expect(status).toBe(404);
+      });
+    });
+  });
+
+  describe('PUT /groups/:id/games/:gameId/score', () => {
+    const put = (
+      id: string,
+      gameId: string,
+      body: unknown,
+      token?: string | null,
+    ) => app.call('PUT', `/groups/${id}/games/${gameId}/score`, body, token);
+    const scheduled = async (overrides = {}) => {
+      const home = await app.createTeam();
+      const away = await app.createTeam();
+      return app.createGame(home.id, away.id, {
+        startTime: new Date(Date.now() + 86_400_000),
+        status: GameStatus.SCHEDULED,
+        ...overrides,
+      });
+    };
+
+    describe('auth', () => {
+      it('refuses a caller who is not signed in', async () => {
+        const { mine } = await mineAndOmers();
+        const { status } = await put(mine.id, 'nba-g1', { score: 2 }, null);
+        expect(status).toBe(401);
+      });
+    });
+
+    describe('validation', () => {
+      it('takes only a uuid for the group', async () => {
+        const { status, body } = await put('nope', 'nba-g1', { score: 2 });
+        expect(status).toBe(400);
+        expect(body.message).toContain('id must be a uuid');
+      });
+
+      it('requires a score', async () => {
+        const { mine } = await mineAndOmers();
+        const { status, body } = await put(mine.id, 'nba-g1', {});
+        expect(status).toBe(400);
+        expect(body.message).toContain('score is required');
+      });
+
+      it('takes only a number', async () => {
+        const { mine } = await mineAndOmers();
+        const { status, body } = await put(mine.id, 'nba-g1', { score: 'x' });
+        expect(status).toBe(400);
+        expect(body.message).toContain('score must be a number');
+      });
+
+      it('takes only an integer', async () => {
+        const { mine } = await mineAndOmers();
+        const { status, body } = await put(mine.id, 'nba-g1', { score: 1.5 });
+        expect(status).toBe(400);
+        expect(body.message).toContain('score must be an integer');
+      });
+
+      it('takes 0 to 100', async () => {
+        const { mine } = await mineAndOmers();
+        const low = await put(mine.id, 'nba-g1', { score: -1 });
+        expect(low.body.message).toContain('score must be at least 0');
+        const high = await put(mine.id, 'nba-g1', { score: 101 });
+        expect(high.body.message).toContain('score must be at most 100');
+      });
+    });
+
+    describe('behavior', () => {
+      it("sets, then changes, a game's score in the caller's group, which the group answers", async () => {
+        const { mine } = await mineAndOmers();
+        const game = await scheduled();
+
+        const created = await put(mine.id, game.id, { score: 3 });
+        const { status, body } = await put(mine.id, game.id, { score: 2 });
+
+        expect(created.status).toBe(200);
+        expect(status).toBe(200);
+        expect(body.data).toEqual({ gameId: game.id, score: 2 });
+        expect(
+          await app.get(GroupGameScoreDalService).findByGame(game.id),
+        ).toEqual(new Map([[mine.id, 2]]));
+        const group = await app.call('GET', `/groups/${mine.id}`);
+        expect(group.body.data.gameScores).toEqual([
+          { gameId: game.id, score: 2 },
+        ]);
+      });
+
+      it('sets a game that has begun but is not final', async () => {
+        const { mine } = await mineAndOmers();
+        const game = await scheduled({
+          startTime: new Date(Date.now() - 3_600_000),
+          status: GameStatus.IN_PROGRESS,
+        });
+        const { status } = await put(mine.id, game.id, { score: 2 });
+        expect(status).toBe(200);
+      });
+
+      it('is 409 GAME_COMPLETED for a final or canceled game, and sets nothing', async () => {
+        const { mine } = await mineAndOmers();
+        for (const status of [GameStatus.FINAL, GameStatus.CANCELED]) {
+          const game = await scheduled({
+            startTime: new Date('2026-11-11T23:00:00Z'),
+            status,
+          });
+          const { status: code, body } = await put(mine.id, game.id, {
+            score: 2,
+          });
+          expect(code).toBe(409);
+          expect(body.code).toBe(ErrorCode.GAME_COMPLETED);
+        }
+        expect(
+          await app.get(GroupGameScoreDalService).findByGroup(mine.id),
+        ).toEqual([]);
+      });
+
+      it("is 403 for a group the caller sees but doesn't own", async () => {
+        const { omers } = await mineAndOmers();
+        const game = await scheduled();
+        const { status } = await put(omers.id, game.id, { score: 2 });
+        expect(status).toBe(403);
+      });
+
+      it("is 404 for a private group the caller isn't in", async () => {
+        const { mine } = await mineAndOmers();
+        const game = await scheduled();
+        const stranger = await app.createUser({ name: 'Stranger' });
+        const { status } = await put(
+          mine.id,
+          game.id,
+          { score: 2 },
+          stranger.token,
+        );
+        expect(status).toBe(404);
+      });
+
+      it('is 404 for a game that does not exist', async () => {
+        const { mine } = await mineAndOmers();
+        const { status } = await put(mine.id, 'nba-nope', { score: 2 });
         expect(status).toBe(404);
       });
     });

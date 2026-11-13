@@ -1,6 +1,8 @@
 // What each stat means, for its label's tooltip, so every page explains it the same way.
 export const statHints = {
   seed: "The team's rank in its conference",
+  gameScore:
+    "What a right pick of the game scores in this group (its owner sets it until it's completed)",
   wins: 'Wins',
   losses: 'Losses',
   record: 'Wins-losses this season',

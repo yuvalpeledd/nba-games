@@ -18,6 +18,7 @@ export {
   useUpdateGroup,
   useGroup,
   useGroupPredictions,
+  useSetGroupGameScore,
   useGroups,
   useSeasonGames,
   useHeadToHead,

@@ -3,6 +3,7 @@ import type {
   GroupDetailsDto,
   GroupMemberPredictionDto,
 } from '@nba/dtos-groups';
+import { ErrorCode } from '@nba/enums';
 import { GameStatus } from '@nba/sql-games/enums';
 import { GroupStatus } from '@nba/sql-groups/enums';
 import { PredictionPick } from '@nba/sql-predictions/enums';
@@ -37,6 +38,7 @@ const friday: GroupDetailsDto = {
   memberCount: 2,
   isMember: true,
   members: [member('Dana Levi', 3), member('Omer Cohen', 5)],
+  gameScores: [],
 };
 
 // Boston beat New York at home yesterday; the Lakers host Boston tomorrow.
@@ -234,6 +236,19 @@ describe('GroupSinglePage', () => {
     ).toBeTruthy();
   });
 
+  it('shows what a right pick of each game scores, 1 unless the owner set another', async () => {
+    stubApi(
+      routes({ ...friday, gameScores: [{ gameId: upcoming.id, score: 3 }] }),
+    );
+    renderAt(`/groups/${ID}`);
+
+    const games = await screen.findByRole('table', { name: 'Games' });
+    expect(
+      within(games).getByRole('columnheader', { name: 'Game Score' }),
+    ).toBeTruthy();
+    expect(cellsOf(games).map((cells) => cells[6])).toEqual(['1', '3']);
+  });
+
   it("says when there's no such group, or it's private", async () => {
     stubApi(
       routes(friday, {
@@ -315,6 +330,115 @@ describe('GroupSinglePage', () => {
       expect(callsOf(fetchMock, 'DELETE')).toEqual([
         [`/api/groups/${ID}`, undefined],
       ]);
+    });
+
+    describe('Set game score', () => {
+      const openMenu = async (gameIndex: number) => {
+        const games = await screen.findByRole('table', { name: 'Games' });
+        fireEvent.click(
+          within(games).getAllByRole('button', { name: 'Actions' })[gameIndex],
+        );
+        return screen.findByRole('menu');
+      };
+      const setGameScore = async () =>
+        fireEvent.click(
+          within(await openMenu(1)).getByRole('menuitem', {
+            name: 'Set game score',
+          }),
+        );
+
+      it("isn't there for a group the user doesn't own", async () => {
+        stubApi(routes(friday));
+        renderAt(`/groups/${ID}`);
+        expect(
+          within(await openMenu(1)).queryByRole('menuitem', {
+            name: 'Set game score',
+          }),
+        ).toBeNull();
+      });
+
+      it("isn't there for a completed game", async () => {
+        stubApi(routes(mine));
+        renderAt(`/groups/${ID}`);
+        expect(
+          within(await openMenu(0)).queryByRole('menuitem', {
+            name: 'Set game score',
+          }),
+        ).toBeNull();
+      });
+
+      it("sets a game's score, then says so", async () => {
+        const fetchMock = stubApi(
+          routes(mine, {
+            [`PUT /groups/${ID}/games/${upcoming.id}/score`]: {
+              gameId: upcoming.id,
+              score: 3,
+            },
+          }),
+        );
+        renderAt(`/groups/${ID}`);
+
+        await setGameScore();
+        const dialog = await screen.findByRole('dialog', {
+          name: 'Game Score: Boston Celtics at Los Angeles Lakers',
+        });
+        const input = within(dialog).getByRole('spinbutton', { name: 'Score' });
+        expect((input as HTMLInputElement).value).toBe('1');
+        fireEvent.change(input, { target: { value: '3' } });
+        fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+
+        expect(await screen.findByText('Game score set to 3')).toBeTruthy();
+        expect(callsOf(fetchMock, 'PUT')).toEqual([
+          [`/api/groups/${ID}/games/${upcoming.id}/score`, { score: 3 }],
+        ]);
+        await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+      });
+
+      it('refuses a score that is not a whole number from 0 to 100', async () => {
+        const fetchMock = stubApi(routes(mine));
+        renderAt(`/groups/${ID}`);
+
+        await setGameScore();
+        const dialog = await screen.findByRole('dialog');
+        fireEvent.change(
+          within(dialog).getByRole('spinbutton', { name: 'Score' }),
+          { target: { value: '101' } },
+        );
+        fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+
+        expect(
+          await within(dialog).findByText(
+            'A whole number from 0 to 100 is required',
+          ),
+        ).toBeTruthy();
+        expect(callsOf(fetchMock, 'PUT')).toEqual([]);
+      });
+
+      it('says when the game was completed meanwhile', async () => {
+        stubApi(
+          routes(mine, {
+            [`PUT /groups/${ID}/games/${upcoming.id}/score`]: new Failure(409, {
+              statusCode: 409,
+              message: `Game ${upcoming.id} is completed`,
+              code: ErrorCode.GAME_COMPLETED,
+            }),
+          }),
+        );
+        renderAt(`/groups/${ID}`);
+
+        await setGameScore();
+        fireEvent.click(
+          within(await screen.findByRole('dialog')).getByRole('button', {
+            name: 'Save',
+          }),
+        );
+
+        expect(
+          await screen.findByText(
+            "This game is completed: its score can't change",
+          ),
+        ).toBeTruthy();
+      });
     });
   });
 });

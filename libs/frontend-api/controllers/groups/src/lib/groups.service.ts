@@ -1,17 +1,22 @@
 import {
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import type {
-  CreateGroupRequest,
-  GroupDetailsDto,
-  GroupDto,
-  GroupMemberPredictionDto,
-  UpdateGroupRequest,
+import {
+  type CreateGroupRequest,
+  type GroupDetailsDto,
+  type GroupDto,
+  type GroupGameScoreDto,
+  type GroupMemberPredictionDto,
+  isGameCompleted,
+  type UpdateGroupRequest,
 } from '@nba/dtos-groups';
 import { isPredictionLocked } from '@nba/dtos-predictions';
+import { ErrorCode } from '@nba/enums';
 import { GameDalService } from '@nba/sql-games';
+import { GroupGameScoreDalService } from '@nba/sql-group-game-score';
 import {
   GroupMemberDalService,
   type GroupWithMembers,
@@ -43,6 +48,7 @@ export class GroupsService {
     private readonly scores: GroupUserScoreDalService,
     private readonly games: GameDalService,
     private readonly predictions: PredictionDalService,
+    private readonly gameScores: GroupGameScoreDalService,
   ) {}
 
   async findVisibleTo(userId: string): Promise<GroupDto[]> {
@@ -52,9 +58,10 @@ export class GroupsService {
 
   async findOne(id: string, userId: string): Promise<GroupDetailsDto> {
     const group = await this.visible(id, userId);
-    const [members, totals] = await Promise.all([
+    const [members, totals, gameScores] = await Promise.all([
       this.members.findMembers(id),
       this.scores.totalsByGroup(id),
+      this.gameScores.findByGroup(id),
     ]);
     return {
       ...toGroupDto(group),
@@ -63,6 +70,7 @@ export class GroupsService {
         name: member.user?.name ?? '',
         score: totals.get(member.userId) ?? 0,
       })),
+      gameScores: gameScores.map(({ gameId, score }) => ({ gameId, score })),
     };
   }
 
@@ -90,6 +98,27 @@ export class GroupsService {
         pick: locked ? pick : null,
       };
     });
+  }
+
+  // Only its owner may (403, 404 as in update), only for a known game (404) not completed yet (409 GAME_COMPLETED).
+  async setGameScore(
+    id: string,
+    gameId: string,
+    userId: string,
+    score: number,
+  ): Promise<GroupGameScoreDto> {
+    await this.owned(id, userId);
+    const game = await this.games.findById(gameId);
+    if (!game) throw new NotFoundException(`Game ${gameId} not found`);
+    if (isGameCompleted(game)) {
+      throw new ConflictException({
+        statusCode: 409,
+        message: `Game ${gameId} is completed: its score is set`,
+        code: ErrorCode.GAME_COMPLETED,
+      });
+    }
+    await this.gameScores.set({ groupId: id, gameId, score });
+    return { gameId, score };
   }
 
   // The caller owns it and is its only member.
