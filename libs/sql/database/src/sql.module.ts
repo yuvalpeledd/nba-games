@@ -1,5 +1,6 @@
 import { DynamicModule, Module } from '@nestjs/common';
 import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
+import { createHash } from 'node:crypto';
 import { basename, join } from 'node:path';
 import { DataSource, DataSourceOptions } from 'typeorm';
 import { DatabaseLogger } from './database-logger';
@@ -41,17 +42,28 @@ export function postgresOptions(env: NodeJS.ProcessEnv): DataSourceOptions {
   };
 }
 
-// The specs' database: one per checkout (`nba_test_<its folder>`: `nba_test_nba_games`, a worktree's
-// `nba_test_<worktree>`), so specs running in parallel worktrees never rebuild each other's mid-run. Never the dev one.
-export const TEST_DB_NAME =
-  `nba_test_${basename(join(__dirname, '../../../..'))}`
+// The specs' database: one per checkout and Nx project (`nba_test_<its folder>_<project>`: `nba_test_nba_games_sql_schema`,
+// a worktree's `nba_test_<worktree>_<project>`), so test targets run in parallel, in a checkout and across worktrees,
+// and never rebuild each other's mid-run. Never the dev one. Outside Nx (no NX_TASK_TARGET_PROJECT): `nba_test_<its folder>`.
+export const TEST_DB_NAME = testDbName(
+  basename(join(__dirname, '../../../..')),
+  process.env['NX_TASK_TARGET_PROJECT'],
+);
+
+function testDbName(checkout: string, project?: string): string {
+  const name = ['nba_test', checkout, project]
+    .filter(Boolean)
+    .join('_')
     .toLowerCase()
-    .replace(/[^a-z0-9_]+/g, '_')
-    .slice(0, 63);
+    .replace(/[^a-z0-9_]+/g, '_');
+  // Postgres keeps 63 bytes of a name: a longer one ends in its hash, so two never truncate to the same.
+  return name.length <= 63
+    ? name
+    : `${name.slice(0, 54)}_${createHash('sha1').update(name).digest('hex').slice(0, 8)}`;
+}
 
 // The specs' connection (TypeOrmModule.forRootAsync({ useFactory: testPostgresOptions })): their database, created on
-// first use, dropped and rebuilt through the migrations by each spec file. Within a checkout, Nx runs the test targets
-// one at a time (nx.json), as they share it.
+// first use, dropped and rebuilt through the migrations by each spec file.
 export async function testPostgresOptions(): Promise<TypeOrmModuleOptions> {
   const options = postgresOptions({ ...process.env, DB_NAME: TEST_DB_NAME });
   await createDatabaseIfMissing(options, TEST_DB_NAME);

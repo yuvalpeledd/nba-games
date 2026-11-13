@@ -180,12 +180,12 @@ describe('GamesController', () => {
 
 - **Postgres everywhere** (17): locally the `nba-db` container (`docker-compose.yml`, user, password and database `nba`, the defaults of `postgresOptions`).
   `synchronize` is off; schema changes are migrations.
-- **Each checkout's specs have a database of their own** in the same container, `TEST_DB_NAME`: `nba_test_<the checkout's folder>` (`nba_test_nba_games`; a worktree's `nba_test_<worktree>`), created on first use.
-  So agents testing in parallel worktrees never rebuild each other's mid-run.
+- **Each checkout's test projects have a database of their own** in the same container, `TEST_DB_NAME`: `nba_test_<the checkout's folder>_<the Nx project>` (`nba_test_nba_games_sql_schema`; a worktree's `nba_test_<worktree>_<project>`), from `NX_TASK_TARGET_PROJECT`, created on first use.
+  So test targets run in parallel (`"parallel": 8` in `nx.json`, like every target), in a checkout and across worktrees, and never rebuild each other's mid-run.
   `schema.spec.ts` drops and rebuilds it through the migrations, reverts and reruns the last one, and fails when the entities differ from the migrations (it prints the missing SQL).
-  A checkout's specs share it, so Nx runs the test targets one at a time (`parallelism: false` in `nx.json`), and a project keeps its DB tests in one spec file.
+  A project's spec files share its database, so a project keeps its DB tests in one spec file.
   `TestApp` connects with `testPostgresOptions()` and empties every table (seasons too) in `clearDatabase()`, which refuses any database but `TEST_DB_NAME`.
-  A removed worktree leaves its database behind: `DROP DATABASE nba_test_<worktree>` to tidy up.
+  A removed worktree leaves its databases behind: drop its `nba_test_<worktree>_*` ones to tidy up.
 - **Migrations:** generate against the local container, never a shared DB:
   ```bash
   pnpm typeorm:run-migrations

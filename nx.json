@@ -52,8 +52,7 @@
   ],
   "targetDefaults": {
     "test": {
-      "inputs": ["default", "^production", "{workspaceRoot}/migrations/**/*"],
-      "parallelism": false
+      "inputs": ["default", "^production", "{workspaceRoot}/migrations/**/*"]
     }
   }
 }
