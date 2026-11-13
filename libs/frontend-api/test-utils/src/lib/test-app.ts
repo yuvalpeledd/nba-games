@@ -5,8 +5,9 @@ import {
   ModuleMetadata,
   Type,
 } from '@nestjs/common';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
+import { AccessGuard, FrontendApiAuthModule } from '@nba/frontend-api-auth';
 import { FailureFilter } from '@nba/frontend-api-common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TEST_DB_NAME, testPostgresOptions } from '@nba/sql';
@@ -82,6 +83,9 @@ class FakeFirebaseAuth {
 // on the specs' database (TEST_DB_NAME) rebuilt through the migrations (testPostgresOptions). Every table's DAL module is loaded, for seeding
 // and reading back.
 export class TestApp {
+  // signIn()'s user's token, which call() sends unless told otherwise.
+  private token: string | null = null;
+
   private constructor(
     private readonly app: INestApplication,
     private readonly baseUrl: string,
@@ -105,9 +109,14 @@ export class TestApp {
         SeasonModule,
         UserModule,
         PredictionModule,
+        FrontendApiAuthModule,
         ...imports,
       ],
-      providers: [{ provide: APP_FILTER, useClass: FailureFilter }],
+      providers: [
+        { provide: APP_FILTER, useClass: FailureFilter },
+        // As AppModule: every route needs a signed-in caller but the @Public() ones.
+        { provide: APP_GUARD, useExisting: AccessGuard },
+      ],
     })
       .overrideProvider(Auth)
       .useValue(new FakeFirebaseAuth())
@@ -122,12 +131,13 @@ export class TestApp {
     return this.app.get(type);
   }
 
-  // `path` is under /api: `app.call('GET', '/teams')`. A token goes as `Authorization: Bearer <token>`.
+  // `path` is under /api: `app.call('GET', '/teams')`. A token goes as `Authorization: Bearer <token>`: signIn()'s by
+  // default, none with `null`.
   async call(
     method: string,
     path: string,
     body?: unknown,
-    token?: string,
+    token: string | null = this.token,
   ): Promise<Reply> {
     const response = await fetch(`${this.baseUrl}/api${path}`, {
       method,
@@ -150,6 +160,15 @@ export class TestApp {
       ({ tableName }) => `"${tableName}"`,
     );
     await dataSource.query(`TRUNCATE ${tables.join(', ')} CASCADE`);
+    this.token = null; // its user is gone
+  }
+
+  // A user whose token every call() sends from now on (until clearDatabase()): for the specs of routes that only
+  // need someone signed in.
+  async signIn(overrides?: Partial<UserCreateObject>): Promise<TestUser> {
+    const user = await this.createUser(overrides);
+    this.token = user.token;
+    return user;
   }
 
   close(): Promise<void> {

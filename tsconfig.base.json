@@ -29,6 +29,7 @@
       "@nba/dtos-games": ["./libs/dtos/games/src/index.ts"],
       "@nba/dtos-players": ["./libs/dtos/players/src/index.ts"],
       "@nba/dtos-predictions": ["./libs/dtos/predictions/src/index.ts"],
+      "@nba/dtos-scans": ["./libs/dtos/scans/src/index.ts"],
       "@nba/dtos-seasons": ["./libs/dtos/seasons/src/index.ts"],
       "@nba/dtos-standings": ["./libs/dtos/standings/src/index.ts"],
       "@nba/dtos-teams": ["./libs/dtos/teams/src/index.ts"],
@@ -46,6 +47,9 @@
       ],
       "@nba/frontend-api-predictions-controller": [
         "./libs/frontend-api/controllers/predictions/src/index.ts"
+      ],
+      "@nba/frontend-api-scans-controller": [
+        "./libs/frontend-api/controllers/scans/src/index.ts"
       ],
       "@nba/frontend-api-seasons-controller": [
         "./libs/frontend-api/controllers/seasons/src/index.ts"
@@ -69,6 +73,7 @@
       "@nba/sql-predictions/enums": [
         "./libs/sql/tables/predictions/src/enums.ts"
       ],
+      "@nba/sql-scans": ["./libs/sql/tables/scans/src/index.ts"],
       "@nba/sql-seasons": ["./libs/sql/tables/seasons/src/index.ts"],
       "@nba/sql-standings": ["./libs/sql/tables/standings/src/index.ts"],
       "@nba/sql-standings-history": [

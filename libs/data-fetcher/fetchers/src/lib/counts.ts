@@ -14,4 +14,4 @@ export const addWrites = (a: WriteCounts, b: WriteCounts): WriteCounts => ({
   unchanged: a.unchanged + b.unchanged,
 });
 
-export { NO_WRITES };
+export { NO_WRITES, type WriteCounts };

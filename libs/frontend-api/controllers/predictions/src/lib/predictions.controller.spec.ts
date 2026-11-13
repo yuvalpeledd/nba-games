@@ -12,7 +12,12 @@ describe('PredictionsController', () => {
     app = await TestApp.create([FrontendApiPredictionsControllerModule]);
   });
   afterAll(() => app.close());
-  beforeEach(() => app.clearDatabase());
+  // The caller every app.call() sends.
+  let user: TestUser;
+  beforeEach(async () => {
+    await app.clearDatabase();
+    user = await app.signIn();
+  });
 
   const predictions = () => app.get(PredictionDalService);
 
@@ -28,53 +33,19 @@ describe('PredictionsController', () => {
     });
   };
 
-  // The auth block every guarded route shares.
-  const itRefusesCallersWithoutAUser = (
-    call: (token?: string) => Promise<{ status: number; body: any }>, // eslint-disable-line @typescript-eslint/no-explicit-any
-  ) => {
-    it('refuses no token', async () => {
-      expect((await call()).status).toBe(401);
-    });
-
-    it('refuses a token Firebase refuses', async () => {
-      expect((await call('forged')).status).toBe(401);
-    });
-
-    it('refuses an account without a user', async () => {
-      const token = app.identityToken({
-        uid: 'firebase-nobody',
-        email: 'nobody@nba.dev',
-      });
-      expect((await call(token)).status).toBe(401);
-    });
-
-    it('refuses an account whose email is not verified', async () => {
-      const user = await app.createUser();
-      const token = app.identityToken({
-        uid: user.firebaseUid,
-        email: user.email,
-        emailVerified: false,
-      });
-      const { status, body } = await call(token);
-      expect(status).toBe(403);
-      expect(body.code).toBe(ErrorCode.EMAIL_NOT_VERIFIED);
-    });
-  };
-
   describe('PUT /predictions/:gameId', () => {
-    let user: TestUser;
-    beforeEach(async () => {
-      user = await app.createUser();
-    });
-
-    const put = (gameId: string, body: unknown, token = user.token) =>
+    const put = (gameId: string, body: unknown, token?: string | null) =>
       app.call('PUT', `/predictions/${gameId}`, body, token);
 
     describe('auth', () => {
-      itRefusesCallersWithoutAUser(async (token) => {
+      it('refuses a caller who is not signed in', async () => {
         const game = await createGame();
-        const body = { pick: PredictionPick.HOME };
-        return app.call('PUT', `/predictions/${game.id}`, body, token);
+        const { status } = await put(
+          game.id,
+          { pick: PredictionPick.HOME },
+          null,
+        );
+        expect(status).toBe(401);
       });
     });
 
@@ -175,26 +146,21 @@ describe('PredictionsController', () => {
 
   describe('GET /predictions', () => {
     describe('auth', () => {
-      itRefusesCallersWithoutAUser((token) =>
-        app.call('GET', '/predictions?season=2026', undefined, token),
-      );
+      it('refuses a caller who is not signed in', async () => {
+        const { status } = await app.call(
+          'GET',
+          '/predictions?season=2026',
+          undefined,
+          null,
+        );
+        expect(status).toBe(401);
+      });
     });
 
     describe('validation', () => {
       it('requires a season, as a year', async () => {
-        const user = await app.createUser();
-        const missing = await app.call(
-          'GET',
-          '/predictions',
-          undefined,
-          user.token,
-        );
-        const bad = await app.call(
-          'GET',
-          '/predictions?season=soon',
-          undefined,
-          user.token,
-        );
+        const missing = await app.call('GET', '/predictions');
+        const bad = await app.call('GET', '/predictions?season=soon');
         expect(missing.status).toBe(400);
         expect(missing.body.message).toContain('season is a required field');
         expect(bad.status).toBe(400);
@@ -204,7 +170,6 @@ describe('PredictionsController', () => {
 
     describe('behavior', () => {
       it("answers the caller's predictions of the season's games only", async () => {
-        const user = await app.createUser();
         const other = await app.createUser();
         const game = await createGame();
         const lastSeason = await createGame({ season: 2025 });
@@ -227,8 +192,6 @@ describe('PredictionsController', () => {
         const { status, body } = await app.call(
           'GET',
           '/predictions?season=2026',
-          undefined,
-          user.token,
         );
 
         expect(status).toBe(200);

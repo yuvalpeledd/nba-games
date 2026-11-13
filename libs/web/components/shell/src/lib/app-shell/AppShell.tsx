@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ComponentType, useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router';
 import { PageLayout } from '../page-layout/PageLayout';
+import { RequireAuth } from '../require-auth/RequireAuth';
 import { ThemeRoot } from '../theme';
 
 // The app's pages, by name. Each is a lib of its own, which this lib can't import (they import it): the app passes
@@ -32,11 +33,14 @@ export function AppShell({ pages }: { pages: Pages }) {
       <ThemeRoot>
         <BrowserRouter>
           <Routes>
-            <Route element={<PageLayout />}>
-              <Route index element={<pages.DashboardPage />} />
-              <Route path="games" element={<pages.GamesPage />} />
-              <Route path="standings" element={<pages.StandingsPage />} />
-              <Route path="teams/:id" element={<pages.TeamSinglePage />} />
+            {/* Every page but /login is for someone signed in. */}
+            <Route element={<RequireAuth />}>
+              <Route element={<PageLayout />}>
+                <Route index element={<pages.DashboardPage />} />
+                <Route path="games" element={<pages.GamesPage />} />
+                <Route path="standings" element={<pages.StandingsPage />} />
+                <Route path="teams/:id" element={<pages.TeamSinglePage />} />
+              </Route>
             </Route>
             {/* Full-screen, without the navbar. */}
             <Route path="login" element={<pages.LoginPage />} />

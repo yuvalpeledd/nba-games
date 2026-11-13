@@ -8,8 +8,9 @@
   - **The Postman collection's "Get Standings"** calls `basketballteams`; it should be `basketballstandings?league=nba` (the DAL follows the docs and its real response).
   - **Predictions beyond the winner pick:** users pick winners (`predictions`); is accuracy tracked (scoring, a record per user), and do scores, spreads or a model's pick join?
     Scoring isn't built yet: `scorePrediction` (see `features.md`) when it is.
-  - **Who uses it?** Accounts are in (outly's Firebase auth).
-    Should the app be private (every page behind login), and do friends compete in groups (a leaderboard, roles)?
+  - **Who uses it?** Accounts are in (outly's Firebase auth), and the app is private: everything needs a signed-in user.
+    Do friends compete in groups (a leaderboard, roles)?
+    Can anyone sign up, or only people you invite?
   - **Firebase in production:** local runs sign in against `yuval-nba-test-882ca`.
     Does production get a project of its own when it's deployed (set `GOOGLE_CLOUD_PROJECT`, `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`), or share it?
   - **How much history?** The free plan has the current season only.

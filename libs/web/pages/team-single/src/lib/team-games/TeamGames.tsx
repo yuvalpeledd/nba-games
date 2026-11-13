@@ -15,12 +15,7 @@ import {
 } from '@mui/material';
 import type { GameDto } from '@nba/dtos-games';
 import { GameStatus } from '@nba/sql-games/enums';
-import {
-  formatTime,
-  usePredictions,
-  useSession,
-  useTeamGames,
-} from '@nba/web-core';
+import { formatTime, usePredictions, useTeamGames } from '@nba/web-core';
 import {
   PredictionCell,
   predictionLabel,
@@ -78,7 +73,6 @@ export function TeamGames({
   teamNames: Map<string, string>;
 }) {
   const { data: games, isError } = useTeamGames(teamId, season);
-  const session = useSession();
   const predictions = usePredictions(season);
   const picks = new Map(
     predictions.data?.map(({ gameId, pick }) => [gameId, pick]),
@@ -145,7 +139,7 @@ export function TeamGames({
               {headCell('opponent', 'Opponent')}
               {headCell('home', 'Home')}
               {headCell('result', 'Result', 'right')}
-              {session && headCell('prediction', 'Prediction')}
+              {headCell('prediction', 'Prediction')}
               <TableCell aria-label="Actions" />
             </TableRow>
           </TableHead>
@@ -185,7 +179,7 @@ export function TeamGames({
                       {result}
                     </Typography>
                   </TableCell>
-                  {session && <PredictionCell game={game} pick={pick} />}
+                  <PredictionCell game={game} pick={pick} />
                   <TableCell align="right" sx={{ py: 0 }}>
                     <IconButton
                       className="row-menu"

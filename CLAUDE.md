@@ -57,7 +57,7 @@ Every import alias is `@nba/<name>`, in `tsconfig.base.json`.
 - `libs/data-fetcher/api-ninjas-client` (`@nba/data-fetcher-api-ninjas-client`): `ApiNinjasClient`, the provider's response types and mappers to our rows; `@nba/data-fetcher-api-ninjas-client/fixtures` (spec-only): its real responses
 - `libs/data-fetcher/fetchers` (`@nba/data-fetcher-fetchers`): `FetchersModule` and a `*-fetcher.service.ts` per kind of data: teams, players, standings, games (see `.claude/rules/data-fetcher.md`)
 - `libs/frontend-api/common` (`@nba/frontend-api-common`): `YupPipe`, `FailureFilter`, `logRequests`, `CloudLogger`
-- `libs/frontend-api/auth` (`@nba/frontend-api-auth`): Firebase ID tokens to users (`TokenService`, `firebaseSettings`), `AccessGuard`, `@CurrentUser()` (see Auth in `features.md`)
+- `libs/frontend-api/auth` (`@nba/frontend-api-auth`): Firebase ID tokens to users (`TokenService`, `firebaseSettings`), `AccessGuard`, `@Public()`, `@CurrentUser()` (see Auth in `features.md`)
 - `libs/frontend-api/test-utils` (`@nba/frontend-api-test-utils`): spec-only `TestApp` (HTTP + DB + seeding, a fake Firebase `Auth`) and `generate*()` test data
 - `libs/frontend-api/controllers/<name>` (`@nba/frontend-api-<name>-controller`): one controller per lib, with its service (DAL reads → DTOs, 404s), e.g. `libs/frontend-api/controllers/games`
 
@@ -94,8 +94,9 @@ pnpm nx g @nx/nest:lib libs/<path> --name=<name> --importPath=@nba/<name> --unit
   Register its module in `apps/frontend-api/src/app/app.module.ts` and write its spec (see Testing).
 - **Read-only NBA data:** the API never writes games, teams, players or stats; only `data-fetcher` does.
   The API writes only what users own (predictions).
-- **Auth:** NBA data is open to everyone.
-  A route about the caller's own data (predictions) takes `@UseGuards(AccessGuard)` and reads them with `@CurrentUser()`.
+- **Auth:** every route needs a signed-in caller: `AccessGuard` is global (`APP_GUARD` in `AppModule`).
+  Only what must work before signing in is `@Public()` (`/login`, `/sign-up`, `/firebase-config`, `/health`).
+  A handler reads the caller with `@CurrentUser()`.
 
 ## Testing
 
@@ -121,8 +122,10 @@ describe('GamesController', () => {
 });
 ```
 
-- A guarded route's spec has an `auth` block: no token 401, a token Firebase refuses 401, an account without a user 401, an unverified email 403.
-  Callers are `app.createUser()` (a `TestUser`, with its `token`), sent as `app.call(method, path, body, user.token)`; `app.identityToken({ uid, email, emailVerified })` makes any account's token.
+- **Auth:** `TestApp` registers the global `AccessGuard` too, so a spec signs in first: `beforeEach` runs `clearDatabase()`, then `signIn()`, whose user's token every `app.call()` sends.
+  Each route's spec has an `auth` block: a caller who isn't signed in (`app.call(method, path, body, null)`) is 401.
+  The guard's own cases (a token Firebase refuses, an account without a user, an unverified email) are tested once, on `GET /me`.
+  A spec about other users makes them with `app.createUser()` (a `TestUser`, with its `token`) and calls as one with `app.call(method, path, body, user.token)`; `app.identityToken({ uid, email, emailVerified })` makes any account's token.
 - **Seeding:** `app.createTeam()`, `app.createGame(home, away, overrides)`, ... built with `generate*()` and saved through the DAL.
   Pass overrides only for what the test is about.
 - **DB state:** read it back with `app.get(<X>DalService)`.

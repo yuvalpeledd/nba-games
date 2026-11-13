@@ -7,9 +7,18 @@ describe('SeasonsController', () => {
     app = await TestApp.create([FrontendApiSeasonsControllerModule]);
   });
   afterAll(() => app.close());
-  beforeEach(() => app.clearDatabase());
+  beforeEach(async () => {
+    await app.clearDatabase();
+    await app.signIn();
+  });
 
   describe('GET /seasons', () => {
+    describe('auth', () => {
+      it('refuses a caller who is not signed in', async () => {
+        const { status } = await app.call('GET', '/seasons', undefined, null);
+        expect(status).toBe(401);
+      });
+    });
     describe('behavior', () => {
       it('lists the seasons newest first, each with the year standings and games carry', async () => {
         const older = await app.createSeason(2025);

@@ -1,6 +1,12 @@
-import { Typography } from '@mui/material';
+import { Stack, Typography } from '@mui/material';
+import { LastScan } from './last-scan/LastScan';
 
-// ponytail: a greeting until the dashboard has something to show (today's games, predictions).
+// ponytail: a greeting and the data-fetcher's last run until the dashboard has more to show (today's games, predictions).
 export function DashboardPage() {
-  return <Typography variant="h1">Hello</Typography>;
+  return (
+    <Stack spacing={2}>
+      <Typography variant="h1">Hello</Typography>
+      <LastScan />
+    </Stack>
+  );
 }

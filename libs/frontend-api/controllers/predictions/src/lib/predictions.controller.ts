@@ -1,12 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Put,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Put, Query } from '@nestjs/common';
 import { type DataResponse, idSchema } from '@nba/dtos';
 import {
   type PredictionDto,
@@ -15,14 +7,13 @@ import {
   type SetPredictionRequest,
   setPredictionRequestSchema,
 } from '@nba/dtos-predictions';
-import { AccessGuard, CurrentUser } from '@nba/frontend-api-auth';
+import { CurrentUser } from '@nba/frontend-api-auth';
 import { YupPipe } from '@nba/frontend-api-common';
 import type { UserEntity } from '@nba/sql-users';
 import { PredictionsService } from './predictions.service';
 
 // The signed-in user's picks of games' winners.
 @Controller('predictions')
-@UseGuards(AccessGuard)
 export class PredictionsController {
   constructor(private readonly predictions: PredictionsService) {}
 

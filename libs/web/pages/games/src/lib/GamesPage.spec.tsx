@@ -8,7 +8,6 @@ import {
   Failure,
   game,
   season,
-  signIn,
   stubApi,
   team,
 } from '@nba/web-test-utils';
@@ -106,6 +105,7 @@ describe('GamesPage', () => {
         'Boston Celtics',
         '102-110',
         'Final',
+        'None',
       ],
       [
         tipOff('2026-11-12'),
@@ -113,6 +113,7 @@ describe('GamesPage', () => {
         'Golden State Warriors',
         '120-99',
         'Final',
+        'None',
       ],
       [
         tipOff('2026-11-13'),
@@ -120,6 +121,8 @@ describe('GamesPage', () => {
         'Los Angeles Lakers',
         'N/A',
         'Postponed',
+        // Not begun: the Away / Home toggle.
+        'AwayHome',
       ],
     ]);
     expect(
@@ -242,17 +245,7 @@ describe('GamesPage', () => {
         })
       )[0];
 
-    it('has no column when signed out', async () => {
-      renderAt('/games');
-
-      await rows();
-      expect(screen.queryByRole('columnheader', { name: 'Prediction' })).toBe(
-        null,
-      );
-    });
-
     it("shows the user's pick of a game that has begun, and picks one that hasn't", async () => {
-      signIn();
       const fetchMock = stubApi(predictionRoutes);
       renderAt('/games');
 
@@ -279,7 +272,6 @@ describe('GamesPage', () => {
     });
 
     it('says so when the game began meanwhile', async () => {
-      signIn();
       stubApi({
         ...predictionRoutes,
         [`PUT /predictions/${tonight.id}`]: new Failure(409, {

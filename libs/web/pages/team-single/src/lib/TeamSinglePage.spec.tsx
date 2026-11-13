@@ -97,6 +97,10 @@ const rowsOf = async (name: string) =>
     );
 
 describe('TeamSinglePage', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("shows the team and its season's standing", async () => {
     stubApi(routes());
     renderAt('/teams/nba-bos');
@@ -132,15 +136,25 @@ describe('TeamSinglePage', () => {
   });
 
   it("lists the team's games, from its side", async () => {
+    // Only the clock (its games after it take predictions): the spec's waits still run.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-13T12:00:00'));
     stubApi(routes());
     renderAt('/teams/nba-bos');
 
     expect(await rowsOf('Games')).toEqual([
-      [tipOff('2026-10-21'), 'New York Knicks', 'Yes', 'W 110-102', ''],
-      [tipOff('2026-10-25'), 'New York Knicks', 'No', 'L 95-99', ''],
-      [tipOff('2026-11-20'), 'Los Angeles Lakers', 'Yes', 'N/A', ''],
-      [tipOff('2026-11-22'), 'Los Angeles Lakers', 'No', 'N/A', ''],
-      [tipOff('2027-04-20'), 'New York Knicks', 'Yes', 'W 120-100', ''],
+      [tipOff('2026-10-21'), 'New York Knicks', 'Yes', 'W 110-102', 'None', ''],
+      [tipOff('2026-10-25'), 'New York Knicks', 'No', 'L 95-99', 'None', ''],
+      [
+        tipOff('2026-11-20'),
+        'Los Angeles Lakers',
+        'Yes',
+        'N/A',
+        'AwayHome',
+        '',
+      ],
+      [tipOff('2026-11-22'), 'Los Angeles Lakers', 'No', 'N/A', 'AwayHome', ''],
+      [tipOff('2027-04-20'), 'New York Knicks', 'Yes', 'W 120-100', 'None', ''],
     ]);
     expect(
       screen

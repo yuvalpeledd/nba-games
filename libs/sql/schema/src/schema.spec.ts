@@ -5,6 +5,7 @@ import { GameDayDalService, GameDayModule } from '@nba/sql-game-days';
 import { GameDalService, GameModule, GameStatus } from '@nba/sql-games';
 import { PlayerDalService, PlayerModule } from '@nba/sql-players';
 import { StandingDalService, StandingModule } from '@nba/sql-standings';
+import { ScanDalService, ScanModule } from '@nba/sql-scans';
 import { SeasonDalService, SeasonModule } from '@nba/sql-seasons';
 import {
   StandingHistoryDalService,
@@ -52,6 +53,7 @@ describe('schema', () => {
         StandingHistoryModule,
         GameDayModule,
         UserModule,
+        ScanModule,
         PredictionModule,
       ],
     }).compile();
@@ -61,7 +63,7 @@ describe('schema', () => {
   // Not seasons: the migrations load them.
   beforeEach(() =>
     dataSource.query(
-      'TRUNCATE teams, players, games, game_days, standings, standings_history, team_players, users, predictions',
+      'TRUNCATE teams, players, games, game_days, standings, standings_history, team_players, users, scans, predictions',
     ),
   );
 
@@ -396,6 +398,33 @@ describe('schema', () => {
         { userId, gameId, pick: null },
       ]);
       expect(await dal.findBySeason(userId, games[0].season - 1)).toEqual([]);
+    });
+  });
+
+  describe('scans', () => {
+    it('records a scan and finds the latest to start', async () => {
+      const dal = module.get(ScanDalService);
+      const scan = { success: true, inserted: 1, updated: 2, unchanged: 3 };
+      expect(await dal.findLast()).toBeNull();
+
+      await dal.record({
+        ...scan,
+        startedAt: new Date('2026-11-13T10:00:00Z'),
+        finishedAt: new Date('2026-11-13T10:01:00Z'),
+        error: null,
+      });
+      await dal.record({
+        ...scan,
+        startedAt: new Date('2026-11-12T10:00:00Z'),
+        finishedAt: new Date('2026-11-12T10:01:00Z'),
+        error: 'GamesFetcherService: Games failed for 2026-11-11',
+      });
+
+      expect(await dal.findLast()).toMatchObject({
+        ...scan,
+        startedAt: new Date('2026-11-13T10:00:00Z'),
+        error: null,
+      });
     });
   });
 });

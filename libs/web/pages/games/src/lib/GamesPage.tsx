@@ -18,7 +18,6 @@ import {
   usePredictions,
   useSeasonGames,
   useSeasons,
-  useSession,
   useTeams,
 } from '@nba/web-core';
 import {
@@ -70,7 +69,6 @@ export function GamesPage() {
   const season = seasons.data && currentSeason(seasons.data);
   const teams = useTeams();
   const games = useSeasonGames(season?.year);
-  const session = useSession();
   const predictions = usePredictions(season?.year);
   const picks = new Map(
     predictions.data?.map(({ gameId, pick }) => [gameId, pick]),
@@ -153,7 +151,7 @@ export function GamesPage() {
                   {headCell('home', 'Home')}
                   {headCell('score', 'Score', 'right')}
                   {headCell('status', 'Status')}
-                  {session && headCell('prediction', 'Prediction')}
+                  {headCell('prediction', 'Prediction')}
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -171,7 +169,7 @@ export function GamesPage() {
                         {played ? `${game.awayScore}-${game.homeScore}` : 'N/A'}
                       </TableCell>
                       <TableCell>{statusLabels[game.status]}</TableCell>
-                      {session && <PredictionCell game={game} pick={pick} />}
+                      <PredictionCell game={game} pick={pick} />
                     </TableRow>
                   ))}
               </TableBody>
