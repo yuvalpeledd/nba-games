@@ -2,6 +2,10 @@
 
 Newest first. One entry per non-obvious choice: the decision, why, and when to revisit, in a few lines. What was built and how it was checked go in the commit message. Open questions and next steps: [backlog.md](backlog.md).
 
+## 2026-11-13: A team's page reads its season with `GET /games?season=&teamId=`
+
+- **`season` instead of `from`/`to`, only with `teamId`,** not paged: a team plays ~100 games a season (preseason and playoffs included), while the date range stays capped at 31 days for the league-wide schedule. Chosen over the web asking month by month (9 requests, and guessing where the playoffs end). Revisit if a season ever needs paging or a league-wide season list.
+
 ## 2026-11-13: The web-app
 
 - **On `frontend-api`'s contracts:** the standings page asks `/seasons` for the current season (the newest that has started, else the newest) and joins `/standings?season=` with `/teams` for the names; the teams page lists the active teams (`/teams` has past franchises too). The specs run on a fake API with the same routes.

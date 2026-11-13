@@ -1,4 +1,4 @@
-import { GameStatus } from '@nba/sql-games/enums';
+import { GameStatus, SeasonType } from '@nba/sql-games/enums';
 import { TestApp } from '@nba/frontend-api-test-utils';
 import { FrontendApiGamesControllerModule } from './games.module';
 
@@ -31,6 +31,17 @@ describe('GamesController', () => {
         [
           `from=2026-11-11&teamId=${'x'.repeat(101)}`,
           'teamId must be at most 100 characters',
+        ],
+        ['season=2026', 'teamId is required with season'],
+        ['season=last&teamId=nba-bos', 'season must be a year'],
+        ['season=2026.5&teamId=nba-bos', 'season must be a year'],
+        [
+          'season=2026&teamId=nba-bos&from=2026-11-11',
+          'season cannot be combined with from or to',
+        ],
+        [
+          'season=2026&teamId=nba-bos&to=2026-11-11',
+          'season cannot be combined with from or to',
         ],
       ])('refuses ?%s', async (query, message) => {
         const { status, body } = await app.call('GET', `/games?${query}`);
@@ -109,6 +120,34 @@ describe('GamesController', () => {
         );
 
         expect(body.data).toEqual([home, away].map(asDto));
+      });
+
+      it("answers a team's whole season, by day, with season and teamId", async () => {
+        const [team, b, c] = [
+          await app.createTeam(),
+          await app.createTeam(),
+          await app.createTeam(),
+        ];
+        const playoff = await app.createGame(b.id, team.id, {
+          date: '2027-05-01',
+          seasonType: SeasonType.POSTSEASON,
+        });
+        const opener = await app.createGame(team.id, c.id, {
+          date: '2026-10-21',
+        });
+        await app.createGame(team.id, b.id, {
+          season: 2025,
+          date: '2026-04-01',
+        });
+        await app.createGame(b.id, c.id);
+
+        const { status, body } = await app.call(
+          'GET',
+          `/games?season=2026&teamId=${team.id}`,
+        );
+
+        expect(status).toBe(200);
+        expect(body.data).toEqual([opener, playoff].map(asDto));
       });
     });
   });

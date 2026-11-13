@@ -28,10 +28,17 @@ export const toGameDto = (game: GameEntity): GameDto => ({
 export class GamesService {
   constructor(private readonly games: GameDalService) {}
 
-  async findBetween({ from, to, teamId }: GamesQuery): Promise<GameDto[]> {
-    return (await this.games.findBetween(from, to ?? from, teamId)).map(
-      toGameDto,
-    );
+  // The schema requires `from` without `season`, and `teamId` with it.
+  async find({ from, to, season, teamId }: GamesQuery): Promise<GameDto[]> {
+    const games =
+      season === undefined
+        ? await this.games.findBetween(
+            from as string,
+            to ?? (from as string),
+            teamId,
+          )
+        : await this.games.findByTeamSeason(teamId as string, season);
+    return games.map(toGameDto);
   }
 
   async findById(id: string): Promise<GameDto> {

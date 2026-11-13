@@ -8,12 +8,13 @@ import { GamesService } from './games.service';
 export class GamesController {
   constructor(private readonly games: GamesService) {}
 
-  // The games listed on ?from= to ?to= (league days, US Eastern; at most MAX_GAME_DAYS), only a team's with ?teamId=.
+  // The games listed on ?from= to ?to= (league days, US Eastern; at most MAX_GAME_DAYS), only a team's with ?teamId=;
+  // or a team's season with ?season=&teamId=.
   @Get()
-  async findBetween(
+  async find(
     @Query(new YupPipe(gamesQuerySchema)) query: GamesQuery,
   ): Promise<DataResponse<GameDto[]>> {
-    return { data: await this.games.findBetween(query) };
+    return { data: await this.games.find(query) };
   }
 
   @Get(':id')
