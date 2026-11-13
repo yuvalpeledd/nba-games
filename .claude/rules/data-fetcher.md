@@ -9,8 +9,12 @@ paths:
 For `apps/data-fetcher` and `libs/data-fetcher`.
 The tables it writes are in CLAUDE.md's Server conventions; what the data means is in `features.md`.
 
-- **One run, then exit:** `apps/data-fetcher/src/main.ts` boots a Nest standalone context (no HTTP), refuses to go on while migrations are pending (only frontend-api migrates), runs every fetcher in order, `teams` → `players` → `standings` → `games` (the players and the games need the teams), closes and exits 1 if any failed.
+- **One run, then exit:** `apps/data-fetcher/src/main.ts` boots a Nest standalone context (no HTTP), refuses to go on while migrations are pending (only frontend-api migrates), runs a scan (`ScanService`: every fetcher in order, `teams` → `players` → `standings` → `games`, since the players and the games need the teams), closes and exits 1 if any failed.
   A failed fetcher doesn't stop the ones after it.
+- **Every scan is recorded** in `scans` (`@nba/sql-scans`), a row when it ends, failed ones too: its start and end, `success`, the rows it added, updated and left unchanged, and the failed fetchers' errors.
+  Each fetcher's `run()` returns its `WriteCounts` of the NBA tables only (teams, players, standings, games; not `team_players` or `standings_history`), and the scan sums those that succeeded.
+  A run stopped before the fetchers (pending migrations, no DB) records nothing.
+  The dashboard shows the last one (`GET /scans/last`).
   The schedule lives outside the code (Cloud Scheduler → Cloud Run Job in production, `pnpm nx run data-fetcher:run` locally), so a crash never leaves a stuck process.
 - **Runs from its sources** (`node -r ts-node/register`, `.env` loaded with `--env-file-if-exists`): no bundle until it's deployed (`docs/backlog.md`).
 - **The provider is API Ninjas** (`https://api.api-ninjas.com/v1`, the key in `X-Api-Key`, always `league=nba`), called only by `ApiNinjasClient` (`libs/data-fetcher/api-ninjas-client`): a method per request, its answer mapped to our create objects (`mappers.ts`), so the fetchers see only our types.

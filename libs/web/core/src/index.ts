@@ -15,6 +15,7 @@ export {
 export {
   useSeasonGames,
   useHeadToHead,
+  useLastScan,
   useLogin,
   useMe,
   useSeasons,

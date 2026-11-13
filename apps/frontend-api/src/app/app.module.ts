@@ -4,6 +4,7 @@ import { FrontendApiAuthControllerModule } from '@nba/frontend-api-auth-controll
 import { FailureFilter } from '@nba/frontend-api-common';
 import { FrontendApiGamesControllerModule } from '@nba/frontend-api-games-controller';
 import { FrontendApiPlayersControllerModule } from '@nba/frontend-api-players-controller';
+import { FrontendApiScansControllerModule } from '@nba/frontend-api-scans-controller';
 import { FrontendApiSeasonsControllerModule } from '@nba/frontend-api-seasons-controller';
 import { FrontendApiStandingsControllerModule } from '@nba/frontend-api-standings-controller';
 import { FrontendApiTeamsControllerModule } from '@nba/frontend-api-teams-controller';
@@ -20,6 +21,7 @@ import { AppController } from './app.controller';
     FrontendApiPlayersControllerModule,
     FrontendApiGamesControllerModule,
     FrontendApiStandingsControllerModule,
+    FrontendApiScansControllerModule,
   ],
   controllers: [AppController],
   // Nest's answers to failures, which it keeps for their request's log line (logRequests in main.ts).

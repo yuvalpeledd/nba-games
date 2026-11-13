@@ -5,7 +5,12 @@ import { TeamPlayerDalService } from '@nba/sql-team-players';
 import { TeamDalService } from '@nba/sql-teams';
 import pMap from 'p-map';
 import { fetchConcurrency } from './concurrency';
-import { describeWrites } from './counts';
+import {
+  addWrites,
+  describeWrites,
+  NO_WRITES,
+  type WriteCounts,
+} from './counts';
 import { easternDate } from './days';
 
 // Every active team's roster (30 requests, FETCH_CONCURRENCY at a time), then all of them written at once for `today`:
@@ -22,7 +27,7 @@ export class PlayersFetcherService {
     private readonly teamPlayers: TeamPlayerDalService,
   ) {}
 
-  async run(today = easternDate()): Promise<void> {
+  async run(today = easternDate()): Promise<WriteCounts> {
     const teams = (await this.teams.findAll()).filter((team) => team.active);
     if (!teams.length)
       throw new Error('No teams: the teams fetcher runs first');
@@ -61,5 +66,7 @@ export class PlayersFetcherService {
       `Rosters of ${today} (team_players): ${teamPlayers.inserted} added, ` +
         `${teamPlayers.deleted} deleted, ${teamPlayers.unchanged} unchanged`,
     );
+    // The players only (a release is an update), as the scan counts them: the day's rosters are history.
+    return addWrites(NO_WRITES, written.players);
   }
 }

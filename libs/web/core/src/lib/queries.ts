@@ -6,6 +6,7 @@ import type {
 } from '@nba/dtos-auth';
 import type { GameDto } from '@nba/dtos-games';
 import type { PlayerDto } from '@nba/dtos-players';
+import type { ScanDto } from '@nba/dtos-scans';
 import type { SeasonDto } from '@nba/dtos-seasons';
 import type { StandingDto } from '@nba/dtos-standings';
 import type { TeamDto } from '@nba/dtos-teams';
@@ -19,6 +20,13 @@ export const useSeasons = () =>
   useQuery({
     queryKey: ['seasons'],
     queryFn: () => api<SeasonDto[]>('GET', '/seasons'),
+  });
+
+// The data-fetcher's latest run; null before the first.
+export const useLastScan = () =>
+  useQuery({
+    queryKey: ['scans', 'last'],
+    queryFn: () => api<ScanDto | null>('GET', '/scans/last'),
   });
 
 // Every team, past franchises included (`active` false), by name.

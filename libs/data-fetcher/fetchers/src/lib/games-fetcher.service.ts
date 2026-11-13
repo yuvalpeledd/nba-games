@@ -8,7 +8,12 @@ import { GameDalService } from '@nba/sql-games';
 import { SeasonDalService, SeasonEntity } from '@nba/sql-seasons';
 import pMap from 'p-map';
 import { fetchConcurrency } from './concurrency';
-import { addWrites, describeWrites, NO_WRITES } from './counts';
+import {
+  addWrites,
+  describeWrites,
+  NO_WRITES,
+  type WriteCounts,
+} from './counts';
 import { byDistanceFrom, daysBetween, easternDate } from './days';
 
 const DEFAULT_MAX_REQUESTS = 50;
@@ -34,7 +39,7 @@ export class GamesFetcherService {
     private readonly seasons: SeasonDalService,
   ) {}
 
-  async run(today = easternDate()): Promise<void> {
+  async run(today = easternDate()): Promise<WriteCounts> {
     const season = await this.season();
     const maxRequests = Number(
       process.env['GAMES_MAX_REQUESTS'] ?? DEFAULT_MAX_REQUESTS,
@@ -95,9 +100,12 @@ export class GamesFetcherService {
       `${season.id}: checked ${fetched} of ${pool.length} days (${failed.length} failed, ` +
         `${pool.length - fetched - failed.length} left for the next run); games ${describeWrites(total)}`,
     );
+    // ponytail: a failed day fails the run, and the scan loses this run's counts with it; return them with the error
+    // if a failed scan's counts matter.
     if (failed.length) {
       throw new Error(`Games failed for ${failed.sort().join(', ')}`);
     }
+    return total;
   }
 
   // SEASON_ID, else the newest season.

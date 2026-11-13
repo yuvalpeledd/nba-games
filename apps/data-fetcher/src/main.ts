@@ -1,25 +1,11 @@
 import 'reflect-metadata';
 import { Logger, Module } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import {
-  FetchersModule,
-  GamesFetcherService,
-  PlayersFetcherService,
-  StandingsFetcherService,
-  TeamsFetcherService,
-} from '@nba/data-fetcher-fetchers';
+import { FetchersModule, ScanService } from '@nba/data-fetcher-fetchers';
 import { SqlModule } from '@nba/sql';
 import { DataSource } from 'typeorm';
 
-// One run (data-fetcher.md): every fetcher in this order (the players and the games need the teams), then exit,
-// non-zero if any failed. A failure doesn't stop the fetchers after it.
-const FETCHERS = [
-  TeamsFetcherService,
-  PlayersFetcherService,
-  StandingsFetcherService,
-  GamesFetcherService,
-];
-
+// One run (data-fetcher.md): a scan (every fetcher, recorded in `scans`), then exit, non-zero if any fetcher failed.
 @Module({
   imports: [SqlModule.forRoot({ runMigrations: false }), FetchersModule],
 })
@@ -36,21 +22,7 @@ async function main(): Promise<void> {
         'The database has pending migrations: run them first (pnpm typeorm:run-migrations)',
       );
     }
-    let failed = 0;
-    for (const fetcher of FETCHERS) {
-      const started = Date.now();
-      try {
-        await app.get(fetcher).run();
-        logger.log(`${fetcher.name} done in ${Date.now() - started} ms`);
-      } catch (error) {
-        failed++;
-        logger.error(
-          `${fetcher.name} failed: ${(error as Error).message}`,
-          (error as Error).stack,
-        );
-      }
-    }
-    process.exitCode = failed ? 1 : 0;
+    process.exitCode = (await app.get(ScanService).run()) ? 0 : 1;
   } finally {
     await app.close();
   }

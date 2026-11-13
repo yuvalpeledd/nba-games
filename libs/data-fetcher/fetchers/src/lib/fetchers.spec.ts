@@ -15,12 +15,14 @@ import { PlayerDalService, PlayerModule } from '@nba/sql-players';
 import { StandingDalService, StandingModule } from '@nba/sql-standings';
 import { StandingHistoryDalService } from '@nba/sql-standings-history';
 import { TeamPlayerDalService } from '@nba/sql-team-players';
+import { ScanDalService } from '@nba/sql-scans';
 import { TeamDalService } from '@nba/sql-teams';
 import { DataSource } from 'typeorm';
 import { daysBetween } from './days';
 import { FetchersModule } from './fetchers.module';
 import { GamesFetcherService } from './games-fetcher.service';
 import { PlayersFetcherService } from './players-fetcher.service';
+import { ScanService } from './scan.service';
 import { StandingsFetcherService } from './standings-fetcher.service';
 import { TeamsFetcherService } from './teams-fetcher.service';
 
@@ -88,7 +90,7 @@ describe('fetchers', () => {
     await module
       .get(DataSource)
       .query(
-        'TRUNCATE teams, players, games, game_days, standings, standings_history, team_players',
+        'TRUNCATE teams, players, games, game_days, standings, standings_history, team_players, scans',
       );
     fetch = jest.spyOn(global, 'fetch');
     answerWith(provider);
@@ -467,6 +469,54 @@ describe('fetchers', () => {
         module.get(GamesFetcherService).run('2026-11-12'),
       ).rejects.toThrow('No season nba-1999-00 (SEASON_ID)');
       expect(fetch).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('ScanService', () => {
+    // The games fetcher checks no day: its days depend on the real today.
+    beforeEach(() => {
+      process.env['GAMES_MAX_REQUESTS'] = '0';
+    });
+
+    it('runs every fetcher and records the scan with what they wrote', async () => {
+      expect(await module.get(ScanService).run()).toBe(true);
+
+      expect(await module.get(ScanDalService).findLast()).toMatchObject({
+        success: true,
+        inserted: 30 + 30 * players.length + standings.length,
+        updated: 0,
+        unchanged: 0,
+        error: null,
+      });
+      expect(logged()).toEqual(
+        expect.arrayContaining([
+          expect.stringMatching(/^TeamsFetcherService done in \d+ ms$/),
+          expect.stringMatching(/^GamesFetcherService done in \d+ ms$/),
+        ]),
+      );
+    });
+
+    it('records a failed fetcher, and runs the ones after it', async () => {
+      answerWith((url) =>
+        url.pathname === '/v1/basketballstandings'
+          ? Response.json({ error: 'Server error' }, { status: 500 })
+          : provider(url),
+      );
+
+      expect(await module.get(ScanService).run()).toBe(false);
+
+      const scan = await module.get(ScanDalService).findLast();
+      expect(scan).toMatchObject({
+        success: false,
+        inserted: 30 + 30 * players.length,
+      });
+      expect(scan?.error).toMatch(/^StandingsFetcherService: /);
+      expect(scan?.finishedAt.getTime()).toBeGreaterThanOrEqual(
+        scan?.startedAt.getTime() ?? Infinity,
+      );
+      expect(logged()).toContainEqual(
+        expect.stringMatching(/^GamesFetcherService done in \d+ ms$/),
+      );
     });
   });
 });
