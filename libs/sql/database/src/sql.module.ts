@@ -1,7 +1,7 @@
 import { DynamicModule, Module } from '@nestjs/common';
 import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
-import { join } from 'node:path';
-import { DataSourceOptions } from 'typeorm';
+import { basename, join } from 'node:path';
+import { DataSource, DataSourceOptions } from 'typeorm';
 import { DatabaseLogger } from './database-logger';
 import { SnakeNamingStrategy } from './snake-naming.strategy';
 
@@ -41,16 +41,56 @@ export function postgresOptions(env: NodeJS.ProcessEnv): DataSourceOptions {
   };
 }
 
-// The specs' connection: the local container's `nba_test` database (never the dev one), dropped and rebuilt through
-// the migrations by each spec file. Nx runs the test targets one at a time (nx.json), as they share it.
-export function testPostgresOptions(): TypeOrmModuleOptions {
+// The specs' database: one per checkout (`nba_test_<its folder>`: `nba_test_nba_games`, a worktree's
+// `nba_test_<worktree>`), so specs running in parallel worktrees never rebuild each other's mid-run. Never the dev one.
+export const TEST_DB_NAME =
+  `nba_test_${basename(join(__dirname, '../../../..'))}`
+    .toLowerCase()
+    .replace(/[^a-z0-9_]+/g, '_')
+    .slice(0, 63);
+
+// The specs' connection (TypeOrmModule.forRootAsync({ useFactory: testPostgresOptions })): their database, created on
+// first use, dropped and rebuilt through the migrations by each spec file. Within a checkout, Nx runs the test targets
+// one at a time (nx.json), as they share it.
+export async function testPostgresOptions(): Promise<TypeOrmModuleOptions> {
+  const options = postgresOptions({ ...process.env, DB_NAME: TEST_DB_NAME });
+  await createDatabaseIfMissing(options, TEST_DB_NAME);
   return {
-    ...postgresOptions({ ...process.env, DB_NAME: 'nba_test' }),
+    ...options,
     entities: [],
     autoLoadEntities: true,
     dropSchema: true,
     migrationsRun: true,
   };
+}
+
+// Through Postgres's own `postgres` database, which every server has.
+async function createDatabaseIfMissing(
+  options: DataSourceOptions,
+  name: string,
+): Promise<void> {
+  const admin = new DataSource({
+    ...options,
+    database: 'postgres',
+    entities: [],
+    migrations: [],
+  } as DataSourceOptions);
+  await admin.initialize();
+  try {
+    const found = await admin.query(
+      'SELECT 1 FROM pg_database WHERE datname = $1',
+      [name],
+    );
+    if (!found.length) {
+      // The name is ours (letters, digits and underscores): safe to quote as is.
+      await admin.query(`CREATE DATABASE "${name}"`).catch((error) => {
+        // Another spec created it in the meantime.
+        if ((error as { code?: string }).code !== '42P04') throw error;
+      });
+    }
+  } finally {
+    await admin.destroy();
+  }
 }
 
 // Import once, in an app's root module. Only frontend-api passes `runMigrations: true` (CLAUDE.md's Database).

@@ -27,7 +27,7 @@ import {
 } from '@nba/data-fetcher-api-ninjas-client/fixtures';
 
 // Every table against the real migrations, with API Ninjas' real responses mapped by the client's mappers. Runs on
-// the local container's `nba_test` database, which it rebuilds: never the dev one.
+// the specs' database (TEST_DB_NAME, this checkout's own), which it rebuilds: never the dev one.
 
 describe('schema', () => {
   let module: TestingModule;
@@ -36,7 +36,7 @@ describe('schema', () => {
   beforeAll(async () => {
     module = await Test.createTestingModule({
       imports: [
-        TypeOrmModule.forRoot(testPostgresOptions()),
+        TypeOrmModule.forRootAsync({ useFactory: testPostgresOptions }),
         TeamModule,
         PlayerModule,
         GameModule,

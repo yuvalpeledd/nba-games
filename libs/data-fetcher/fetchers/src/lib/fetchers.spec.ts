@@ -75,7 +75,7 @@ describe('fetchers', () => {
     process.env['API_NINJAS_KEY'] = 'test-key';
     module = await Test.createTestingModule({
       imports: [
-        TypeOrmModule.forRoot(testPostgresOptions()),
+        TypeOrmModule.forRootAsync({ useFactory: testPostgresOptions }),
         FetchersModule,
         PlayerModule,
         GameModule,

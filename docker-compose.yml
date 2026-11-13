@@ -1,4 +1,5 @@
-# Local Postgres: `docker compose up -d db`. `nba` is the dev database; `nba_test` is the specs' (they reset it).
+# Local Postgres: `docker compose up -d db`. `nba` is the dev database; each checkout's specs make their own
+# (`nba_test_<folder>`, see testPostgresOptions) and reset it.
 name: nba-games
 services:
   db:
@@ -12,7 +13,6 @@ services:
       - '127.0.0.1:${DB_PORT:-5432}:5432'
     volumes:
       - nba-db:/var/lib/postgresql/data
-      - ./scripts/db-init.sql:/docker-entrypoint-initdb.d/db-init.sql:ro
 
 volumes:
   nba-db:
