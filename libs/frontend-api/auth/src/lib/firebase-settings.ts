@@ -8,8 +8,8 @@ export interface FirebaseSettings {
 
 // The dev project, which local runs sign in against (local sign-ups are real accounts there).
 const DEV = {
-  projectId: 'yuval-nba-test',
-  authDomain: 'yuval-nba-test.firebaseapp.com',
+  projectId: 'yuval-nba-test-882ca',
+  authDomain: 'yuval-nba-test-882ca.firebaseapp.com',
 };
 
 // From the env: production must set all three; elsewhere the dev project, whose web API key (FIREBASE_API_KEY, in

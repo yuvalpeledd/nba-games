@@ -306,7 +306,7 @@ describe('AuthController', () => {
       expect(status).toBe(200);
       expect(body.data).toEqual({
         apiKey: 'dev-key',
-        authDomain: 'yuval-nba-test.firebaseapp.com',
+        authDomain: 'yuval-nba-test-882ca.firebaseapp.com',
       });
     });
   });

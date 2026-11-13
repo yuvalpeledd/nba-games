@@ -10,7 +10,7 @@
     This decides the `predictions` table and whether a `libs/model` lib exists.
   - **Who uses it?** Accounts are in (outly's Firebase auth).
     Should the app be private (every page behind login), and do friends compete in groups (a leaderboard, roles)?
-  - **Firebase in production:** local runs sign in against `yuval-nba-test`.
+  - **Firebase in production:** local runs sign in against `yuval-nba-test-882ca`.
     Does production get a project of its own when it's deployed (set `GOOGLE_CLOUD_PROJECT`, `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`), or share it?
   - **How much history?** The free plan has the current season only.
   - **Where does it run?** GCP as outly (Cloud Run for the API, a Cloud Run Job for the fetcher, Cloud SQL), or only locally for now?

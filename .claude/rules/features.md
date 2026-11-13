@@ -44,7 +44,7 @@ Add a section per feature as it is built; delete what turns out wrong.
     A token Firebase refuses, or an account with no user, is 401.
   - A user's email follows their account's (changed through Firebase), unless another user has it: then it stays (logged).
   - Config (`firebaseSettings`): production needs `GOOGLE_CLOUD_PROJECT`, `FIREBASE_API_KEY` and `FIREBASE_AUTH_DOMAIN`.
-    Elsewhere it's the dev project, `yuval-nba-test`, whose web API key is still required (`FIREBASE_API_KEY` in `.env`): local sign-ups are real accounts there.
+    Elsewhere it's the dev project, `yuval-nba-test-882ca`, whose web API key is still required (`FIREBASE_API_KEY` in `.env`): local sign-ups are real accounts there.
     `GET /firebase-config` hands the web what it needs, so one build serves every environment.
 - **Predictions:** see `docs/backlog.md` for the open questions (who predicts, and what).
   Whatever the answer, these hold:

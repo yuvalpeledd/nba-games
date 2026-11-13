@@ -27,9 +27,9 @@ describe('firebaseSettings', () => {
 
   it('falls back to the dev project elsewhere, with the key from the env', () => {
     expect(firebaseSettings({ FIREBASE_API_KEY: 'dev-key' })).toEqual({
-      projectId: 'yuval-nba-test',
+      projectId: 'yuval-nba-test-882ca',
       apiKey: 'dev-key',
-      authDomain: 'yuval-nba-test.firebaseapp.com',
+      authDomain: 'yuval-nba-test-882ca.firebaseapp.com',
     });
   });
 
