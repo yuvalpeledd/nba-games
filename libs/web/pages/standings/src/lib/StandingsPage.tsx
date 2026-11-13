@@ -117,7 +117,22 @@ export function StandingsPage() {
               {rows.map((row) => (
                 <TableRow key={row.teamId}>
                   <TableCell align="right">{row.conferenceRank}</TableCell>
-                  <TableCell>{row.teamName}</TableCell>
+                  <TableCell>
+                    <Stack
+                      direction="row"
+                      spacing={1}
+                      sx={{ alignItems: 'center' }}
+                    >
+                      {/* Decorative: the name beside it says which team. */}
+                      <img
+                        src={`/logos/${row.teamId}.svg`}
+                        alt=""
+                        width={24}
+                        height={24}
+                      />
+                      <span>{row.teamName}</span>
+                    </Stack>
+                  </TableCell>
                   <TableCell align="right">{row.wins}</TableCell>
                   <TableCell align="right">{row.losses}</TableCell>
                   <TableCell align="right">
