@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "rootDir": "../../migrations",
+    "outDir": "../../dist/apps/frontend-api/migrations",
+    "sourceMap": false,
+    "types": ["node"]
+  },
+  "include": ["../../migrations/*.ts"]
+}

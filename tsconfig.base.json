@@ -15,6 +15,31 @@
     "skipDefaultLibCheck": true,
     "strict": true,
     "paths": {
+      "@nba/dtos": ["./libs/dtos/common/src/index.ts"],
+      "@nba/dtos-games": ["./libs/dtos/games/src/index.ts"],
+      "@nba/dtos-players": ["./libs/dtos/players/src/index.ts"],
+      "@nba/dtos-seasons": ["./libs/dtos/seasons/src/index.ts"],
+      "@nba/dtos-standings": ["./libs/dtos/standings/src/index.ts"],
+      "@nba/dtos-teams": ["./libs/dtos/teams/src/index.ts"],
+      "@nba/frontend-api-common": ["./libs/frontend-api/common/src/index.ts"],
+      "@nba/frontend-api-games-controller": [
+        "./libs/frontend-api/controllers/games/src/index.ts"
+      ],
+      "@nba/frontend-api-players-controller": [
+        "./libs/frontend-api/controllers/players/src/index.ts"
+      ],
+      "@nba/frontend-api-seasons-controller": [
+        "./libs/frontend-api/controllers/seasons/src/index.ts"
+      ],
+      "@nba/frontend-api-standings-controller": [
+        "./libs/frontend-api/controllers/standings/src/index.ts"
+      ],
+      "@nba/frontend-api-teams-controller": [
+        "./libs/frontend-api/controllers/teams/src/index.ts"
+      ],
+      "@nba/frontend-api-test-utils": [
+        "./libs/frontend-api/test-utils/src/index.ts"
+      ],
       "@nba/sql": ["./libs/sql/database/src/index.ts"],
       "@nba/sql-core": ["./libs/sql/core/src/index.ts"],
       "@nba/sql-games": ["./libs/sql/tables/games/src/index.ts"],

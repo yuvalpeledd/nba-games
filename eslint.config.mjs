@@ -15,8 +15,17 @@ export default [
         {
           enforceBuildableLibDependency: true,
           allow: ['^.*/eslint(\\.base)?\\.config\\.[cm]?[jt]s$'],
-          // ponytail: no scope tags yet; add scope:web / scope:frontend-api / scope:data-fetcher with the apps (CLAUDE.md's Layout).
-          depConstraints: [{ sourceTag: '*', onlyDependOnLibsWithTags: ['*'] }],
+          // CLAUDE.md's dependency direction. Add scope:web and scope:data-fetcher with their apps.
+          depConstraints: [
+            {
+              sourceTag: 'scope:frontend-api',
+              onlyDependOnLibsWithTags: ['scope:frontend-api', 'scope:shared'],
+            },
+            {
+              sourceTag: 'scope:shared',
+              onlyDependOnLibsWithTags: ['scope:shared'],
+            },
+          ],
         },
       ],
     },

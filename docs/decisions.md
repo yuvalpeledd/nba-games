@@ -2,6 +2,14 @@
 
 Newest first. One entry per non-obvious choice: the decision, why, and when to revisit, in a few lines. What was built and how it was checked go in the commit message. Open questions and next steps: [backlog.md](backlog.md).
 
+## 2026-11-13: frontend-api's reads
+
+- **Read-only routes, no auth yet**, as asked: `GET /api/seasons`, `/teams`, `/teams/:id`, `/players?teamId=&limit=&offset=`, `/players/:id`, `/players/:id/teams`, `/games?from=&to=&teamId=`, `/games/:id`, `/standings?season=`. Revisit with the backlog's "who uses it?".
+- **Games by a range of league days, at most 31** (`MAX_GAME_DAYS`), not paged: a month's schedule is ~230 games. `to` defaults to `from` (one day).
+- **Games carry team ids, not teams:** the web loads `/teams` once (30 rows) and joins. Revisit if a page needs one game without the teams list.
+- **`/players/:id/teams` gives one span per team** (first to last day seen), so a player who leaves and returns shows one span across the gap. Split on gaps if a "traded on" view needs it.
+- **`SeasonDto.year`** (from `start_date`) is what `/standings?season=` and `games.season` take, so the web never parses `nba-2026-27`.
+
 ## 2026-11-13: `seasons`, loaded by migrations
 
 - **A table of seasons with their dates**, as asked, loaded by a data migration per season (2026-27: 2026-10-20 to 2027-04-11), apart from the table's own migration, so a season's dates are reviewed like code and every database gets the same rows. The provider has no seasons endpoint.

@@ -1,0 +1,8 @@
+{
+  "name": "dtos-seasons",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/dtos/seasons/src",
+  "projectType": "library",
+  "tags": ["scope:shared"],
+  "targets": {}
+}

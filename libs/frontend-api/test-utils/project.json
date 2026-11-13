@@ -1,0 +1,8 @@
+{
+  "name": "frontend-api-test-utils",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/frontend-api/test-utils/src",
+  "projectType": "library",
+  "tags": ["scope:frontend-api"],
+  "targets": {}
+}
