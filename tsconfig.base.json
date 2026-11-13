@@ -15,9 +15,40 @@
     "skipDefaultLibCheck": true,
     "strict": true,
     "paths": {
+      "@nba/data-fetcher-api-ninjas-client": [
+        "./libs/data-fetcher/api-ninjas-client/src/index.ts"
+      ],
+      "@nba/data-fetcher-api-ninjas-client/fixtures": [
+        "./libs/data-fetcher/api-ninjas-client/src/fixtures.ts"
+      ],
+      "@nba/data-fetcher-fetchers": [
+        "./libs/data-fetcher/fetchers/src/index.ts"
+      ],
       "@nba/dtos": ["./libs/dtos/common/src/index.ts"],
+      "@nba/dtos-games": ["./libs/dtos/games/src/index.ts"],
+      "@nba/dtos-players": ["./libs/dtos/players/src/index.ts"],
+      "@nba/dtos-seasons": ["./libs/dtos/seasons/src/index.ts"],
       "@nba/dtos-standings": ["./libs/dtos/standings/src/index.ts"],
       "@nba/dtos-teams": ["./libs/dtos/teams/src/index.ts"],
+      "@nba/frontend-api-common": ["./libs/frontend-api/common/src/index.ts"],
+      "@nba/frontend-api-games-controller": [
+        "./libs/frontend-api/controllers/games/src/index.ts"
+      ],
+      "@nba/frontend-api-players-controller": [
+        "./libs/frontend-api/controllers/players/src/index.ts"
+      ],
+      "@nba/frontend-api-seasons-controller": [
+        "./libs/frontend-api/controllers/seasons/src/index.ts"
+      ],
+      "@nba/frontend-api-standings-controller": [
+        "./libs/frontend-api/controllers/standings/src/index.ts"
+      ],
+      "@nba/frontend-api-teams-controller": [
+        "./libs/frontend-api/controllers/teams/src/index.ts"
+      ],
+      "@nba/frontend-api-test-utils": [
+        "./libs/frontend-api/test-utils/src/index.ts"
+      ],
       "@nba/sql": ["./libs/sql/database/src/index.ts"],
       "@nba/sql-core": ["./libs/sql/core/src/index.ts"],
       "@nba/sql-games": ["./libs/sql/tables/games/src/index.ts"],
@@ -25,6 +56,9 @@
       "@nba/sql-players": ["./libs/sql/tables/players/src/index.ts"],
       "@nba/sql-seasons": ["./libs/sql/tables/seasons/src/index.ts"],
       "@nba/sql-standings": ["./libs/sql/tables/standings/src/index.ts"],
+      "@nba/sql-standings-history": [
+        "./libs/sql/tables/standings-history/src/index.ts"
+      ],
       "@nba/sql-team-players": ["./libs/sql/tables/team-players/src/index.ts"],
       "@nba/sql-teams": ["./libs/sql/tables/teams/src/index.ts"],
       "@nba/web-core": ["./libs/web/core/src/index.ts"],

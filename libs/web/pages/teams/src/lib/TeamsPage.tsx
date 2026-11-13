@@ -12,9 +12,11 @@ import { useTeams } from '@nba/web-core';
 import { PageLoader } from '@nba/web-shell-components';
 import { useTableSort } from '@nba/web-table-components';
 
+// Today's teams (`/teams` has past franchises too).
 export function TeamsPage() {
   const { data: teams, isError } = useTeams();
-  const { rows, headCell } = useTableSort(teams ?? [], {
+  const active = teams?.filter((team) => team.active) ?? [];
+  const { rows, headCell } = useTableSort(active, {
     name: (team) => team.name,
     conference: (team) => team.conference,
   });

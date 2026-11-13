@@ -3,6 +3,6 @@
   "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/web/pages/standings/src",
   "projectType": "library",
-  "tags": [],
+  "tags": ["scope:web"],
   "targets": {}
 }

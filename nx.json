@@ -40,11 +40,20 @@
       "options": {
         "testTargetName": "test"
       }
+    },
+    {
+      "plugin": "@nx/webpack/plugin",
+      "options": {
+        "buildTargetName": "build",
+        "serveTargetName": "webpack-serve",
+        "previewTargetName": "preview"
+      }
     }
   ],
   "targetDefaults": {
     "test": {
-      "inputs": ["default", "^production", "{workspaceRoot}/migrations/**/*"]
+      "inputs": ["default", "^production", "{workspaceRoot}/migrations/**/*"],
+      "parallelism": false
     }
   }
 }

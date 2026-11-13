@@ -1,4 +1,5 @@
-import { appWith, standing, stubApi, team } from '@nba/web-test-utils';
+import { appWith, season, standing, stubApi, team } from '@nba/web-test-utils';
+import type { StandingDto } from '@nba/dtos-standings';
 import { fireEvent, screen, within } from '@testing-library/react';
 import { StandingsPage } from './StandingsPage';
 
@@ -9,6 +10,18 @@ const knicks = team('nba-nyk', 'New York Knicks', 'Eastern');
 const nets = team('nba-bkn', 'Brooklyn Nets', 'Eastern');
 const lakers = team('nba-lal', 'Los Angeles Lakers', 'Western');
 const suns = team('nba-phx', 'Phoenix Suns', 'Western');
+
+// The API with these seasons' standings (by year), the newest first, and the teams.
+const routes = (standings: Record<number, StandingDto[]>) => ({
+  'GET /seasons': Object.keys(standings).map(Number).reverse().map(season),
+  'GET /teams': [celtics, knicks, nets, lakers, suns],
+  ...Object.fromEntries(
+    Object.entries(standings).map(([year, rows]) => [
+      `GET /standings?season=${year}`,
+      rows,
+    ]),
+  ),
+});
 
 // The table's rows, each its cells' text.
 const rowsOf = async (name: string) =>
@@ -23,22 +36,24 @@ const rowsOf = async (name: string) =>
 
 describe('StandingsPage', () => {
   it("shows the East's standings by seed, with each team's games behind its leader", async () => {
-    stubApi({
-      // Out of order, with the provider's games behind (from the division's leader), which the page doesn't show.
-      'GET /standings': [
-        standing(nets, 3, 3, 10, { gamesBehind: 4 }),
-        standing(celtics, 1, 10, 3),
-        standing(lakers, 1, 11, 2),
-        standing(knicks, 2, 9, 5, {
-          streak: 'L2',
-          homeRecord: '5-2',
-          awayRecord: '4-3',
-          conferenceRecord: '6-3',
-          last10: '7-3',
-          gamesBehind: 0,
-        }),
-      ],
-    });
+    stubApi(
+      routes({
+        // Out of order, with the provider's games behind (from the division's leader), which the page doesn't show.
+        2026: [
+          standing(nets, 3, 3, 10, { gamesBehind: 4 }),
+          standing(celtics, 1, 10, 3),
+          standing(lakers, 1, 11, 2),
+          standing(knicks, 2, 9, 5, {
+            streak: 'L2',
+            homeRecord: '5-2',
+            awayRecord: '4-3',
+            conferenceRecord: '6-3',
+            last10: '7-3',
+            gamesBehind: 0,
+          }),
+        ],
+      }),
+    );
     renderAt('/standings');
 
     expect(
@@ -92,13 +107,15 @@ describe('StandingsPage', () => {
   });
 
   it("shows the West's on its tab", async () => {
-    stubApi({
-      'GET /standings': [
-        standing(celtics, 1, 10, 3),
-        standing(suns, 2, 7, 6),
-        standing(lakers, 1, 13, 0),
-      ],
-    });
+    stubApi(
+      routes({
+        2026: [
+          standing(celtics, 1, 10, 3),
+          standing(suns, 2, 7, 6),
+          standing(lakers, 1, 13, 0),
+        ],
+      }),
+    );
     renderAt('/standings');
 
     fireEvent.click(await screen.findByRole('tab', { name: 'West' }));
@@ -114,13 +131,15 @@ describe('StandingsPage', () => {
   });
 
   it('sorts by any column, and the other way on a second click', async () => {
-    stubApi({
-      'GET /standings': [
-        standing(celtics, 1, 10, 3, { streak: 'W3' }),
-        standing(knicks, 2, 9, 5, { streak: 'W10' }),
-        standing(nets, 3, 3, 10, { streak: 'W2' }),
-      ],
-    });
+    stubApi(
+      routes({
+        2026: [
+          standing(celtics, 1, 10, 3, { streak: 'W3' }),
+          standing(knicks, 2, 9, 5, { streak: 'W10' }),
+          standing(nets, 3, 3, 10, { streak: 'W2' }),
+        ],
+      }),
+    );
     renderAt('/standings');
     const teams = async () =>
       (await rowsOf('Eastern Conference standings')).map(([, name]) => name);
@@ -147,8 +166,25 @@ describe('StandingsPage', () => {
     ]);
   });
 
+  it('opens the newest season that has started', async () => {
+    // 2099 hasn't started; 2025 is over.
+    stubApi(
+      routes({
+        2025: [standing(knicks, 1, 50, 32, { season: 2025 })],
+        2026: [standing(celtics, 1, 10, 3)],
+        2099: [standing(nets, 1, 1, 0, { season: 2099 })],
+      }),
+    );
+    renderAt('/standings');
+
+    expect(
+      (await rowsOf('Eastern Conference standings')).map(([, name]) => name),
+    ).toEqual(['Boston Celtics']);
+    expect(screen.getByText('2026-27')).toBeTruthy();
+  });
+
   it('says when there are no standings yet', async () => {
-    stubApi({ 'GET /standings': [] });
+    stubApi(routes({ 2026: [] }));
     renderAt('/standings');
 
     expect(await screen.findByText('No standings yet.')).toBeTruthy();

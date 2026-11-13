@@ -2,13 +2,35 @@
 
 Newest first. One entry per non-obvious choice: the decision, why, and when to revisit, in a few lines. What was built and how it was checked go in the commit message. Open questions and next steps: [backlog.md](backlog.md).
 
-## 2026-11-13: The web-app, before the API
+## 2026-11-13: The web-app
 
-- **Built before `frontend-api`, against contracts in the dtos libs:** `GET /api/teams` (`TeamDto[]`, the active teams by name) and `GET /api/standings` (`StandingDto[]`, the current season's). The API must serve exactly these; until then the pages show their load error. The specs run on a fake API, so they don't wait for it.
+- **On `frontend-api`'s contracts:** the standings page asks `/seasons` for the current season (the newest that has started, else the newest) and joins `/standings?season=` with `/teams` for the names; the teams page lists the active teams (`/teams` has past franchises too). The specs run on a fake API with the same routes.
 - **outly's design system, copied, not shared:** its palette (`colors.scss`, without the order-status, semantic and gradient maps), `theme.tsx` without RTL, locales and date pickers, and its MUI overrides (all but rich text). No package spans the two repos; revisit if both keep changing it.
 - **The navbar and page layout live in the shell lib,** not a `layout` lib as in outly: every page has the same one, and `AppShell` renders it as the routes' layout. Split it out when a page needs a different frame (a full-screen login).
 - **Games behind are computed on the web, from the conference's leader:** the provider's `games_behind` is from the division's, which reads wrong in a conference table. Move it into the API's `StandingDto` if another client needs it.
 - **Left out of outly's shell for now:** toasts (no mutations), the error boundary and error page, scroll-to-top, table paging (30 rows at most). Add each with the first page that needs it.
+
+## 2026-11-13: frontend-api's reads
+
+- **Read-only routes, no auth yet**, as asked: `GET /api/seasons`, `/teams`, `/teams/:id`, `/players?teamId=&limit=&offset=`, `/players/:id`, `/players/:id/teams`, `/games?from=&to=&teamId=`, `/games/:id`, `/standings?season=`. Revisit with the backlog's "who uses it?".
+- **Games by a range of league days, at most 31** (`MAX_GAME_DAYS`), not paged: a month's schedule is ~230 games. `to` defaults to `from` (one day).
+- **Games carry team ids, not teams:** the web loads `/teams` once (30 rows) and joins. Revisit if a page needs one game without the teams list.
+- **`/players/:id/teams` gives one span per team** (first to last day seen), so a player who leaves and returns shows one span across the gap. Split on gaps if a "traded on" view needs it.
+- **`SeasonDto.year`** (from `start_date`) is what `/standings?season=` and `games.season` take, so the web never parses `nba-2026-27`.
+
+## 2026-11-13: `standings_history`, and the games' scores from the last scored day
+
+- **A row per day, season and team**, as asked, with the same columns as `standings` (an abstract `StandingColumns` both extend, so the two can't drift; `standings`' table is unchanged). It points at `standings` (season and team), so `recordStandings` writes both in one transaction from its lib, as the sql libs' rule has it. A second fetch the same day overwrites the day's row. Revisit (a row only when something changed) if ~5,000 rows a season ever matters.
+- **The games' scores come from the last day with a scored game to today**, as asked, replacing the "a played day until all its games are over" rule (the entry below): one `MAX(date)` instead of a status per day, and the last scored day is fetched again too, for its late games. With no scored game yet, from the season's start. The days with no games are still fetched, for the schedule. Revisit if a game left unscored on an earlier day (a suspended one) needs its score: this rule never goes back for it.
+
+## 2026-11-13: The data-fetcher: four fetchers, a task pool for the games
+
+- **Every run runs every fetcher**, in order (teams, players, standings, games), as asked, rather than jobs picked by argument (the earlier plan): 32 calls plus the games' cap fits the free plan's hour. Revisit when one needs its own schedule (`--job` then).
+- **"Delete" is a release and a replacement**, not a deleted row: a player on no roster gets `team_id` null, and today's `team_players` are replaced by the run's fetch (so a day holds its last fetch, not both teams of a trade day, as the `team_players` entry below first had it). Players and teams stay: `team_players`, games and standings point at them. The players fetcher writes nothing unless all 30 rosters came back, since a missing one would release a whole team.
+- **The games' task pool is rebuilt from the table each run** (the days whose games aren't there or aren't over), with no queue of its own: a crash or a quota loses nothing, and a rerun picks up where it stopped. Nearest to today first, so a capped run brings what's current before the backfill. "Has its data" counts a played day's results, not just its rows, or its scores would never come.
+- **No yup on the provider's responses** (the earlier plan): the tables' NOT NULLs, enums and foreign keys already refuse a missing or unknown value, and the response types are checked against real responses. Revisit if a nullable field arrives null when it shouldn't.
+- **No retries:** every fetch is redone by the next run. **No bundle yet:** the app runs from its sources (ts-node), like the migrations CLI; webpack and a Cloud Run Job come with deployment.
+- **The specs share `nba_test`**, so Nx runs test targets one at a time (`parallelism: false`): simpler than a database per project, while the suite takes seconds.
 
 ## 2026-11-13: `seasons`, loaded by migrations
 

@@ -1,7 +1,9 @@
 // What the web specs share: the app rendered at a path with the spec's pages (appWith), and the data more than one
 // spec starts from. The fakes are test-setup.ts's; their handles are re-exported here.
+import type { SeasonDto } from '@nba/dtos-seasons';
 import type { StandingDto } from '@nba/dtos-standings';
 import type { TeamDto } from '@nba/dtos-teams';
+import { formatSeason } from '@nba/web-core';
 import { AppShell, PAGE_NAMES, type Pages } from '@nba/web-shell-components';
 import { render } from '@testing-library/react';
 import { Failure, stubApi } from './test-setup';
@@ -26,10 +28,20 @@ export const appWith = (pages: Partial<Pages>) => {
   return { renderAt };
 };
 
+// A season by its year (2026 is 2026-27), from October to April.
+export const season = (year: number): SeasonDto => ({
+  id: `nba-${formatSeason(year)}`,
+  name: `NBA ${year}-${year + 1}`,
+  year,
+  startDate: `${year}-10-20`,
+  endDate: `${year + 1}-04-11`,
+});
+
 export const team = (
   id: string,
   name: string,
   conference: string,
+  active = true,
 ): TeamDto => ({
   id,
   abbreviation: id.replace('nba-', '').toUpperCase(),
@@ -38,18 +50,25 @@ export const team = (
   city: name.split(' ')[0],
   conference,
   division: conference === 'Eastern' ? 'Atlantic' : 'Pacific',
+  venue: {
+    name: 'Arena',
+    city: name.split(' ')[0],
+    state: null,
+    country: 'US',
+  },
+  active,
 });
 
 // A team's row in the 2026-27 standings: its seed and record, the rest a test's overrides.
 export const standing = (
-  { id, name, abbreviation, conference }: TeamDto,
+  { id, conference }: TeamDto,
   conferenceRank: number,
   wins: number,
   losses: number,
   overrides: Partial<StandingDto> = {},
 ): StandingDto => ({
   season: 2026,
-  team: { id, name, abbreviation },
+  teamId: id,
   conference,
   division: conference === 'Eastern' ? 'Atlantic' : 'Pacific',
   gamesPlayed: wins + losses,

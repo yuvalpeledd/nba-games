@@ -22,6 +22,8 @@ describe('TeamsPage', () => {
         team('nba-bos', 'Boston Celtics', 'Eastern'),
         team('nba-dal', 'Dallas Mavericks', 'Western'),
         team('nba-phi', 'Philadelphia 76ers', 'Eastern'),
+        // A past franchise: not listed.
+        team('nba-sea', 'Seattle SuperSonics', 'Western', false),
       ],
     });
   });

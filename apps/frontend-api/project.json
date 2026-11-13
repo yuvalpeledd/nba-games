@@ -1,0 +1,36 @@
+{
+  "name": "frontend-api",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/frontend-api/src",
+  "projectType": "application",
+  "tags": ["scope:frontend-api"],
+  "targets": {
+    "compile-migrations": {
+      "command": "tsc -p apps/frontend-api/tsconfig.migrations.json",
+      "inputs": ["{workspaceRoot}/migrations/**/*"],
+      "outputs": ["{workspaceRoot}/dist/apps/frontend-api/migrations"],
+      "cache": true
+    },
+    "build": {
+      "dependsOn": ["^build", "compile-migrations"]
+    },
+    "serve": {
+      "continuous": true,
+      "executor": "@nx/js:node",
+      "defaultConfiguration": "development",
+      "dependsOn": ["build"],
+      "options": {
+        "buildTarget": "frontend-api:build",
+        "runBuildTargetDependencies": false
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "frontend-api:build:development"
+        },
+        "production": {
+          "buildTarget": "frontend-api:build:production"
+        }
+      }
+    }
+  }
+}

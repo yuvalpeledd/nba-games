@@ -12,10 +12,13 @@ import {
 } from '@mui/material';
 import type { StandingDto } from '@nba/dtos-standings';
 import {
+  currentSeason,
   formatGamesBehind,
   formatSeason,
   formatWinPct,
+  useSeasons,
   useStandings,
+  useTeams,
 } from '@nba/web-core';
 import { PageLoader } from '@nba/web-shell-components';
 import { useTableSort } from '@nba/web-table-components';
@@ -27,27 +30,37 @@ const conferences = [
   ['Western', 'West'],
 ] as const;
 
-// A conference's standings, by seed, each with its games behind the conference's leader (the provider's
-// `gamesBehind` is from the division's).
-const standingsOf = (standings: StandingDto[], conference: string) => {
+// A conference's standings, by seed, each with its team's name and its games behind the conference's leader (the
+// provider's `gamesBehind` is from the division's).
+const standingsOf = (
+  standings: StandingDto[],
+  conference: string,
+  teamNames: Map<string, string>,
+) => {
   const rows = standings
     .filter((row) => row.conference === conference)
     .sort((a, b) => a.conferenceRank - b.conferenceRank);
   const [leader] = rows;
   return rows.map((row) => ({
     ...row,
+    teamName: teamNames.get(row.teamId) ?? row.teamId,
     gamesBehind: (leader.wins - row.wins + (row.losses - leader.losses)) / 2,
   }));
 };
 
+// The current season's standings.
 export function StandingsPage() {
-  const { data: standings, isError } = useStandings();
+  const seasons = useSeasons();
+  const season = seasons.data && currentSeason(seasons.data);
+  const standings = useStandings(season?.year);
+  const teams = useTeams();
   const [conference, setConference] = useState<string>(conferences[0][0]);
+  const teamNames = new Map(teams.data?.map(({ id, name }) => [id, name]));
   const { rows, headCell } = useTableSort(
-    standingsOf(standings ?? [], conference),
+    standingsOf(standings.data ?? [], conference, teamNames),
     {
       seed: (row) => row.conferenceRank,
-      team: (row) => row.team.name,
+      team: (row) => row.teamName,
       wins: (row) => row.wins,
       losses: (row) => row.losses,
       winPct: (row) => row.winPct,
@@ -59,15 +72,19 @@ export function StandingsPage() {
       streak: (row) => row.streak,
     },
   );
-  if (!standings) return <PageLoader error={isError} />;
+  // No season at all: nothing to wait for.
+  if (!seasons.data || (season && !standings.data) || !teams.data) {
+    const isError = seasons.isError || standings.isError || teams.isError;
+    return <PageLoader error={isError} />;
+  }
 
   return (
     <Stack spacing={3}>
       <div>
         <Typography variant="h1">Standings</Typography>
-        {standings.length > 0 && (
+        {season && (
           <Typography color="text.secondary">
-            {formatSeason(standings[0].season)}
+            {formatSeason(season.year)}
           </Typography>
         )}
       </div>
@@ -98,9 +115,9 @@ export function StandingsPage() {
             </TableHead>
             <TableBody>
               {rows.map((row) => (
-                <TableRow key={row.team.id}>
+                <TableRow key={row.teamId}>
                   <TableCell align="right">{row.conferenceRank}</TableCell>
-                  <TableCell>{row.team.name}</TableCell>
+                  <TableCell>{row.teamName}</TableCell>
                   <TableCell align="right">{row.wins}</TableCell>
                   <TableCell align="right">{row.losses}</TableCell>
                   <TableCell align="right">

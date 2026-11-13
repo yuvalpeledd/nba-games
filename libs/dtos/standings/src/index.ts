@@ -1,23 +1,21 @@
-// GET /api/standings: the current season's, a row per team (the `standings` table's, as the provider gives them).
+import { InferType, number, object } from 'yup';
+
 export interface StandingDto {
   // The year it starts in: 2026 is 2026-27.
   season: number;
-  team: { id: string; name: string; abbreviation: string };
-  // `Eastern` / `Western`
+  teamId: string;
   conference: string;
   division: string;
   gamesPlayed: number;
   wins: number;
   losses: number;
   winPct: number;
-  // From the division's leader.
   gamesBehind: number;
   pointsFor: number;
   pointsAgainst: number;
   pointDifferential: number;
-  // `W7`
+  // As the provider writes them: `W7`, `5-1`.
   streak: string;
-  // `5-1`
   homeRecord: string;
   awayRecord: string;
   divisionRecord: string;
@@ -30,3 +28,9 @@ export interface StandingDto {
   // The season is over: these are its final standings.
   final: boolean;
 }
+
+// GET /standings: a season's, by its year (SeasonDto.year).
+export const standingsQuerySchema = object({
+  season: number().integer().min(1946).max(2100).required(),
+});
+export type StandingsQuery = InferType<typeof standingsQuerySchema>;

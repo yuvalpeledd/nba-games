@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Between } from 'typeorm';
 import { GameCreateObject, GameEntity } from './game.entity';
 import { GameRepo } from './game.repo';
 
@@ -17,5 +18,49 @@ export class GameDalService {
       where: { date },
       order: { startTime: 'ASC', id: 'ASC' },
     });
+  }
+
+  // The games from `from` to `to` ('YYYY-MM-DD', both included), only a team's (home or away) when `teamId` is given;
+  // by day, then tip-off.
+  findBetween(
+    from: string,
+    to: string,
+    teamId?: string,
+  ): Promise<GameEntity[]> {
+    const date = Between(from, to);
+    return this.repo.find({
+      where: teamId
+        ? [
+            { date, homeTeamId: teamId },
+            { date, awayTeamId: teamId },
+          ]
+        : { date },
+      order: { date: 'ASC', startTime: 'ASC', id: 'ASC' },
+    });
+  }
+
+  findById(id: string): Promise<GameEntity | null> {
+    return this.repo.findOneBy({ id });
+  }
+
+  // The days from `from` to `to` ('YYYY-MM-DD') that have games.
+  async datesWithGames(from: string, to: string): Promise<Set<string>> {
+    const rows: { date: string }[] = await this.repo
+      .createQueryBuilder('game')
+      .select('DISTINCT game.date::text', 'date')
+      .where('game.date BETWEEN :from AND :to', { from, to })
+      .getRawMany();
+    return new Set(rows.map(({ date }) => date));
+  }
+
+  // The last day from `from` to `to` with a game that has its score; null when none has.
+  async lastScoredDate(from: string, to: string): Promise<string | null> {
+    const row: { date: string | null } | undefined = await this.repo
+      .createQueryBuilder('game')
+      .select('MAX(game.date)::text', 'date')
+      .where('game.date BETWEEN :from AND :to', { from, to })
+      .andWhere('game.home_score IS NOT NULL')
+      .getRawOne();
+    return row?.date ?? null;
   }
 }

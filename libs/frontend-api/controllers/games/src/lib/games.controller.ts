@@ -1,0 +1,25 @@
+import { Controller, Get, Param, Query } from '@nestjs/common';
+import { DataResponse, idSchema } from '@nba/dtos';
+import { GameDto, GamesQuery, gamesQuerySchema } from '@nba/dtos-games';
+import { YupPipe } from '@nba/frontend-api-common';
+import { GamesService } from './games.service';
+
+@Controller('games')
+export class GamesController {
+  constructor(private readonly games: GamesService) {}
+
+  // The games listed on ?from= to ?to= (league days, US Eastern; at most MAX_GAME_DAYS), only a team's with ?teamId=.
+  @Get()
+  async findBetween(
+    @Query(new YupPipe(gamesQuerySchema)) query: GamesQuery,
+  ): Promise<DataResponse<GameDto[]>> {
+    return { data: await this.games.findBetween(query) };
+  }
+
+  @Get(':id')
+  async findOne(
+    @Param('id', new YupPipe(idSchema.required())) id: string,
+  ): Promise<DataResponse<GameDto>> {
+    return { data: await this.games.findById(id) };
+  }
+}

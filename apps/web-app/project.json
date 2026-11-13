@@ -3,6 +3,6 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "apps/web-app/src",
   "projectType": "application",
-  "tags": [],
+  "tags": ["scope:web"],
   "targets": {}
 }

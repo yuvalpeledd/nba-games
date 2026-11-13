@@ -1,16 +1,14 @@
-// GET /api/teams: the active teams, by name.
+import type { VenueDto } from '@nba/dtos';
+
 export interface TeamDto {
-  // `nba-por`
   id: string;
-  // `POR`
   abbreviation: string;
-  // `Portland Trail Blazers`
   name: string;
-  // `Trail Blazers`
   nickname: string;
   city: string;
-  // `Eastern` / `Western`
   conference: string;
-  // `Northwest`
   division: string;
+  venue: VenueDto;
+  // False for a franchise that moved or folded.
+  active: boolean;
 }

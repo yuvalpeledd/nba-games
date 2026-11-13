@@ -1,0 +1,8 @@
+{
+  "name": "sql-standings-history",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/sql/tables/standings-history/src",
+  "projectType": "library",
+  "tags": ["scope:shared"],
+  "targets": {}
+}

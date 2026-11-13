@@ -17,4 +17,26 @@ export class PlayerDalService {
       order: { lastName: 'ASC', firstName: 'ASC' },
     });
   }
+
+  findById(id: string): Promise<PlayerEntity | null> {
+    return this.repo.findOneBy({ id });
+  }
+
+  // A page of players by name, only a team's when `teamId` is given.
+  findPage({
+    teamId,
+    limit,
+    offset,
+  }: {
+    teamId?: string;
+    limit: number;
+    offset: number;
+  }): Promise<PlayerEntity[]> {
+    return this.repo.find({
+      where: teamId ? { teamId } : {},
+      order: { lastName: 'ASC', firstName: 'ASC', id: 'ASC' },
+      take: limit,
+      skip: offset,
+    });
+  }
 }

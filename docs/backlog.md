@@ -8,8 +8,8 @@
   - **Who uses it?** Only you (no auth, or one shared password), or friends competing on predictions (accounts, a leaderboard: Firebase as in outly)?
   - **How much history?** The free plan has the current season only.
   - **Where does it run?** GCP as outly (Cloud Run for the API, a Cloud Run Job for the fetcher, Cloud SQL), or only locally for now?
-- Next: `data-fetcher` (the API Ninjas client with the spec's mappers and yup validation, the four jobs, the app), then `frontend-api`, starting with `GET /api/teams` and `GET /api/standings` as `dtos-teams` and `dtos-standings` define them (the web-app already calls them).
-- web-app: the dashboard only says hello; the teams list has no team page yet; the standings tab isn't in the URL (back from elsewhere opens East).
-- Port `@Retry()` and `YupPipe` from outly.
-- `SqlModule` has no test of its own yet: the first app's boot checks it.
-- Scope tags in `eslint.config.mjs` once the apps exist (CLAUDE.md's Layout).
+- **What may the players fetcher delete?** As built, nothing is deleted but the day's `team_players` rows it replaces: a player on no roster keeps their row with `team_id` null (their days point at them), and teams stay (everything points at them). Should players gone for a season be deleted, with their days?
+- Next: a first real run (`API_NINJAS_KEY` in `.env`, then `pnpm nx run data-fetcher:run`: 32 calls plus up to 50 for the games), then the web-app's next pages (games, players, a team's page); auth and predictions in `frontend-api` once the questions above are answered.
+- data-fetcher: a bundle and a Cloud Run Job (and its schedule) when it's deployed; it runs from its sources for now. Remember the days without games (now asked for every run) if those requests matter. Page with `offset` if a response ever comes back cut (one page today).
+- frontend-api: `GET /players` has no search by name and no total count, and `standings_history` has no route yet: add them when the web needs them.
+- web-app: the dashboard only says hello; the teams list has no team page yet; the standings tab and season aren't in the URL (back from elsewhere opens the current season's East).
