@@ -1,5 +1,9 @@
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 import {
+  IconButton,
   Link,
+  Menu,
+  MenuItem,
   Table,
   TableBody,
   TableCell,
@@ -13,7 +17,16 @@ import { GameStatus, SeasonType } from '@nba/sql-games/enums';
 import { formatDay, formatTime, useTeamGames } from '@nba/web-core';
 import { PageLoader } from '@nba/web-shell-components';
 import { useTableSort } from '@nba/web-table-components';
+import { useState } from 'react';
 import { Link as RouterLink } from 'react-router';
+import { OpponentStatsDialog } from '../opponent-stats-dialog/OpponentStatsDialog';
+
+// A row's opponent, for its menu and the dialog the menu opens.
+interface OpponentOf {
+  gameId: string;
+  opponentId: string;
+  opponent: string;
+}
 
 // What sets a game apart from the regular season's; null for those.
 const typeLabels: Record<SeasonType, string | null> = {
@@ -82,6 +95,10 @@ export function TeamGames({
       result: (row) => row.margin,
     },
   );
+  const [menu, setMenu] = useState<
+    (OpponentOf & { anchor: HTMLElement }) | null
+  >(null);
+  const [stats, setStats] = useState<OpponentOf | null>(null);
   if (season === undefined) {
     return <Typography color="text.secondary">No season yet.</Typography>;
   }
@@ -100,6 +117,7 @@ export function TeamGames({
             {headCell('date', 'Date')}
             {headCell('opponent', 'Opponent')}
             {headCell('result', 'Result', 'right')}
+            <TableCell aria-label="Actions" />
           </TableRow>
         </TableHead>
         <TableBody>
@@ -119,10 +137,50 @@ export function TeamGames({
                 )}
               </TableCell>
               <TableCell align="right">{result}</TableCell>
+              <TableCell align="right" sx={{ py: 0 }}>
+                <IconButton
+                  className="row-menu"
+                  aria-label="Actions"
+                  aria-haspopup="menu"
+                  aria-expanded={menu?.gameId === game.id}
+                  onClick={(event) =>
+                    setMenu({
+                      gameId: game.id,
+                      opponentId,
+                      opponent,
+                      anchor: event.currentTarget,
+                    })
+                  }
+                >
+                  <MoreVertIcon />
+                </IconButton>
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
+      <Menu
+        anchorEl={menu?.anchor}
+        open={Boolean(menu)}
+        onClose={() => setMenu(null)}
+      >
+        <MenuItem
+          onClick={() => {
+            setStats(menu);
+            setMenu(null);
+          }}
+        >
+          Statistics
+        </MenuItem>
+      </Menu>
+      {stats && (
+        <OpponentStatsDialog
+          teamId={teamId}
+          opponentId={stats.opponentId}
+          opponent={stats.opponent}
+          onClose={() => setStats(null)}
+        />
+      )}
     </TableContainer>
   );
 }

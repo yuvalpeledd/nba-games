@@ -33,6 +33,14 @@ export const useTeamGames = (teamId: string, season: number | undefined) =>
     enabled: season !== undefined,
   });
 
+// Every game between two teams, either at home, every season and type, by day.
+export const useHeadToHead = (teamId: string, opponentId: string) =>
+  useQuery({
+    queryKey: ['games', { teamId, opponentId }],
+    queryFn: () =>
+      api<GameDto[]>(`/games?teamId=${teamId}&opponentId=${opponentId}`),
+  });
+
 // A team's current roster, by name.
 // ponytail: the API's default page (50) covers a roster (~20); page it if that ever changes.
 export const useTeamPlayers = (teamId: string) =>

@@ -47,10 +47,11 @@ const daysFrom = (from: string, to: string): number =>
 
 // GET /games: the days from `from` to `to` (both included; `to` defaults to `from`), only a team's when `teamId` is given;
 // or, with `season` (the year it starts in) instead of the days, a team's whole season, every type of game (a team
-// plays ~100: no paging).
+// plays ~100: no paging); or, with `opponentId` instead, every game between `teamId` and it, every season.
 export const gamesQuerySchema = object({
-  from: daySchema.when('season', {
-    is: undefined,
+  from: daySchema.when(['season', 'opponentId'], {
+    is: (season?: number, opponentId?: string) =>
+      season === undefined && opponentId === undefined,
     then: (schema) => schema.required(),
   }),
   to: daySchema
@@ -74,9 +75,24 @@ export const gamesQuerySchema = object({
         season === undefined ||
         (parent.from === undefined && parent.to === undefined),
     ),
-  teamId: idSchema.when('season', {
-    is: (season?: number) => season !== undefined,
-    then: (schema) => schema.required('teamId is required with season'),
-  }),
+  // ponytail: not paged, ~4 games a season against one team; page it if the history grows past a few seasons.
+  opponentId: idSchema.test(
+    'alone',
+    'opponentId cannot be combined with from, to or season',
+    (opponentId, { parent }) =>
+      opponentId === undefined ||
+      (parent.from === undefined &&
+        parent.to === undefined &&
+        parent.season === undefined),
+  ),
+  teamId: idSchema
+    .when('season', {
+      is: (season?: number) => season !== undefined,
+      then: (schema) => schema.required('teamId is required with season'),
+    })
+    .when('opponentId', {
+      is: (opponentId?: string) => opponentId !== undefined,
+      then: (schema) => schema.required('teamId is required with opponentId'),
+    }),
 });
 export type GamesQuery = InferType<typeof gamesQuerySchema>;

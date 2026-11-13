@@ -147,11 +147,11 @@ describe('TeamSinglePage', () => {
     renderAt('/teams/nba-bos');
 
     expect(await rowsOf('Games')).toEqual([
-      ['Wed, Oct 21', 'vs New York Knicks', 'W 110-102'],
-      ['Sun, Oct 25', '@ New York Knicks', 'L 95-99'],
-      ['Fri, Nov 20', 'vs Los Angeles Lakers', tipOff],
-      ['Sun, Nov 22', '@ Los Angeles Lakers', 'Postponed'],
-      ['Tue, Apr 20', 'vs New York Knicks · Playoffs', 'W 120-100'],
+      ['Wed, Oct 21', 'vs New York Knicks', 'W 110-102', ''],
+      ['Sun, Oct 25', '@ New York Knicks', 'L 95-99', ''],
+      ['Fri, Nov 20', 'vs Los Angeles Lakers', tipOff, ''],
+      ['Sun, Nov 22', '@ Los Angeles Lakers', 'Postponed', ''],
+      ['Tue, Apr 20', 'vs New York Knicks · Playoffs', 'W 120-100', ''],
     ]);
     expect(
       screen
@@ -173,6 +173,64 @@ describe('TeamSinglePage', () => {
       tipOff,
       'Postponed',
     ]);
+  });
+
+  it("shows the team's record against a game's opponent from its menu", async () => {
+    stubApi(
+      routes({
+        'GET /games?teamId=nba-bos&opponentId=nba-nyk': [
+          {
+            ...final('nba-nyk', 'nba-bos', '2026-03-01', 100, 90),
+            season: 2025,
+          },
+          final('nba-bos', 'nba-nyk', '2026-10-21', 110, 102),
+          final('nba-nyk', 'nba-bos', '2026-10-25', 99, 95),
+          game('nba-bos', 'nba-nyk', '2026-12-25'),
+        ],
+      }),
+    );
+    renderAt('/teams/nba-bos');
+
+    fireEvent.click(
+      (await screen.findAllByRole('button', { name: 'Actions' }))[0],
+    );
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: 'Statistics' }),
+    );
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Against New York Knicks',
+    });
+    expect(
+      (await within(dialog).findAllByRole('term')).map(
+        (term) => term.textContent,
+      ),
+    ).toEqual(['Home games', 'Home win rate', 'Away games', 'Away win rate']);
+    expect(
+      within(dialog)
+        .getAllByRole('definition')
+        .map((value) => value.textContent),
+    ).toEqual(['1', '100.0%', '2', '0.0%']);
+    expect(await rowsOf('Previous games')).toEqual([
+      ['2026-27', 'Sun, Oct 25', 'Away', 'L 95-99'],
+      ['2026-27', 'Wed, Oct 21', 'Home', 'W 110-102'],
+      ['2025-26', 'Sun, Mar 1', 'Away', 'L 90-100'],
+    ]);
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('says so when the teams have never played', async () => {
+    stubApi(routes({ 'GET /games?teamId=nba-bos&opponentId=nba-lal': [] }));
+    renderAt('/teams/nba-bos');
+
+    fireEvent.click(
+      (await screen.findAllByRole('button', { name: 'Actions' }))[2],
+    );
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: 'Statistics' }),
+    );
+    expect(await screen.findByText('No games against them yet.')).toBeTruthy();
   });
 
   it("lists the team's players on the Players tab", async () => {

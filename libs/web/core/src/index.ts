@@ -8,6 +8,7 @@ export {
   formatWinPct,
 } from './lib/format';
 export {
+  useHeadToHead,
   useSeasons,
   useStandings,
   useTeamGames,

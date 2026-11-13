@@ -51,6 +51,17 @@ export class GameDalService {
     });
   }
 
+  // Every game between two teams, either at home, every season and type; by day, then tip-off.
+  findBetweenTeams(teamId: string, opponentId: string): Promise<GameEntity[]> {
+    return this.repo.find({
+      where: [
+        { homeTeamId: teamId, awayTeamId: opponentId },
+        { homeTeamId: opponentId, awayTeamId: teamId },
+      ],
+      order: { date: 'ASC', startTime: 'ASC', id: 'ASC' },
+    });
+  }
+
   findById(id: string): Promise<GameEntity | null> {
     return this.repo.findOneBy({ id });
   }

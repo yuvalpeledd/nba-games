@@ -9,7 +9,7 @@ export class GamesController {
   constructor(private readonly games: GamesService) {}
 
   // The games listed on ?from= to ?to= (league days, US Eastern; at most MAX_GAME_DAYS), only a team's with ?teamId=;
-  // or a team's season with ?season=&teamId=.
+  // or a team's season with ?season=&teamId=; or every game between two teams with ?teamId=&opponentId=.
   @Get()
   async find(
     @Query(new YupPipe(gamesQuerySchema)) query: GamesQuery,

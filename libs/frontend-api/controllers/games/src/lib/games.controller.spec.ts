@@ -43,6 +43,19 @@ describe('GamesController', () => {
           'season=2026&teamId=nba-bos&to=2026-11-11',
           'season cannot be combined with from or to',
         ],
+        ['opponentId=nba-nyk', 'teamId is required with opponentId'],
+        [
+          'teamId=nba-bos&opponentId=nba-nyk&from=2026-11-11',
+          'opponentId cannot be combined with from, to or season',
+        ],
+        [
+          'teamId=nba-bos&opponentId=nba-nyk&season=2026',
+          'opponentId cannot be combined with from, to or season',
+        ],
+        [
+          `teamId=nba-bos&opponentId=${'x'.repeat(101)}`,
+          'opponentId must be at most 100 characters',
+        ],
       ])('refuses ?%s', async (query, message) => {
         const { status, body } = await app.call('GET', `/games?${query}`);
 
@@ -148,6 +161,31 @@ describe('GamesController', () => {
 
         expect(status).toBe(200);
         expect(body.data).toEqual([opener, playoff].map(asDto));
+      });
+
+      it('answers every game between two teams, either at home, every season, with teamId and opponentId', async () => {
+        const [team, opponent, other] = [
+          await app.createTeam(),
+          await app.createTeam(),
+          await app.createTeam(),
+        ];
+        const lastSeason = await app.createGame(opponent.id, team.id, {
+          season: 2025,
+          date: '2026-02-01',
+        });
+        const home = await app.createGame(team.id, opponent.id, {
+          date: '2026-11-11',
+        });
+        await app.createGame(team.id, other.id);
+        await app.createGame(opponent.id, other.id);
+
+        const { status, body } = await app.call(
+          'GET',
+          `/games?teamId=${team.id}&opponentId=${opponent.id}`,
+        );
+
+        expect(status).toBe(200);
+        expect(body.data).toEqual([lastSeason, home].map(asDto));
       });
     });
   });
