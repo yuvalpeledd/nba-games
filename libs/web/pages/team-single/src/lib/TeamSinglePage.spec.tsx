@@ -108,11 +108,14 @@ describe('TeamSinglePage', () => {
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Boston Celtics' }),
     ).toBeTruthy();
-    expect(
-      screen.getByText(
-        'Eastern Conference · Atlantic Division · Arena, Boston',
-      ),
-    ).toBeTruthy();
+    for (const fact of [
+      'BOS',
+      'Eastern Conference',
+      'Atlantic Division',
+      'Arena, Boston',
+    ]) {
+      expect(screen.getByText(fact)).toBeTruthy();
+    }
     expect(
       await screen.findByRole('heading', { name: '2026-27' }),
     ).toBeTruthy();
