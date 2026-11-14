@@ -209,6 +209,30 @@ describe('GamesPage', () => {
     expect(await homes()).toHaveLength(3);
   });
 
+  it('filters by a number, until the filters are cleared', async () => {
+    renderAt('/games');
+    await showEveryDay();
+    const scores = async () => (await rows()).map(([, , , score]) => score);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Add Filter' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Total Points' }));
+    fireEvent.change(screen.getByRole('spinbutton', { name: 'Greater Than' }), {
+      target: { value: '213' },
+    });
+    fireEvent.change(screen.getByRole('spinbutton', { name: 'Less Than' }), {
+      target: { value: '300' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Add Filter' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Apply Filters' }));
+    expect(await scores()).toEqual(['120-99']);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add Filter' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Clear All' }));
+    // Applied at once; the panel stays open.
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(await scores()).toHaveLength(3);
+  });
+
   it('sorts by score, the unplayed last', async () => {
     renderAt('/games');
     await showEveryDay();

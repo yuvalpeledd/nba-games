@@ -15,7 +15,7 @@ import {
 } from '@mui/material';
 import type { GroupDto } from '@nba/dtos-groups';
 import { useSession } from '@nba/web-core';
-import { useTableFilters, useTableSort } from '@nba/web-table-components';
+import { useTableSort } from '@nba/web-table-components';
 import { useState } from 'react';
 import { Link as RouterLink } from 'react-router';
 
@@ -57,7 +57,7 @@ function GroupActions({
   );
 }
 
-// Groups under a heading, with filters and sorting of their own; each name opens its group. With `onEdit` and
+// Groups under a heading, with sorting of their own; each name opens its group. With `onEdit` and
 // `onDelete`, the groups the signed-in user owns have a menu of them.
 export function GroupsTable({
   label,
@@ -73,26 +73,7 @@ export function GroupsTable({
   onDelete?: (group: GroupDto) => void;
 }) {
   const userId = useSession()?.userId;
-  const filtered = useTableFilters(groups, {
-    name: { label: 'Name', type: 'select', value: (group) => group.name },
-    members: {
-      label: 'Members',
-      type: 'number',
-      value: (group) => group.memberCount,
-    },
-    owner: {
-      label: 'Owner',
-      type: 'select',
-      value: (group) => group.owner.name,
-    },
-    public: {
-      label: 'Public',
-      type: 'select',
-      value: (group) => yesNo(group.public),
-    },
-    status: { label: 'Status', type: 'select', value: (group) => group.status },
-  });
-  const { rows, headCell } = useTableSort(filtered.rows, {
+  const { rows, headCell } = useTableSort(groups, {
     name: (group) => group.name,
     members: (group) => group.memberCount,
     owner: (group) => group.owner.name,
@@ -114,7 +95,6 @@ export function GroupsTable({
         <Typography color="text.secondary">{empty}</Typography>
       ) : (
         <>
-          {filtered.filterBar}
           {/* As wide as its columns, not the page's. */}
           <TableContainer sx={{ width: 'fit-content', maxWidth: '100%' }}>
             <Table size="small" aria-label={label}>

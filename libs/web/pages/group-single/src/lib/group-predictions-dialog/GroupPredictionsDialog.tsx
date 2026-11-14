@@ -27,7 +27,7 @@ import {
   useGroupPredictions,
 } from '@nba/web-core';
 import { PageLoader } from '@nba/web-shell-components';
-import { useTableFilters, useTableSort } from '@nba/web-table-components';
+import { useTableSort } from '@nba/web-table-components';
 
 const resultLabel = (right: boolean | null) =>
   right === null ? 'N/A' : right ? 'Right' : 'Wrong';
@@ -98,17 +98,7 @@ export function GroupPredictionsDialog({
       statHints.groupRight,
     ]);
   }
-  const filtered = useTableFilters(rows, {
-    member: { label: 'Member', type: 'select', value: (row) => row.name },
-    pick: { label: 'Pick', type: 'select', value: (row) => row.pickLabel },
-    result: {
-      label: 'Result',
-      type: 'select',
-      value: (row) => resultLabel(row.right),
-    },
-    points: { label: 'Points', type: 'number', value: (row) => row.points },
-  });
-  const { rows: shown, headCell } = useTableSort(filtered.rows, {
+  const { rows: shown, headCell } = useTableSort(rows, {
     member: (row) => row.name,
     pick: (row) => row.pickLabel,
     result: (row) => resultLabel(row.right),
@@ -155,7 +145,6 @@ export function GroupPredictionsDialog({
                 Which team each member picked shows once the game begins.
               </Typography>
             )}
-            {filtered.filterBar}
             <TableContainer>
               <Table aria-label="Members' predictions">
                 <TableHead>

@@ -11,7 +11,7 @@ import {
 } from '@mui/material';
 import type { GroupDetailsDto } from '@nba/dtos-groups';
 import { statHints } from '@nba/web-core';
-import { useTableFilters, useTableSort } from '@nba/web-table-components';
+import { useTableSort } from '@nba/web-table-components';
 import { useState } from 'react';
 
 const ROWS_PER_PAGE = 5;
@@ -32,16 +32,12 @@ export function Scoreboard({
       ...member,
       rank: members.filter((other) => other.score > member.score).length + 1,
     }));
-  const filtered = useTableFilters(ranked, {
-    member: { label: 'Member', type: 'select', value: (row) => row.name },
-    score: { label: 'Score', type: 'number', value: (row) => row.score },
-  });
-  const { rows, headCell } = useTableSort(filtered.rows, {
+  const { rows, headCell } = useTableSort(ranked, {
     rank: (row) => row.rank,
     member: (row) => row.name,
     score: (row) => row.score,
   });
-  // Back to the last page there is when filters leave fewer rows.
+  // Back to the last page there is when members leave.
   const shownPage = Math.min(
     page,
     Math.max(0, Math.ceil(rows.length / ROWS_PER_PAGE) - 1),
@@ -49,7 +45,6 @@ export function Scoreboard({
 
   return (
     <Stack spacing={2} sx={{ maxWidth: 480 }}>
-      {filtered.filterBar}
       <TableContainer>
         <Table
           aria-label="Scoreboard"

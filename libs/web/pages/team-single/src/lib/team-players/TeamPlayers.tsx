@@ -10,46 +10,12 @@ import {
 } from '@mui/material';
 import { formatHeight, statHints, useTeamPlayers } from '@nba/web-core';
 import { PageLoader } from '@nba/web-shell-components';
-import { useTableFilters, useTableSort } from '@nba/web-table-components';
+import { useTableSort } from '@nba/web-table-components';
 
 // The team's current roster, by name.
 export function TeamPlayers({ teamId }: { teamId: string }) {
   const { data: players, isError } = useTeamPlayers(teamId);
-  const filtered = useTableFilters(players ?? [], {
-    number: {
-      label: 'Number',
-      type: 'number',
-      value: (player) =>
-        player.jerseyNumber === null ? null : Number(player.jerseyNumber),
-    },
-    name: { label: 'Player', type: 'select', value: (player) => player.name },
-    position: {
-      label: 'Position',
-      type: 'select',
-      value: (player) => player.position,
-    },
-    height: {
-      label: 'Height (in)',
-      type: 'number',
-      value: (player) => player.heightIn,
-    },
-    weight: {
-      label: 'Weight (lb)',
-      type: 'number',
-      value: (player) => player.weightLb,
-    },
-    experience: {
-      label: 'Experience (years)',
-      type: 'number',
-      value: (player) => player.experienceYears,
-    },
-    college: {
-      label: 'College',
-      type: 'select',
-      value: (player) => player.college,
-    },
-  });
-  const { rows, headCell } = useTableSort(filtered.rows, {
+  const { rows, headCell } = useTableSort(players ?? [], {
     number: (player) => player.jerseyNumber,
     name: (player) => player.name,
     position: (player) => player.position,
@@ -65,7 +31,6 @@ export function TeamPlayers({ teamId }: { teamId: string }) {
 
   return (
     <Stack spacing={2}>
-      {filtered.filterBar}
       <TableContainer>
         <Table aria-label="Players">
           <TableHead>

@@ -11,7 +11,7 @@ import {
 } from '@mui/material';
 import type { StandingDto } from '@nba/dtos-standings';
 import { formatGamesBehind, formatWinPct, statHints } from '@nba/web-core';
-import { useTableFilters, useTableSort } from '@nba/web-table-components';
+import { useTableSort } from '@nba/web-table-components';
 import { Link as RouterLink } from 'react-router';
 
 export type ConferenceRow = StandingDto & {
@@ -19,7 +19,7 @@ export type ConferenceRow = StandingDto & {
   gamesBehind: number;
 };
 
-// A conference's standings under its name, with filters and sorting of its own.
+// A conference's standings under its name, with sorting of its own.
 export function ConferenceTable({
   conference,
   label,
@@ -29,40 +29,7 @@ export function ConferenceTable({
   label: string;
   rows: ConferenceRow[];
 }) {
-  const filtered = useTableFilters(conferenceRows, {
-    seed: { label: 'Seed', type: 'number', value: (row) => row.conferenceRank },
-    team: { label: 'Team', type: 'select', value: (row) => row.teamName },
-    wins: { label: 'Wins', type: 'number', value: (row) => row.wins },
-    losses: { label: 'Losses', type: 'number', value: (row) => row.losses },
-    winPct: {
-      label: 'Win %',
-      type: 'number',
-      value: (row) => row.winPct * 100,
-    },
-    gamesBehind: {
-      label: 'Games Behind',
-      type: 'number',
-      value: (row) => row.gamesBehind,
-    },
-    conference: {
-      label: 'Conference Record',
-      type: 'select',
-      value: (row) => row.conferenceRecord,
-    },
-    home: {
-      label: 'Home Record',
-      type: 'select',
-      value: (row) => row.homeRecord,
-    },
-    away: {
-      label: 'Away Record',
-      type: 'select',
-      value: (row) => row.awayRecord,
-    },
-    last10: { label: 'Last 10', type: 'select', value: (row) => row.last10 },
-    streak: { label: 'Streak', type: 'select', value: (row) => row.streak },
-  });
-  const { rows, headCell } = useTableSort(filtered.rows, {
+  const { rows, headCell } = useTableSort(conferenceRows, {
     seed: (row) => row.conferenceRank,
     team: (row) => row.teamName,
     wins: (row) => row.wins,
@@ -86,7 +53,6 @@ export function ConferenceTable({
       <Typography variant="h6" component="h2">
         {label}
       </Typography>
-      {filtered.filterBar}
       {/* As wide as its columns, not the page's. */}
       <TableContainer sx={{ width: 'fit-content', maxWidth: '100%' }}>
         <Table size="small" aria-label={`${conference} Conference standings`}>

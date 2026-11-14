@@ -141,40 +141,6 @@ describe('StandingsPage', () => {
     expect(await teams()).toEqual(['Nets', 'Knicks', 'Celtics']);
   });
 
-  it('filters by a number, until the filters are cleared', async () => {
-    stubApi(
-      routes({
-        2026: [
-          standing(celtics, 1, 10, 3),
-          standing(knicks, 2, 9, 5),
-          standing(nets, 3, 3, 10),
-        ],
-      }),
-    );
-    renderAt('/standings');
-    const teams = async () =>
-      (await rowsOf('Eastern Conference standings')).map(([, name]) => name);
-
-    const east = within(await screen.findByRole('region', { name: 'East' }));
-    fireEvent.click(east.getByRole('button', { name: 'Add Filter' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Wins' }));
-    fireEvent.change(screen.getByRole('spinbutton', { name: 'Greater Than' }), {
-      target: { value: '3' },
-    });
-    fireEvent.change(screen.getByRole('spinbutton', { name: 'Less Than' }), {
-      target: { value: '10' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Add Filter' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Apply Filters' }));
-    expect(await teams()).toEqual(['Knicks']);
-
-    fireEvent.click(east.getByRole('button', { name: 'Add Filter' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Clear All' }));
-    // Applied at once; the panel stays open.
-    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
-    expect(await teams()).toHaveLength(3);
-  });
-
   it('explains a stat on hovering its header', async () => {
     stubApi(routes({ 2026: [standing(celtics, 1, 10, 3)] }));
     renderAt('/standings');
