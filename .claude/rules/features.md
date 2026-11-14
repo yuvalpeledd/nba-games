@@ -56,26 +56,31 @@ Add a section per feature as it is built; delete what turns out wrong.
   - Scoring is a plain function in the predictions dtos lib (`scorePrediction(prediction, game)`: right, wrong, or null until the game is final with a winner), covered by its own spec, run by the web and by score-manager (see Scores).
     The web runs it: the dashboard's Predictions counts the current season's games and the caller's picks (`GET /games?season=`, `GET /predictions?season=`).
   - A game that ends without a result (`canceled`) voids its predictions instead of scoring them.
-- **Groups** (`groups`: uuid, `name` up to 100, `owner_id`, `public`, `status` `Active`, `Closed` or `Deleted`, `deleted_at`; `group_members`: uuid, `group_id`, `user_id`, unique on both): users who play together.
-  `POST /groups` (`{ name, public }`) makes an `Active` group the caller owns, with the caller as its first member, in one transaction (`GroupMemberDalService.createGroup`: the write spans both tables, so it's in the lower one's DAL).
+- **Groups** (`groups`: uuid, `name` up to 100, `owner_id`, `public`, `default_score`, `max_members`, `start_date`, `end_date`, `status` `Active`, `Closed` or `Deleted`, `deleted_at`; `group_members`: uuid, `group_id`, `user_id`, unique on both): users who play together.
+  Its settings: `defaultScore` (1 to 10, `DEFAULT_GAME_SCORE` 1 unless set) is what a right pick scores there (see Game scores), `maxMembers` (1 to `MAX_GROUP_MEMBERS` 1000, the default) caps who joins, and `startDate` and `endDate` (days, both included, either null for no bound) are the games that score there (`isGameInGroupDates`, by the game's league `date`).
+  `POST /groups` (`{ name, public, defaultScore?, maxMembers?, startDate?, endDate? }`) makes an `Active` group the caller owns, with the caller as its first member, in one transaction (`GroupMemberDalService.createGroup`: the write spans both tables, so it's in the lower one's DAL).
   `GET /groups` answers what the caller may see: every public group, and the private ones they're in, by name, each with its owner, member count and `isMember` (the web splits them into the caller's and the public ones they're not in).
   `GET /groups/:id` (a uuid, else 400) answers one with its members by name, each with their `score` in it (the sum of their `group_user_score` rows there; the web's scoreboard), and its `gameScores` (see Game scores); a private group the caller isn't in is 404, like a missing one, so an id gives nothing away.
   `GET /groups/:id/games/:gameId/predictions` answers each member's pick of a game, by name (`picked`, and `pick`), only to its members: 403 for a public group the caller isn't in, 404 for a group they may not see or an unknown game.
   Until the game locks (`isPredictionLocked`) `pick` is null for everyone: only who picked shows, so no one copies another's pick.
-  Its owner edits it (`PATCH /groups/:id`, `{ name, public }`, answering the group) and deletes it (`DELETE /groups/:id`, 204); anyone else who sees it is 403, and one they don't see is 404.
+  Its owner edits it (`PATCH /groups/:id`, the same body as `POST`, a setting left out taking its default, answering the group) and deletes it (`DELETE /groups/:id`, 204); anyone else who sees it is 403, and one they don't see is 404.
+  `maxMembers` below its members is 409.
+  A change to `defaultScore`, `startDate` or `endDate` asks score-manager to rescore every member there (`POST $SCORE_MANAGER_URL/api/groups/:groupId/score`), past games too; if it fails, the change is undone and it's 503.
   A delete is soft: `status` `Deleted` and `deleted_at` (a `@DeleteDateColumn`, so TypeORM leaves the row out of every read): a deleted group is 404 everywhere and never listed.
   `POST /groups/:id/members` joins a group the caller sees (answering the group; already a member, a no-op), then asks score-manager to score their past picks there (`POST $SCORE_MANAGER_URL/api/groups/:groupId/users/:userId/score`, with a timeout), so they count from the start.
   If score-manager fails, the join is undone and it's 503: no member is missing scores.
+  A group with `maxMembers` members is 409 `GROUP_FULL` (the web's Join reads Full).
   `DELETE /groups/:id/members/me` (204) leaves one; its owner can't (409: they delete it instead), and leaving a private group can't be undone (nothing invites yet).
   A leaver's scores stay, unseen (the scoreboard lists members), and joining again scores them anew.
   Nothing closes a group yet.
-- **Game scores** (`group_game_score`: uuid, `group_id`, `game_id`, `score` int, unique on both): what a right pick of a game scores in a group, `DEFAULT_GAME_SCORE` (1, `@nba/dtos-groups`) unless its owner set another, so only the set ones have a row.
+- **Game scores** (`group_game_score`: uuid, `group_id`, `game_id`, `score` int, unique on both): what a right pick of a game scores in a group, the group's `defaultScore` unless its owner set another, so only the set ones have a row.
   `PUT /groups/:id/games/:gameId/score` (`{ score }`, an integer from 0 to 100) makes or replaces one, answering `{ gameId, score }`: anyone but the owner is 403 (404 for a group they don't see), an unknown game 404.
   A game's score is set only until it's completed (`isGameCompleted`: `final` or `canceled`), checked on the server: after that it's 409 `GAME_COMPLETED`, so a scored game's points never change under it.
   The web shows each game's score in the group page's games table, and the owner sets it from a row's menu.
-- **Scores** (`group_user_score`: uuid, `group_id`, `user_id`, `game_id`, `score` int, unique on the three): what a member's prediction of a game scored in a group: the game's score there (see Game scores) if right, 0 if wrong.
-  `score-manager`'s internal `POST /api/groups/:groupId/users/:userId/score` scores a member's every pick of a final game in that group (404 for a user not in it), called by frontend-api when they join.
-  Its `POST /api/games/:gameId/score` writes them, called by the games fetcher for every known game a run turned final (see `data-fetcher.md`): every prediction of the game with a pick, scored by `scorePrediction`, a row in each group its user is in.
+- **Scores** (`group_user_score`: uuid, `group_id`, `user_id`, `game_id`, `score` int, unique on the three): what a member's prediction of a game scored in a group: the game's score there (see Game scores) if right, 0 if wrong, only for a game within the group's dates (else no row).
+  `score-manager`'s internal `POST /api/groups/:groupId/users/:userId/score` scores a member's every pick of a final game in that group (404 for a user not in it), called by frontend-api when they join; `POST /api/groups/:groupId/score` does it for every member (404 for an unknown group), called when the group's settings change.
+  Both replace the members' rows there in one transaction, so a game the dates leave out loses its row.
+  Its `POST /api/games/:gameId/score` writes them, called by the games fetcher for every known game a run turned final (see `data-fetcher.md`): every prediction of the game with a pick, scored by `scorePrediction`, a row in each group its user is in whose dates the game is within.
   A taken-back pick (null) and a user in no group get no row; scoring a game again overwrites its rows (a corrected result).
   An unknown game is 404; a game not final with a winner (a canceled one never is: its picks are void) is 409 `GAME_NOT_FINAL`, and nothing is written.
   `POST /api/games/score?from=&to=` (days, both included, both required) scores every game in the range that's final with a winner the same way and skips the rest, answering a `{ gameId, scores, right }` per game scored: to rescore by hand.

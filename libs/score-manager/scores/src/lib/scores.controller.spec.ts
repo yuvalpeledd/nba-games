@@ -26,6 +26,7 @@ import {
   PredictionModule,
   PredictionPick,
 } from '@nba/sql-predictions';
+import { GroupDalService, type GroupCreateObject } from '@nba/sql-groups';
 import { TeamDalService, TeamModule } from '@nba/sql-teams';
 import { UserDalService, UserModule } from '@nba/sql-users';
 import { DataSource } from 'typeorm';
@@ -113,8 +114,17 @@ describe('ScoresController', () => {
       email: `${name}@nba.dev`,
       firebaseUid: `firebase-${name}`,
     });
-  const createGroup = (name: string, ownerId: string) =>
-    get(GroupMemberDalService).createGroup({ name, ownerId, public: true });
+  const createGroup = (
+    name: string,
+    ownerId: string,
+    settings: Partial<GroupCreateObject> = {},
+  ) =>
+    get(GroupMemberDalService).createGroup({
+      name,
+      ownerId,
+      public: true,
+      ...settings,
+    });
   const predict = (userId: string, pick: PredictionPick | null) =>
     get(PredictionDalService).set({ userId, gameId: GAME_ID, pick });
 
@@ -280,6 +290,41 @@ describe('ScoresController', () => {
       );
     });
 
+    it("scores a right pick the group's default score, and nothing in a group whose dates leave the game out", async () => {
+      await get(GameDalService).upsert([finalGame]);
+      const dana = await createUser('dana');
+      const omer = await createUser('omer');
+      const friday = await createGroup('Friday', dana.id, { defaultScore: 4 });
+      // The game's day, 2026-11-11, is the group's last: it counts.
+      const ending = await createGroup('Ending', omer.id, {
+        startDate: '2026-11-01',
+        endDate: '2026-11-11',
+      });
+      const later = await createGroup('Later', omer.id, {
+        startDate: '2026-11-12',
+      });
+      const earlier = await createGroup('Earlier', omer.id, {
+        endDate: '2026-11-10',
+      });
+      for (const group of [ending, later, earlier]) {
+        await get(GroupMemberDalService).join(group.id, dana.id);
+      }
+      await predict(dana.id, PredictionPick.HOME);
+
+      const { body } = await score(GAME_ID);
+
+      expect(body.data).toEqual({ gameId: GAME_ID, scores: 2, right: 2 });
+      const scores = await get(GroupUserScoreDalService).findByGame(GAME_ID);
+      expect(
+        scores.map(({ groupId, score }) => [groupId, score]).sort(),
+      ).toEqual(
+        [
+          [friday.id, 4],
+          [ending.id, 1],
+        ].sort(),
+      );
+    });
+
     it('overwrites the scores when the game is scored again', async () => {
       await get(GameDalService).upsert([finalGame]);
       const dana = await createUser('dana');
@@ -368,7 +413,7 @@ describe('ScoresController', () => {
 
       expect(status).toBe(200);
       expect(body).toEqual({
-        data: { groupId: friday.id, userId: omer.id, scores: 2, right: 1 },
+        data: { groupId: friday.id, members: 1, scores: 2, right: 1 },
       });
       const totals = await get(GroupUserScoreDalService).totalsByGroup(
         friday.id,
@@ -398,6 +443,75 @@ describe('ScoresController', () => {
       expect(
         await get(GroupUserScoreDalService).findByGame(GAME_ID),
       ).toMatchObject([{ userId: omer.id, score: 3 }]);
+    });
+  });
+
+  describe('POST /groups/:groupId/score', () => {
+    const scoreGroup = async (groupId: string) => {
+      const response = await fetch(`${baseUrl}/api/groups/${groupId}/score`, {
+        method: 'POST',
+      });
+      return { status: response.status, body: await response.json() };
+    };
+
+    it('takes only a uuid', async () => {
+      const { status, body } = await scoreGroup('nope');
+      expect(status).toBe(400);
+      expect(body.message).toContain('id must be a uuid');
+    });
+
+    it('is 404 for an unknown group', async () => {
+      const { status } = await scoreGroup(
+        '00000000-0000-4000-8000-000000000000',
+      );
+      expect(status).toBe(404);
+    });
+
+    it("rescores every member by the group's settings, dropping games its dates leave out", async () => {
+      const earlier = 'nba-20261110-nyk-bos';
+      await get(GameDalService).upsert([
+        finalGame,
+        { ...finalGame, id: earlier, date: '2026-11-10' },
+      ]);
+      const dana = await createUser('dana');
+      const omer = await createUser('omer');
+      const friday = await createGroup('Friday', dana.id);
+      await get(GroupMemberDalService).join(friday.id, omer.id);
+      for (const gameId of [GAME_ID, earlier]) {
+        await get(PredictionDalService).set({
+          userId: dana.id,
+          gameId,
+          pick: PredictionPick.HOME,
+        });
+      }
+      await predict(omer.id, PredictionPick.AWAY);
+      await scoreGroup(friday.id);
+      expect([
+        ...(await get(GroupUserScoreDalService).totalsByGroup(friday.id)),
+      ]).toEqual(expect.arrayContaining([[dana.id, 2]]));
+
+      // Its owner moves the start past the earlier game and makes a right pick worth 5.
+      await get(GroupDalService).update(friday.id, {
+        defaultScore: 5,
+        startDate: '2026-11-11',
+      });
+      const { status, body } = await scoreGroup(friday.id);
+
+      expect(status).toBe(200);
+      expect(body.data).toEqual({
+        groupId: friday.id,
+        members: 2,
+        scores: 2,
+        right: 1,
+      });
+      const totals = await get(GroupUserScoreDalService).totalsByGroup(
+        friday.id,
+      );
+      expect(totals.get(dana.id)).toBe(5);
+      expect(totals.get(omer.id)).toBe(0);
+      expect(await get(GroupUserScoreDalService).findByGame(earlier)).toEqual(
+        [],
+      );
     });
   });
 });

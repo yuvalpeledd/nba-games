@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { In } from 'typeorm';
 import { GroupStatus } from '../enums';
 import { GroupEntity } from './group.entity';
 import { GroupRepo } from './group.repo';
@@ -12,9 +13,25 @@ export class GroupDalService {
     return this.repo.findOneBy({ id });
   }
 
+  // These groups (a deleted one isn't among them), by id.
+  async findByIds(ids: string[]): Promise<Map<string, GroupEntity>> {
+    const groups = ids.length ? await this.repo.findBy({ id: In(ids) }) : [];
+    return new Map(groups.map((group) => [group.id, group]));
+  }
+
   async update(
     id: string,
-    changes: Pick<GroupEntity, 'name' | 'public'>,
+    changes: Partial<
+      Pick<
+        GroupEntity,
+        | 'name'
+        | 'public'
+        | 'defaultScore'
+        | 'maxMembers'
+        | 'startDate'
+        | 'endDate'
+      >
+    >,
   ): Promise<void> {
     await this.repo.update({ id }, changes);
   }

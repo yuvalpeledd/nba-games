@@ -1,3 +1,4 @@
+import { daySchema } from '@nba/dtos';
 import { GameStatus } from '@nba/sql-games/enums';
 import type { GroupStatus } from '@nba/sql-groups/enums';
 import type { PredictionPick } from '@nba/sql-predictions/enums';
@@ -12,10 +13,26 @@ export interface GroupDto {
   memberCount: number;
   // Whether the signed-in user is in it.
   isMember: boolean;
+  // What a right pick of a game is worth there, unless its owner set the game's own score.
+  defaultScore: number;
+  // No one joins once it has this many members.
+  maxMembers: number;
+  // Only games from startDate to endDate ('YYYY-MM-DD', both included; null: no bound) score there.
+  startDate: string | null;
+  endDate: string | null;
 }
 
-// What a right pick of a game is worth in a group, unless its owner set another score.
+// A new group's defaultScore and maxMembers, unless its owner picks others (and the most members a group may have).
 export const DEFAULT_GAME_SCORE = 1;
+export const MAX_GROUP_MEMBERS = 1000;
+
+// Whether a game scores in a group: its day is within the group's dates.
+export const isGameInGroupDates = (
+  group: { startDate: string | null; endDate: string | null },
+  game: { date: string },
+): boolean =>
+  (!group.startDate || game.date >= group.startDate) &&
+  (!group.endDate || game.date <= group.endDate);
 
 // A game's score in a group, as its owner set it.
 export interface GroupGameScoreDto {
@@ -24,7 +41,7 @@ export interface GroupGameScoreDto {
 }
 
 // GET /groups/:id: a group, with who is in it, by name, and each one's score in it (the scores of their right picks),
-// and the games whose score its owner set (any other is worth DEFAULT_GAME_SCORE).
+// and the games whose score its owner set (any other is worth its defaultScore).
 export interface GroupDetailsDto extends GroupDto {
   members: { id: string; name: string; score: number }[];
   gameScores: GroupGameScoreDto[];
@@ -58,10 +75,32 @@ export const createGroupRequestSchema = object({
   public: boolean()
     .typeError('public must be true or false')
     .required('public is required'),
+  defaultScore: number()
+    .typeError('defaultScore must be a number')
+    .integer('defaultScore must be an integer')
+    .min(1, 'defaultScore must be at least 1')
+    .max(10, 'defaultScore must be at most 10')
+    .default(DEFAULT_GAME_SCORE),
+  maxMembers: number()
+    .typeError('maxMembers must be a number')
+    .integer('maxMembers must be an integer')
+    .min(1, 'maxMembers must be at least 1')
+    .max(MAX_GROUP_MEMBERS, `maxMembers must be at most ${MAX_GROUP_MEMBERS}`)
+    .default(MAX_GROUP_MEMBERS),
+  startDate: daySchema.nullable().default(null),
+  endDate: daySchema
+    .nullable()
+    .default(null)
+    .test(
+      'not-before-start',
+      'endDate must not be before startDate',
+      (endDate, { parent }) =>
+        !endDate || !parent.startDate || endDate >= parent.startDate,
+    ),
 });
 export type CreateGroupRequest = InferType<typeof createGroupRequestSchema>;
 
-// PATCH /groups/:id: its owner renames it or makes it public or private.
+// PATCH /groups/:id: its owner edits all of it (a field left out takes its default, as in POST).
 export const updateGroupRequestSchema = createGroupRequestSchema;
 export type UpdateGroupRequest = CreateGroupRequest;
 

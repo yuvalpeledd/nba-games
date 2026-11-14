@@ -41,6 +41,10 @@ const toGroupDto = ({
   owner: { id: group.ownerId, name: group.owner?.name ?? '' },
   memberCount,
   isMember,
+  defaultScore: group.defaultScore,
+  maxMembers: group.maxMembers,
+  startDate: group.startDate,
+  endDate: group.endDate,
 });
 
 const SCORE_TIMEOUT_MS = 10_000;
@@ -150,14 +154,47 @@ export class GroupsService {
     });
   }
 
-  // Only its owner may; a group the caller can't see (or a deleted one) is 404, as in findOne.
+  // Only its owner may; a group the caller can't see (or a deleted one) is 404, as in findOne. maxMembers can't drop
+  // below its members (409). A change to how it scores (defaultScore, dates) has score-manager rescore every member;
+  // if it can't, the change is undone (503: try again), so the scoreboard always matches the settings.
   async update(
     id: string,
     userId: string,
     request: UpdateGroupRequest,
   ): Promise<GroupDto> {
-    await this.owned(id, userId);
+    const { group, memberCount } = await this.owned(id, userId);
+    if (request.maxMembers < memberCount) {
+      throw new ConflictException(
+        `maxMembers must be at least its ${memberCount} members`,
+      );
+    }
     await this.groups.update(id, request);
+    const rescore =
+      request.defaultScore !== group.defaultScore ||
+      request.startDate !== group.startDate ||
+      request.endDate !== group.endDate;
+    if (rescore) {
+      try {
+        await this.askScoreManager(`/api/groups/${id}/score`);
+      } catch (error) {
+        const { name, defaultScore, maxMembers, startDate, endDate } = group;
+        await this.groups.update(id, {
+          name,
+          public: group.public,
+          defaultScore,
+          maxMembers,
+          startDate,
+          endDate,
+        });
+        this.logger.error(
+          `Updating ${id}: rescoring failed, change undone`,
+          stackOf(error),
+        );
+        throw new ServiceUnavailableException(
+          "Couldn't save the group: try again",
+        );
+      }
+    }
     return toGroupDto(await this.visible(id, userId));
   }
 
@@ -168,19 +205,21 @@ export class GroupsService {
 
   // The caller joins a group they see, then score-manager scores their past picks there (so they count from the
   // start); if it can't, the join is undone (503: try again), so no member is missing scores. A member already: a no-op.
-  // ponytail: no retry but the caller's; add one if score-manager's blips show up.
+  // A group with maxMembers members is 409 GROUP_FULL.
+  // ponytail: count, then insert: two joins at once can pass maxMembers by one; lock the group row if that matters.
   async join(id: string, userId: string): Promise<GroupDto> {
-    const { isMember } = await this.visible(id, userId);
+    const { group, memberCount, isMember } = await this.visible(id, userId);
     if (!isMember) {
+      if (memberCount >= group.maxMembers) {
+        throw new ConflictException({
+          statusCode: 409,
+          message: `Group ${id} is full (${group.maxMembers} members)`,
+          code: ErrorCode.GROUP_FULL,
+        });
+      }
       await this.members.join(id, userId);
       try {
-        const response = await fetch(
-          `${this.scoreManagerUrl}/api/groups/${id}/users/${userId}/score`,
-          { method: 'POST', signal: AbortSignal.timeout(SCORE_TIMEOUT_MS) },
-        );
-        if (!response.ok) {
-          throw new Error(`score-manager answered ${response.status}`);
-        }
+        await this.askScoreManager(`/api/groups/${id}/users/${userId}/score`);
       } catch (error) {
         await this.members.leave(id, userId);
         this.logger.error(
@@ -213,10 +252,22 @@ export class GroupsService {
     return group;
   }
 
-  private async owned(id: string, userId: string): Promise<void> {
-    const { group } = await this.visible(id, userId);
-    if (group.ownerId !== userId) {
+  private async owned(id: string, userId: string): Promise<GroupWithMembers> {
+    const group = await this.visible(id, userId);
+    if (group.group.ownerId !== userId) {
       throw new ForbiddenException('Only its owner may change a group');
+    }
+    return group;
+  }
+
+  // ponytail: no retry but the caller's; add one if score-manager's blips show up.
+  private async askScoreManager(path: string): Promise<void> {
+    const response = await fetch(`${this.scoreManagerUrl}${path}`, {
+      method: 'POST',
+      signal: AbortSignal.timeout(SCORE_TIMEOUT_MS),
+    });
+    if (!response.ok) {
+      throw new Error(`score-manager answered ${response.status}`);
     }
   }
 }

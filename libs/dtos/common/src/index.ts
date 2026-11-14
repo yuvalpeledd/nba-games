@@ -23,7 +23,7 @@ export const daySchema = string().test(
   'day',
   '${path} must be a date (YYYY-MM-DD)',
   (value) => {
-    if (value === undefined) return true;
+    if (value == null) return true;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
     const day = new Date(`${value}T00:00:00Z`);
     return !isNaN(day.getTime()) && day.toISOString().startsWith(value);

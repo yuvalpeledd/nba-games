@@ -19,7 +19,8 @@ import {
   Typography,
 } from '@mui/material';
 import type { GameDto } from '@nba/dtos-games';
-import { DEFAULT_GAME_SCORE, isGameCompleted } from '@nba/dtos-groups';
+import { isGameCompleted } from '@nba/dtos-groups';
+import { ErrorCode } from '@nba/enums';
 import {
   ApiError,
   currentSeason,
@@ -87,11 +88,18 @@ export function GroupSinglePage() {
     return <PageLoader error={isError} />;
   }
   const { name, owner, status, members, isMember } = group.data;
+  const { defaultScore, maxMembers, memberCount, startDate, endDate } =
+    group.data;
   const isOwner = owner.id === userId;
   const join = () =>
     joinGroup.mutate(id, {
       onSuccess: () => setToast(`You joined ${name}`),
-      onError: () => setToast("Couldn't join the group, try again"),
+      onError: (error) =>
+        setToast(
+          error instanceof ApiError && error.code === ErrorCode.GROUP_FULL
+            ? `${name} is full`
+            : "Couldn't join the group, try again",
+        ),
     });
   const leave = () =>
     leaveGroup.mutate(id, {
@@ -107,7 +115,15 @@ export function GroupSinglePage() {
     group.data.gameScores.map(({ gameId, score }) => [gameId, score]),
   );
   const gameScoreOfGame = (game: GameDto) =>
-    gameScores.get(game.id) ?? DEFAULT_GAME_SCORE;
+    gameScores.get(game.id) ?? defaultScore;
+  const dates =
+    startDate && endDate
+      ? ` · Games from ${startDate} to ${endDate}`
+      : startDate
+        ? ` · Games from ${startDate}`
+        : endDate
+          ? ` · Games until ${endDate}`
+          : '';
 
   return (
     <Stack spacing={3}>
@@ -128,6 +144,10 @@ export function GroupSinglePage() {
             {owner.name}
             {isMember && ' · You are a member'}
           </Typography>
+          <Typography color="text.secondary">
+            A right pick scores {defaultScore} · {memberCount} of {maxMembers}{' '}
+            members{dates}
+          </Typography>
         </div>
         {!isOwner && !isMember && (
           <Button
@@ -135,8 +155,9 @@ export function GroupSinglePage() {
             startIcon={<GroupAddIcon />}
             onClick={join}
             loading={joinGroup.isPending}
+            disabled={memberCount >= maxMembers}
           >
-            Join
+            {memberCount >= maxMembers ? 'Full' : 'Join'}
           </Button>
         )}
         {!isOwner && isMember && (

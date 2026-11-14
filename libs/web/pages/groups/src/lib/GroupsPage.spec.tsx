@@ -18,8 +18,20 @@ const group = (
   owner: { id: `user-${owner}`, name: owner },
   memberCount: 1,
   isMember: false,
+  defaultScore: 1,
+  maxMembers: 1000,
+  startDate: null,
+  endDate: null,
   ...overrides,
 });
+
+// What the group dialog sends besides a name and public, when its settings are left as they are.
+const SETTINGS = {
+  defaultScore: 1,
+  maxMembers: 1000,
+  startDate: null,
+  endDate: null,
+};
 
 // A table's rows, each its cells' text.
 const rows = async (name: string) =>
@@ -135,13 +147,56 @@ describe('GroupsPage', () => {
 
     expect(await screen.findByText('Group Friday League created')).toBeTruthy();
     expect(callsOf(fetchMock, 'POST')).toEqual([
-      ['/api/groups', { name: 'Friday League', public: true }],
+      ['/api/groups', { name: 'Friday League', public: true, ...SETTINGS }],
     ]);
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     // Reloaded, with the new group.
     expect(
       fetchMock.mock.calls.filter(([url]) => url === '/api/groups'),
     ).toHaveLength(3);
+  });
+
+  it("sends the new group's settings, once they're valid", async () => {
+    const fetchMock = stubApi({
+      'GET /groups': [],
+      'POST /groups': group('Friday League', 'Dana Levi'),
+    });
+    renderAt('/groups');
+
+    const dialog = await openNewGroup();
+    const set = (label: string, value: string) =>
+      fireEvent.change(within(dialog).getByLabelText(label), {
+        target: { value },
+      });
+    set('Name', 'Friday League');
+    set('Default score', '11');
+    set('Max members', '20');
+    set('Start date', '2026-11-01');
+    set('End date', '2027-04-12');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Create' }));
+
+    expect(
+      await within(dialog).findByText('A whole number from 1 to 10'),
+    ).toBeTruthy();
+    expect(callsOf(fetchMock, 'POST')).toEqual([]);
+
+    set('Default score', '3');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Create' }));
+
+    expect(await screen.findByText('Group Friday League created')).toBeTruthy();
+    expect(callsOf(fetchMock, 'POST')).toEqual([
+      [
+        '/api/groups',
+        {
+          name: 'Friday League',
+          public: false,
+          defaultScore: 3,
+          maxMembers: 20,
+          startDate: '2026-11-01',
+          endDate: '2027-04-12',
+        },
+      ],
+    ]);
   });
 
   it('asks for a name before sending anything', async () => {
@@ -207,7 +262,10 @@ describe('GroupsPage', () => {
 
     expect(await screen.findByText('Group Sunday League saved')).toBeTruthy();
     expect(callsOf(fetchMock, 'PATCH')).toEqual([
-      ['/api/groups/friday', { name: 'Sunday League', public: true }],
+      [
+        '/api/groups/friday',
+        { name: 'Sunday League', public: true, ...SETTINGS },
+      ],
     ]);
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });

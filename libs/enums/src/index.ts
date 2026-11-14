@@ -13,4 +13,6 @@ export enum ErrorCode {
   GAME_NOT_FINAL = 'Game Not Final',
   // Setting a group's score for a game that is completed (final or canceled): its picks are scored, or void.
   GAME_COMPLETED = 'Game Completed',
+  // Joining a group that has its maxMembers.
+  GROUP_FULL = 'Group Full',
 }

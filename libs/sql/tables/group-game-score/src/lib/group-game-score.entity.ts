@@ -11,7 +11,7 @@ import {
 } from 'typeorm';
 
 // What a right pick of a game is worth in a group, set by its owner: a row per group and game it set (any other game
-// is worth DEFAULT_GAME_SCORE, 1, in @nba/dtos-groups).
+// is worth the group's default_score).
 @Entity('group_game_score')
 @Unique(['groupId', 'gameId'])
 export class GroupGameScoreEntity extends BaseAbstractEntity {

@@ -13,6 +13,14 @@ import { FrontendApiGroupsControllerModule } from './groups.module';
 const SCORE_MANAGER = 'http://score-manager.test';
 process.env['SCORE_MANAGER_URL'] = SCORE_MANAGER;
 
+// A group's settings, when no one picks others.
+const DEFAULT_SETTINGS = {
+  defaultScore: 1,
+  maxMembers: 1000,
+  startDate: null,
+  endDate: null,
+};
+
 describe('GroupsController', () => {
   let app: TestApp;
   beforeAll(async () => {
@@ -25,6 +33,21 @@ describe('GroupsController', () => {
     await app.clearDatabase();
     user = await app.signIn({ name: 'Dana Levi' });
   });
+
+  // score-manager is fake; every other request (the specs' own calls) is real.
+  const realFetch = global.fetch;
+  let scoreManager: jest.Mock;
+  beforeEach(() => {
+    scoreManager = jest.fn(async () => new Response('{}', { status: 200 }));
+    jest
+      .spyOn(global, 'fetch')
+      .mockImplementation((input, init) =>
+        String(input).startsWith(SCORE_MANAGER)
+          ? scoreManager(String(input), init)
+          : realFetch(input, init),
+      );
+  });
+  afterEach(() => jest.restoreAllMocks());
 
   const members = () => app.get(GroupMemberDalService);
   const join = (groupId: string, userId: string) =>
@@ -83,9 +106,53 @@ describe('GroupsController', () => {
         expect(status).toBe(400);
         expect(body.message).toContain('public must be true or false');
       });
+
+      it.each([
+        [{ defaultScore: 0 }, 'defaultScore must be at least 1'],
+        [{ defaultScore: 11 }, 'defaultScore must be at most 10'],
+        [{ defaultScore: 1.5 }, 'defaultScore must be an integer'],
+        [{ defaultScore: 'x' }, 'defaultScore must be a number'],
+        [{ maxMembers: 0 }, 'maxMembers must be at least 1'],
+        [{ maxMembers: 1001 }, 'maxMembers must be at most 1000'],
+        [{ maxMembers: 2.5 }, 'maxMembers must be an integer'],
+        [{ startDate: '2026-02-30' }, 'startDate must be a date (YYYY-MM-DD)'],
+        [{ endDate: 'soon' }, 'endDate must be a date (YYYY-MM-DD)'],
+        [
+          { startDate: '2026-11-12', endDate: '2026-11-11' },
+          'endDate must not be before startDate',
+        ],
+      ])('refuses %j', async (settings, message) => {
+        const { status, body } = await post({
+          name: 'Friday',
+          public: true,
+          ...settings,
+        });
+        expect(status).toBe(400);
+        expect(body.message).toContain(message);
+      });
     });
 
     describe('behavior', () => {
+      it('keeps the settings the caller picks', async () => {
+        const settings = {
+          defaultScore: 3,
+          maxMembers: 12,
+          startDate: '2026-11-01',
+          endDate: '2026-11-01',
+        };
+        const { status, body } = await post({
+          name: 'Friday',
+          public: true,
+          ...settings,
+        });
+
+        expect(status).toBe(201);
+        expect(body.data).toMatchObject(settings);
+        expect(
+          await app.get(GroupDalService).findById(body.data.id),
+        ).toMatchObject(settings);
+      });
+
       it('makes an active group the caller owns and is the only member of', async () => {
         const { status, body } = await post({
           name: ' Friday League ',
@@ -101,6 +168,7 @@ describe('GroupsController', () => {
           owner: { id: user.id, name: 'Dana Levi' },
           memberCount: 1,
           isMember: true,
+          ...DEFAULT_SETTINGS,
         });
         expect(await members().findVisibleTo(user.id)).toMatchObject([
           {
@@ -152,6 +220,7 @@ describe('GroupsController', () => {
             owner: { id: user.id, name: 'Dana Levi' },
             memberCount: 1,
             isMember: true,
+            ...DEFAULT_SETTINGS,
           },
           {
             id: expect.any(String),
@@ -161,6 +230,7 @@ describe('GroupsController', () => {
             owner: { id: omer.id, name: 'Omer Cohen' },
             memberCount: 1,
             isMember: false,
+            ...DEFAULT_SETTINGS,
           },
         ]);
       });
@@ -211,6 +281,7 @@ describe('GroupsController', () => {
           owner: { id: omer.id, name: 'Omer Cohen' },
           memberCount: 1,
           isMember: false,
+          ...DEFAULT_SETTINGS,
           members: [{ id: omer.id, name: 'Omer Cohen', score: 0 }],
           gameScores: [],
         });
@@ -366,10 +437,74 @@ describe('GroupsController', () => {
           owner: { id: user.id, name: 'Dana Levi' },
           memberCount: 1,
           isMember: true,
+          ...DEFAULT_SETTINGS,
         });
+        expect(scoreManager).not.toHaveBeenCalled();
         expect(await app.get(GroupDalService).findById(mine.id)).toMatchObject({
           name: 'Sunday Hoops',
           public: true,
+        });
+      });
+
+      it('asks score-manager to rescore the group when how it scores changes', async () => {
+        const { mine } = await mineAndOmers();
+        const settings = {
+          defaultScore: 2,
+          maxMembers: 10,
+          startDate: '2026-11-01',
+          endDate: null,
+        };
+
+        const { status, body } = await patch(mine.id, {
+          name: 'Friday League',
+          public: false,
+          ...settings,
+        });
+
+        expect(status).toBe(200);
+        expect(body.data).toMatchObject(settings);
+        expect(scoreManager).toHaveBeenCalledTimes(1);
+        expect(scoreManager.mock.calls[0][0]).toBe(
+          `${SCORE_MANAGER}/api/groups/${mine.id}/score`,
+        );
+        expect(scoreManager.mock.calls[0][1]).toMatchObject({
+          method: 'POST',
+        });
+      });
+
+      it('is 503 and undoes the change when score-manager fails', async () => {
+        const { mine } = await mineAndOmers();
+        scoreManager.mockResolvedValue(new Response('{}', { status: 500 }));
+
+        const { status } = await patch(mine.id, {
+          name: 'Renamed',
+          public: true,
+          defaultScore: 7,
+          endDate: '2027-04-12',
+        });
+
+        expect(status).toBe(503);
+        expect(await app.get(GroupDalService).findById(mine.id)).toMatchObject({
+          name: 'Friday League',
+          public: false,
+          ...DEFAULT_SETTINGS,
+        });
+      });
+
+      it('is 409 for maxMembers below its members, and changes nothing', async () => {
+        const { omer, mine } = await mineAndOmers();
+        await join(mine.id, omer.id);
+
+        const { status, body } = await patch(mine.id, {
+          name: 'Friday League',
+          public: false,
+          maxMembers: 1,
+        });
+
+        expect(status).toBe(409);
+        expect(body.message).toContain('maxMembers must be at least its 2');
+        expect(await app.get(GroupDalService).findById(mine.id)).toMatchObject({
+          maxMembers: 1000,
         });
       });
 
@@ -607,20 +742,6 @@ describe('GroupsController', () => {
   describe('POST /groups/:id/members', () => {
     const post = (id: string, token?: string | null) =>
       app.call('POST', `/groups/${id}/members`, undefined, token);
-    const realFetch = global.fetch;
-    let scoreManager: jest.Mock;
-    // score-manager is fake; every other request (the specs' own calls) is real.
-    beforeEach(() => {
-      scoreManager = jest.fn(async () => new Response('{}', { status: 200 }));
-      jest
-        .spyOn(global, 'fetch')
-        .mockImplementation((input, init) =>
-          String(input).startsWith(SCORE_MANAGER)
-            ? scoreManager(String(input), init)
-            : realFetch(input, init),
-        );
-    });
-    afterEach(() => jest.restoreAllMocks());
 
     describe('auth', () => {
       it('refuses a caller who is not signed in', async () => {
@@ -668,6 +789,18 @@ describe('GroupsController', () => {
         expect(status).toBe(201);
         expect(body.data).toMatchObject({ memberCount: 1, isMember: true });
         expect(scoreManager).not.toHaveBeenCalled();
+      });
+
+      it('is 409 GROUP_FULL for a group with maxMembers members, and asks nothing', async () => {
+        const { omers } = await mineAndOmers();
+        await app.get(GroupDalService).update(omers.id, { maxMembers: 1 });
+
+        const { status, body } = await post(omers.id);
+
+        expect(status).toBe(409);
+        expect(body.code).toBe(ErrorCode.GROUP_FULL);
+        expect(scoreManager).not.toHaveBeenCalled();
+        expect((await members().findMembers(omers.id)).length).toBe(1);
       });
 
       it('is 503 and undoes the join when score-manager fails', async () => {

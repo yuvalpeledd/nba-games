@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { GameStatus } from '@nba/sql-games';
-import { IsNull, Not } from 'typeorm';
+import { In, IsNull, Not } from 'typeorm';
 import { PredictionCreateObject, PredictionEntity } from './prediction.entity';
 import { PredictionRepo } from './prediction.repo';
 
@@ -27,11 +27,11 @@ export class PredictionDalService {
     return this.repo.find({ where: { gameId, pick: Not(IsNull()) } });
   }
 
-  // The user's picks of games that are final with a winner (the ones there is a score for), with their games.
-  findFinalByUser(userId: string): Promise<PredictionEntity[]> {
+  // The users' picks of games that are final with a winner (the ones there is a score for), with their games.
+  findFinalByUsers(userIds: string[]): Promise<PredictionEntity[]> {
     return this.repo.find({
       where: {
-        userId,
+        userId: In(userIds),
         pick: Not(IsNull()),
         game: { status: GameStatus.FINAL, winnerTeamId: Not(IsNull()) },
       },

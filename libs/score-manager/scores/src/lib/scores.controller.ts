@@ -5,7 +5,7 @@ import { YupPipe } from '@nba/frontend-api-common';
 import { type InferType, object } from 'yup';
 import {
   type GameScores,
-  type MemberScores,
+  type GroupScores,
   ScoresService,
 } from './scores.service';
 
@@ -50,7 +50,15 @@ export class ScoresController {
   async scoreMember(
     @Param('groupId', new YupPipe(groupIdSchema)) groupId: string,
     @Param('userId', new YupPipe(userIdSchema)) userId: string,
-  ): Promise<DataResponse<MemberScores>> {
+  ): Promise<DataResponse<GroupScores>> {
     return { data: await this.scores.scoreMember(groupId, userId) };
+  }
+
+  @Post('groups/:groupId/score')
+  @HttpCode(200)
+  async scoreGroup(
+    @Param('groupId', new YupPipe(groupIdSchema)) groupId: string,
+  ): Promise<DataResponse<GroupScores>> {
+    return { data: await this.scores.scoreGroup(groupId) };
   }
 }

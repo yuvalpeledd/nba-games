@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { In } from 'typeorm';
 import {
   GroupUserScoreCreateObject,
   GroupUserScoreEntity,
@@ -14,6 +15,23 @@ export class GroupUserScoreDalService {
     if (scores.length) {
       await this.repo.upsert(scores, ['groupId', 'userId', 'gameId']);
     }
+  }
+
+  // These users' scores in a group become `scores` (every other row of theirs there goes), in one transaction: a
+  // rescore after the group's settings change leaves no game they no longer score.
+  async replace(
+    groupId: string,
+    userIds: string[],
+    scores: GroupUserScoreCreateObject[],
+  ): Promise<void> {
+    if (!userIds.length) return;
+    await this.repo.manager.transaction(async (manager) => {
+      await manager.delete(GroupUserScoreEntity, {
+        groupId,
+        userId: In(userIds),
+      });
+      if (scores.length) await manager.insert(GroupUserScoreEntity, scores);
+    });
   }
 
   // A game's scores, in every group.

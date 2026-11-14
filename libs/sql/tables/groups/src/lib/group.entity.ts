@@ -30,6 +30,21 @@ export class GroupEntity extends BaseAbstractEntity {
   @Column()
   public!: boolean;
 
+  // What a right pick of a game is worth here (1-10), unless its owner set the game's own (group_game_score).
+  @Column({ type: 'integer', default: 1 })
+  defaultScore!: number;
+
+  // No one joins once it has this many members (up to 1000).
+  @Column({ type: 'integer', default: 1000 })
+  maxMembers!: number;
+
+  // Only games from startDate to endDate ('YYYY-MM-DD', both included; null: no bound) score here.
+  @Column({ type: 'date', nullable: true })
+  startDate!: string | null;
+
+  @Column({ type: 'date', nullable: true })
+  endDate!: string | null;
+
   @Column({ type: 'enum', enum: GroupStatus, default: GroupStatus.ACTIVE })
   status!: GroupStatus;
 
@@ -38,7 +53,10 @@ export class GroupEntity extends BaseAbstractEntity {
   deletedAt?: Date | null;
 }
 
+// The settings have defaults (the columns').
+type GroupSettings = 'defaultScore' | 'maxMembers' | 'startDate' | 'endDate';
 export type GroupCreateObject = CreateObject<
   GroupEntity,
-  'id' | 'owner' | 'status' | 'deletedAt'
->;
+  'id' | 'owner' | 'status' | 'deletedAt' | GroupSettings
+> &
+  Partial<Pick<GroupEntity, GroupSettings>>;

@@ -37,6 +37,10 @@ const friday: GroupDetailsDto = {
   owner: { id: 'user-dana', name: 'Dana Levi' },
   memberCount: 2,
   isMember: true,
+  defaultScore: 1,
+  maxMembers: 1000,
+  startDate: null,
+  endDate: null,
   members: [member('Dana Levi', 3), member('Omer Cohen', 5)],
   gameScores: [],
 };
@@ -304,7 +308,17 @@ describe('GroupSinglePage', () => {
 
       expect(await screen.findByText('Group Sunday League saved')).toBeTruthy();
       expect(callsOf(fetchMock, 'PATCH')).toEqual([
-        [`/api/groups/${ID}`, { name: 'Sunday League', public: false }],
+        [
+          `/api/groups/${ID}`,
+          {
+            name: 'Sunday League',
+            public: false,
+            defaultScore: 1,
+            maxMembers: 1000,
+            startDate: null,
+            endDate: null,
+          },
+        ],
       ]);
       await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     });

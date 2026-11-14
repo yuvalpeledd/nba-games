@@ -4,27 +4,28 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { DEFAULT_GAME_SCORE } from '@nba/dtos-groups';
+import { isGameInGroupDates } from '@nba/dtos-groups';
 import { scorePrediction } from '@nba/dtos-predictions';
 import { ErrorCode } from '@nba/enums';
 import { GameDalService, GameStatus } from '@nba/sql-games';
 import { GroupGameScoreDalService } from '@nba/sql-group-game-score';
 import { GroupMemberDalService } from '@nba/sql-group-members';
 import { GroupUserScoreDalService } from '@nba/sql-group-user-score';
+import { type GroupEntity, GroupDalService } from '@nba/sql-groups';
 import { PredictionDalService } from '@nba/sql-predictions';
 
-// What scoring a game wrote: a row per group of each user who picked, `right` of them the game's score there.
+// What scoring a game wrote: a row per group of each user who picked, `right` of them right picks.
 export interface GameScores {
   gameId: string;
   scores: number;
   right: number;
 }
 
-// What scoring a member's picks in a group wrote: a row per final game they picked, `right` of them the game's score
-// there.
-export interface MemberScores {
+// What scoring members' picks in a group wrote: a row per final game they picked within its dates, `right` of them
+// right picks.
+export interface GroupScores {
   groupId: string;
-  userId: string;
+  members: number;
   scores: number;
   right: number;
 }
@@ -36,13 +37,14 @@ export class ScoresService {
   constructor(
     private readonly games: GameDalService,
     private readonly predictions: PredictionDalService,
+    private readonly groups: GroupDalService,
     private readonly members: GroupMemberDalService,
     private readonly groupUserScores: GroupUserScoreDalService,
     private readonly groupGameScores: GroupGameScoreDalService,
   ) {}
 
-  // Every pick of a final game, scored in each group its user is in: the game's score there (its owner's, else
-  // DEFAULT_GAME_SCORE) if right, 0 if wrong; again overwrites.
+  // Every pick of a final game, scored in each group its user is in whose dates the game is within: the game's score
+  // there (its owner's, else the group's defaultScore) if right, 0 if wrong; again overwrites.
   // 404 for an unknown game, 409 until it's final with a winner (a canceled one never is: its picks are void).
   async score(gameId: string): Promise<GameScores> {
     const game = await this.games.findById(gameId);
@@ -65,14 +67,17 @@ export class ScoresService {
       right.size ? this.members.findByUsers([...right.keys()]) : [],
       this.groupGameScores.findByGame(gameId),
     ]);
-    const rows = memberships.map(({ groupId, userId }) => ({
-      groupId,
-      userId,
-      gameId,
-      score: right.get(userId)
-        ? (gameScores.get(groupId) ?? DEFAULT_GAME_SCORE)
-        : 0,
-    }));
+    const groups = await this.groups.findByIds([
+      ...new Set(memberships.map(({ groupId }) => groupId)),
+    ]);
+    const rows = memberships.flatMap(({ groupId, userId }) => {
+      const group = groups.get(groupId);
+      if (!group || !isGameInGroupDates(group, game)) return [];
+      const score = right.get(userId)
+        ? (gameScores.get(groupId) ?? group.defaultScore)
+        : 0;
+      return [{ groupId, userId, gameId, score }];
+    });
     await this.groupUserScores.upsert(rows);
     const result = {
       gameId,
@@ -85,44 +90,24 @@ export class ScoresService {
     return result;
   }
 
-  // A member's every pick of a final game, scored in the group (frontend-api asks when they join, so their past
-  // games count there too); again overwrites. 404 for a user who isn't in the group.
-  async scoreMember(groupId: string, userId: string): Promise<MemberScores> {
+  // A member's every pick of a final game within the group's dates, scored there (frontend-api asks when they join,
+  // so their past games count there too); their other rows there go. 404 for a user who isn't in the group.
+  async scoreMember(groupId: string, userId: string): Promise<GroupScores> {
     const memberships = await this.members.findByUsers([userId]);
     if (!memberships.some((membership) => membership.groupId === groupId)) {
       throw new NotFoundException(`User ${userId} is not in group ${groupId}`);
     }
-    const [predictions, gameScores] = await Promise.all([
-      this.predictions.findFinalByUser(userId),
-      this.groupGameScores.findByGroup(groupId),
-    ]);
-    const scoreOf = new Map(
-      gameScores.map(({ gameId, score }) => [gameId, score]),
+    return this.rescore(await this.group(groupId), [userId]);
+  }
+
+  // Every member's, as scoreMember (frontend-api asks when the group's owner changes how it scores).
+  async scoreGroup(groupId: string): Promise<GroupScores> {
+    const group = await this.group(groupId);
+    const members = await this.members.findMembers(groupId);
+    return this.rescore(
+      group,
+      members.map(({ userId }) => userId),
     );
-    const scored = predictions.map((prediction) => ({
-      gameId: prediction.gameId,
-      // findFinalByUser loads the game.
-      right: Boolean(
-        prediction.game && scorePrediction(prediction, prediction.game),
-      ),
-    }));
-    const rows = scored.map(({ gameId, right }) => ({
-      groupId,
-      userId,
-      gameId,
-      score: right ? (scoreOf.get(gameId) ?? DEFAULT_GAME_SCORE) : 0,
-    }));
-    await this.groupUserScores.upsert(rows);
-    const result = {
-      groupId,
-      userId,
-      scores: rows.length,
-      right: scored.filter(({ right }) => right).length,
-    };
-    this.logger.log(
-      `Scored ${userId} in ${groupId}: ${result.scores} scores, ${result.right} right`,
-    );
-    return result;
   }
 
   // Every game from `from` to `to` ('YYYY-MM-DD', both included) that's final with a winner, scored as `score` does;
@@ -140,5 +125,48 @@ export class ScoresService {
       `Scored ${results.length} of ${games.length} games from ${from} to ${to}`,
     );
     return results;
+  }
+
+  private async group(groupId: string): Promise<GroupEntity> {
+    const group = await this.groups.findById(groupId);
+    if (!group) throw new NotFoundException(`Group ${groupId} not found`);
+    return group;
+  }
+
+  // These members' scores in the group, made anew from their picks of final games within its dates.
+  private async rescore(
+    group: GroupEntity,
+    userIds: string[],
+  ): Promise<GroupScores> {
+    const [predictions, gameScores] = await Promise.all([
+      userIds.length ? this.predictions.findFinalByUsers(userIds) : [],
+      this.groupGameScores.findByGroup(group.id),
+    ]);
+    const scoreOf = new Map(
+      gameScores.map(({ gameId, score }) => [gameId, score]),
+    );
+    const scored = predictions.flatMap(({ userId, gameId, pick, game }) =>
+      // findFinalByUsers loads the game.
+      game && isGameInGroupDates(group, game)
+        ? [{ userId, gameId, right: Boolean(scorePrediction({ pick }, game)) }]
+        : [],
+    );
+    const rows = scored.map(({ userId, gameId, right }) => ({
+      groupId: group.id,
+      userId,
+      gameId,
+      score: right ? (scoreOf.get(gameId) ?? group.defaultScore) : 0,
+    }));
+    await this.groupUserScores.replace(group.id, userIds, rows);
+    const result = {
+      groupId: group.id,
+      members: userIds.length,
+      scores: rows.length,
+      right: scored.filter(({ right }) => right).length,
+    };
+    this.logger.log(
+      `Scored ${result.members} members in ${group.id}: ${result.scores} scores, ${result.right} right`,
+    );
+    return result;
   }
 }
