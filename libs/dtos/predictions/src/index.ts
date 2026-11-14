@@ -43,6 +43,15 @@ export const isPredictionLocked = (
   new Date(game.startTime).getTime() <= now ||
   !OPEN_STATUSES.includes(game.status);
 
+// A game takes picks only from PREDICTION_WINDOW_DAYS before its start, so the schedule's far end stays unpicked.
+export const PREDICTION_WINDOW_DAYS = 10;
+export const isPredictionTooEarly = (
+  game: { startTime: string | Date },
+  now = Date.now(),
+): boolean =>
+  new Date(game.startTime).getTime() - now >
+  PREDICTION_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+
 // Whether the pick was right: null until the game is final with a winner, and for no pick (a canceled game voids it).
 export const scorePrediction = (
   prediction: { pick: PredictionPick | null } | undefined,

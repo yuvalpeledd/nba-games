@@ -1,11 +1,16 @@
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
+import CheckIcon from '@mui/icons-material/Check';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import LogoutIcon from '@mui/icons-material/Logout';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
+import PersonOutlinedIcon from '@mui/icons-material/PersonOutlined';
+import PublicIcon from '@mui/icons-material/Public';
 import {
   Box,
   Button,
+  Chip,
   Dialog,
   DialogActions,
   DialogContent,
@@ -21,6 +26,7 @@ import {
 import type { GameDto } from '@nba/dtos-games';
 import { isGameCompleted } from '@nba/dtos-groups';
 import { ErrorCode } from '@nba/enums';
+import { GroupStatus } from '@nba/sql-groups/enums';
 import {
   ApiError,
   currentSeason,
@@ -118,12 +124,12 @@ export function GroupSinglePage() {
     gameScores.get(game.id) ?? defaultScore;
   const dates =
     startDate && endDate
-      ? ` · Games from ${startDate} to ${endDate}`
+      ? `Games from ${startDate} to ${endDate}`
       : startDate
-        ? ` · Games from ${startDate}`
+        ? `Games from ${startDate}`
         : endDate
-          ? ` · Games until ${endDate}`
-          : '';
+          ? `Games until ${endDate}`
+          : null;
 
   return (
     <Stack spacing={3}>
@@ -137,18 +143,49 @@ export function GroupSinglePage() {
           gap: 2,
         }}
       >
-        <div>
+        <Stack spacing={1}>
           <Typography variant="h1">{name}</Typography>
-          <Typography color="text.secondary">
-            {group.data.public ? 'Public' : 'Private'} · {status} · Owned by{' '}
-            {owner.name}
-            {isMember && ' · You are a member'}
-          </Typography>
-          <Typography color="text.secondary">
-            A right pick scores {defaultScore} · {memberCount} of {maxMembers}{' '}
-            members{dates}
-          </Typography>
-        </div>
+          <Stack direction="row" useFlexGap sx={{ flexWrap: 'wrap', gap: 1 }}>
+            <Chip
+              size="small"
+              icon={group.data.public ? <PublicIcon /> : <LockOutlinedIcon />}
+              label={group.data.public ? 'Public' : 'Private'}
+            />
+            <Chip
+              size="small"
+              color={status === GroupStatus.ACTIVE ? 'success' : 'default'}
+              label={status}
+            />
+            <Chip
+              size="small"
+              variant="outlined"
+              icon={<PersonOutlinedIcon />}
+              label={`Owned by ${owner.name}`}
+            />
+            {isMember && (
+              <Chip
+                size="small"
+                color="primary"
+                variant="outlined"
+                icon={<CheckIcon />}
+                label="You are a member"
+              />
+            )}
+          </Stack>
+          <Stack direction="row" useFlexGap sx={{ flexWrap: 'wrap', gap: 1 }}>
+            <Chip
+              size="small"
+              variant="outlined"
+              label={`A right pick scores ${defaultScore}`}
+            />
+            <Chip
+              size="small"
+              variant="outlined"
+              label={`${memberCount} of ${maxMembers} members`}
+            />
+            {dates && <Chip size="small" variant="outlined" label={dates} />}
+          </Stack>
+        </Stack>
         {!isOwner && !isMember && (
           <Button
             variant="contained"
@@ -197,9 +234,12 @@ export function GroupSinglePage() {
         <Scoreboard members={members} ownerId={owner.id} />
       </Box>
       <Box component="section" aria-label="Games">
-        <Typography variant="h6" component="h2">
-          Games{season && ` · ${formatSeason(season.year)}`}
-        </Typography>
+        <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+          <Typography variant="h6" component="h2">
+            Games
+          </Typography>
+          {season && <Chip size="small" label={formatSeason(season.year)} />}
+        </Stack>
         {!isMember ? (
           <Typography color="text.secondary">
             Join the group to see its games and its members' picks.

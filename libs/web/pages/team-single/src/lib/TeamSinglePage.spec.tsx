@@ -109,10 +109,17 @@ describe('TeamSinglePage', () => {
       await screen.findByRole('heading', { level: 1, name: 'Boston Celtics' }),
     ).toBeTruthy();
     expect(
-      screen.getByText(
-        'Eastern Conference · Atlantic Division · Arena, Boston',
-      ),
-    ).toBeTruthy();
+      screen
+        .getByRole('img', { name: 'Boston Celtics logo' })
+        .getAttribute('src'),
+    ).toBe('https://a.espncdn.com/i/teamlogos/nba/500/bos.png');
+    for (const fact of [
+      'Eastern Conference',
+      'Atlantic Division',
+      'Arena, Boston',
+    ]) {
+      expect(screen.getByText(fact)).toBeTruthy();
+    }
     expect(
       await screen.findByRole('heading', { name: '2026-27' }),
     ).toBeTruthy();

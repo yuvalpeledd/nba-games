@@ -46,4 +46,5 @@ export {
 } from './lib/session';
 export type { Session } from './lib/session';
 export { statHints } from './lib/stat-hints';
+export { teamLogoUrl } from './lib/team-logo';
 export { invalidFields } from './lib/validation';
