@@ -62,14 +62,6 @@ const rows = async () =>
         .map((cell) => cell.textContent),
     );
 
-// Removes the filter on the games after two days ago the page opens with.
-const showEveryDay = async () =>
-  fireEvent.click(
-    within(
-      await screen.findByRole('button', { name: 'Date after 11/11/2026' }),
-    ).getByTestId('CancelIcon'),
-  );
-
 describe('GamesPage', () => {
   beforeEach(() => {
     // Only the clock: the spec's waits still run.
@@ -81,13 +73,53 @@ describe('GamesPage', () => {
     vi.useRealTimers();
   });
 
-  it('opens on the games after two days ago', async () => {
-    renderAt('/games');
+  describe('Today', () => {
+    // The rows Today scrolled to (jsdom doesn't scroll).
+    let scrolledTo: Element[];
+    beforeEach(() => {
+      scrolledTo = [];
+      Element.prototype.scrollIntoView = function (this: Element) {
+        scrolledTo.push(this);
+      };
+    });
 
-    expect((await rows()).map(([time]) => time)).toEqual([
-      tipOff('2026-11-12'),
-      tipOff('2026-11-13'),
-    ]);
+    it("pages to today's first game and scrolls to it", async () => {
+      stubApi(
+        routes([
+          ...Array.from({ length: 55 }, (_, i) =>
+            game('nba-bos', 'nba-nyk', '2026-11-01', { id: `game-${i}` }),
+          ),
+          game('nba-gsw', 'nba-lal', '2026-11-13'),
+          game('nba-lal', 'nba-bos', '2026-11-13'),
+          game('nba-bos', 'nba-gsw', '2026-11-14'),
+        ]),
+      );
+      renderAt('/games');
+      expect(await rows()).toHaveLength(50);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Today' }));
+
+      expect((await rows()).map(([time]) => time)).toEqual([
+        ...Array(5).fill(tipOff('2026-11-01')),
+        tipOff('2026-11-13'),
+        tipOff('2026-11-13'),
+        tipOff('2026-11-14'),
+      ]);
+      expect(scrolledTo.map((row) => row.textContent)).toEqual([
+        expect.stringContaining('Los Angeles LakersGolden State Warriors'),
+      ]);
+    });
+
+    it('scrolls to the last day before today with games when today has none', async () => {
+      stubApi(routes(games.slice(0, 2)));
+      renderAt('/games');
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Today' }));
+
+      expect(scrolledTo.map((row) => row.textContent)).toEqual([
+        expect.stringContaining('Los Angeles LakersGolden State Warriors'),
+      ]);
+    });
   });
 
   it("opens on a link's filters instead (the dashboard's games left to pick this week)", async () => {
@@ -116,9 +148,8 @@ describe('GamesPage', () => {
     }
   });
 
-  it("lists every team's games in the season, every day, without that filter", async () => {
+  it("lists every team's games in the season, every day", async () => {
     renderAt('/games');
-    await showEveryDay();
 
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Games' }),
@@ -178,7 +209,6 @@ describe('GamesPage', () => {
 
   it('filters by any of the checked values, or none, until the filter is removed', async () => {
     renderAt('/games');
-    await showEveryDay();
     const homes = async () => (await rows()).map(([, , home]) => home);
 
     fireEvent.click(await screen.findByRole('button', { name: 'Add Filter' }));
@@ -211,7 +241,6 @@ describe('GamesPage', () => {
 
   it('filters by a number, until the filters are cleared', async () => {
     renderAt('/games');
-    await showEveryDay();
     const scores = async () => (await rows()).map(([, , , score]) => score);
 
     fireEvent.click(await screen.findByRole('button', { name: 'Add Filter' }));
@@ -235,7 +264,6 @@ describe('GamesPage', () => {
 
   it('sorts by score, the unplayed last', async () => {
     renderAt('/games');
-    await showEveryDay();
 
     fireEvent.click(await screen.findByRole('button', { name: 'Score' }));
     fireEvent.click(screen.getByRole('button', { name: 'Score' }));
@@ -280,7 +308,7 @@ describe('GamesPage', () => {
   });
 
   describe('predictions', () => {
-    // The last game (tonight, postponed) hasn't begun; the one before (final) has.
+    // The last game (tonight, postponed) hasn't begun; the ones before (final) have.
     const [, played, tonight] = games;
     const predictionRoutes = {
       ...routes(games),
@@ -300,6 +328,7 @@ describe('GamesPage', () => {
       renderAt('/games');
 
       expect((await rows()).map((cells) => cells[5])).toEqual([
+        'None',
         'Away',
         'AwayHome',
       ]);

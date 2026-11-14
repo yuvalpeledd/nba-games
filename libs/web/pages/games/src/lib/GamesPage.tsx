@@ -14,8 +14,8 @@ import {
 import { PageLoader } from '@nba/web-shell-components';
 import { useLocation } from 'react-router';
 
-// Every team's games in the current season, by day, filtered and paged in the browser; at first, those after two
-// days ago, or the `filters` of the navigation's state (the dashboard's link to this week's games left to pick).
+// Every team's games in the current season, by day, filtered and paged in the browser; at first, unfiltered, or by the
+// `filters` of the navigation's state (the dashboard's link to this week's games left to pick).
 export function GamesPage() {
   const linkedFilters = (
     useLocation().state as { filters?: GamesTableFilter[] } | null
