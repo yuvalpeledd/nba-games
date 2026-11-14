@@ -1,4 +1,6 @@
+import TodayIcon from '@mui/icons-material/Today';
 import {
+  Button,
   Link,
   Stack,
   Table,
@@ -21,7 +23,8 @@ import {
   useTableFilters,
   useTableSort,
 } from '@nba/web-table-components';
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { Link as RouterLink } from 'react-router';
 import { PredictionCell, predictionLabel } from './PredictionCell';
 
@@ -39,12 +42,8 @@ const ROWS_PER_PAGE = 50;
 
 export type GamesTableFilter = Filter<'time' | 'status' | 'prediction'>;
 
-// The viewer's day `days` ago, YYYY-MM-DD (the Canadian format is ISO's).
-const daysAgo = (days: number): string => {
-  const day = new Date();
-  day.setDate(day.getDate() - days);
-  return day.toLocaleDateString('en-CA');
-};
+// The viewer's today, YYYY-MM-DD (the Canadian format is ISO's).
+const today = (): string => new Date().toLocaleDateString('en-CA');
 
 function TeamCell({ id, name }: { id: string; name: string }) {
   return (
@@ -60,8 +59,8 @@ function TeamCell({ id, name }: { id: string; name: string }) {
   );
 }
 
-// Games with the signed-in user's picks, by day, filtered and paged in the browser; at first, those after two days
-// ago, or `filters`. `gameScore` adds a column of what a right pick of each is worth (a group's); `actions` a last
+// Games with the signed-in user's picks, by day, filtered and paged in the browser, at first by `filters`; Today
+// jumps to today's games. `gameScore` adds a column of what a right pick of each is worth (a group's); `actions` a last
 // cell per row (a row's menu).
 export function GamesTable({
   games,
@@ -79,6 +78,7 @@ export function GamesTable({
   actions?: (game: GameDto) => ReactNode;
 }) {
   const [page, setPage] = useState(0);
+  const tableRef = useRef<HTMLTableElement>(null);
   const nameOf = (id: string) =>
     teams.find((team) => team.id === id)?.name ?? id;
   const allRows = games.map((game) => ({
@@ -122,7 +122,7 @@ export function GamesTable({
           }
         : {}) as Record<'gameScore', FilterColumn<(typeof allRows)[number]>>),
     },
-    filters ?? [{ column: 'time', operator: 'after', values: [daysAgo(2)] }],
+    filters,
   );
   const { rows, headCell } = useTableSort(filtered.rows, {
     time: (row) => row.game.startTime,
@@ -138,6 +138,27 @@ export function GamesTable({
     page,
     Math.max(0, Math.ceil(rows.length / ROWS_PER_PAGE) - 1),
   );
+  // To the first row of today, else of the last day before it with games (else the first row): its page, then the
+  // row at the top of the screen. The league's day, as the filters compare it.
+  const jumpToToday = () => {
+    const day = today();
+    const last = rows.reduce<string | null>(
+      (found, { game }) =>
+        game.date <= day && (found === null || game.date > found)
+          ? game.date
+          : found,
+      null,
+    );
+    const index = Math.max(
+      0,
+      rows.findIndex(({ game }) => game.date === last),
+    );
+    // Rendered now, so the row is there to scroll to.
+    flushSync(() => setPage(Math.floor(index / ROWS_PER_PAGE)));
+    tableRef.current
+      ?.querySelector(`[data-game-id="${rows[index].game.id}"]`)
+      ?.scrollIntoView({ block: 'start' });
+  };
   if (allRows.length === 0) {
     return (
       <Typography color="text.secondary">No games this season.</Typography>
@@ -146,9 +167,19 @@ export function GamesTable({
 
   return (
     <Stack spacing={2}>
-      {filtered.filterBar}
+      <Stack direction="row" spacing={1} sx={{ alignItems: 'flex-start' }}>
+        <Button
+          variant="outlined"
+          startIcon={<TodayIcon />}
+          disabled={rows.length === 0}
+          onClick={jumpToToday}
+        >
+          Today
+        </Button>
+        {filtered.filterBar}
+      </Stack>
       <TableContainer>
-        <Table aria-label="Games">
+        <Table aria-label="Games" ref={tableRef}>
           <TableHead>
             <TableRow>
               {headCell('time', 'Time')}
@@ -171,7 +202,7 @@ export function GamesTable({
             {rows
               .slice(shownPage * ROWS_PER_PAGE, (shownPage + 1) * ROWS_PER_PAGE)
               .map(({ game, away, home, played, pick, gameScore: worth }) => (
-                <TableRow key={game.id}>
+                <TableRow key={game.id} data-game-id={game.id}>
                   <TableCell>{formatTime(game.startTime)}</TableCell>
                   <TeamCell id={game.awayTeamId} name={away} />
                   <TeamCell id={game.homeTeamId} name={home} />
