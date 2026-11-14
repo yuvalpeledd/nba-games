@@ -3,7 +3,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { isPredictionLocked, type PredictionDto } from '@nba/dtos-predictions';
+import {
+  isPredictionLocked,
+  isPredictionTooEarly,
+  PREDICTION_WINDOW_DAYS,
+  type PredictionDto,
+} from '@nba/dtos-predictions';
 import { ErrorCode } from '@nba/enums';
 import { GameDalService } from '@nba/sql-games';
 import {
@@ -29,7 +34,8 @@ export class PredictionsService {
     return predictions.map(toPredictionDto);
   }
 
-  // Only before the game begins (isPredictionLocked): 409 PREDICTION_LOCKED after.
+  // Only before the game begins (isPredictionLocked): 409 PREDICTION_LOCKED after; and only within
+  // PREDICTION_WINDOW_DAYS of it (isPredictionTooEarly): 409 PREDICTION_NOT_OPEN before.
   async set(
     userId: string,
     gameId: string,
@@ -42,6 +48,13 @@ export class PredictionsService {
         statusCode: 409,
         message: 'This game has begun: its predictions are locked',
         code: ErrorCode.PREDICTION_LOCKED,
+      });
+    }
+    if (isPredictionTooEarly(game)) {
+      throw new ConflictException({
+        statusCode: 409,
+        message: `Predictions open ${PREDICTION_WINDOW_DAYS} days before the game`,
+        code: ErrorCode.PREDICTION_NOT_OPEN,
       });
     }
     return toPredictionDto(

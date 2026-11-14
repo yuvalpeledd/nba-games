@@ -141,6 +141,20 @@ describe('PredictionsController', () => {
           expect(await predictions().findBySeason(user.id, 2026)).toEqual([]);
         },
       );
+
+      it('refuses a game more than 10 days away: 409 PREDICTION_NOT_OPEN, nothing written', async () => {
+        const game = await createGame({
+          startTime: new Date(Date.now() + 11 * 86_400_000),
+        });
+
+        const { status, body } = await put(game.id, {
+          pick: PredictionPick.HOME,
+        });
+
+        expect(status).toBe(409);
+        expect(body.code).toBe(ErrorCode.PREDICTION_NOT_OPEN);
+        expect(await predictions().findBySeason(user.id, 2026)).toEqual([]);
+      });
     });
   });
 

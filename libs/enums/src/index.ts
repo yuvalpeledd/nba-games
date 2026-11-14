@@ -9,6 +9,8 @@ export enum ErrorCode {
   EMAIL_NOT_VERIFIED = 'Email Not Verified',
   // A prediction of a game that has started (or ended): picks lock at tip-off.
   PREDICTION_LOCKED = 'Prediction Locked',
+  // A prediction of a game more than PREDICTION_WINDOW_DAYS away: picks open then.
+  PREDICTION_NOT_OPEN = 'Prediction Not Open',
   // Scoring a game that isn't final with a winner (yet, or ever: a canceled one voids its predictions).
   GAME_NOT_FINAL = 'Game Not Final',
   // Setting a group's score for a game that is completed (final or canceled): its picks are scored, or void.

@@ -1,6 +1,10 @@
 import { GameStatus } from '@nba/sql-games/enums';
 import { PredictionPick } from '@nba/sql-predictions/enums';
-import { isPredictionLocked, scorePrediction } from './index';
+import {
+  isPredictionLocked,
+  isPredictionTooEarly,
+  scorePrediction,
+} from './index';
 
 describe('isPredictionLocked', () => {
   const now = Date.parse('2026-11-13T12:00:00Z');
@@ -35,6 +39,22 @@ describe('isPredictionLocked', () => {
     ]) {
       expect(isPredictionLocked({ startTime: later, status }, now)).toBe(true);
     }
+  });
+});
+
+describe('isPredictionTooEarly', () => {
+  const now = Date.parse('2026-11-13T12:00:00Z');
+
+  it('opens 10 days before the start time', () => {
+    expect(
+      isPredictionTooEarly({ startTime: '2026-11-23T12:00:01Z' }, now),
+    ).toBe(true);
+    expect(
+      isPredictionTooEarly({ startTime: '2026-11-23T12:00:00Z' }, now),
+    ).toBe(false);
+    expect(
+      isPredictionTooEarly({ startTime: '2026-11-14T00:00:00Z' }, now),
+    ).toBe(false);
   });
 });
 
