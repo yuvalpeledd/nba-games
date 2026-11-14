@@ -1,0 +1,119 @@
+@use '../../../../components/shell/src/lib/colors' as *;
+
+// The user's predictions above the data-fetcher's last run, in the team page's look: rounded panels, stat tiles.
+.dashboard-page {
+  display: grid;
+  gap: 1.5rem;
+
+  &__panel {
+    display: grid;
+    gap: 1rem;
+    padding: 1.25rem;
+    border: 1px solid border-color(primary);
+    border-radius: 1rem;
+    background: surface-color(primary);
+
+    @media (min-width: 600px) {
+      padding: 1.5rem 2rem;
+    }
+  }
+
+  &__predictions {
+    background: linear-gradient(
+      135deg,
+      chart-color(bg-light-purple),
+      surface-color(primary) 60%
+    );
+  }
+
+  // A tile per counter, as many to a row as fit.
+  &__counters {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+    gap: 0.75rem;
+  }
+
+  &__counter {
+    display: grid;
+    border: 1px solid border-color(primary);
+    border-radius: 0.75rem;
+    background: surface-color(primary);
+    transition:
+      border-color 0.15s,
+      box-shadow 0.15s,
+      transform 0.15s;
+
+    // The one that leads somewhere: the games left to pick.
+    &--link {
+      border-color: border-color(action);
+      background: chart-color(primary-50);
+
+      &:hover,
+      &:focus-within {
+        box-shadow: 0 4px 12px rgba(chart-color(primary-500), 0.2);
+        transform: translateY(-2px);
+      }
+
+      .dashboard-page__value {
+        color: text-color(action);
+      }
+    }
+  }
+
+  &__counter-body {
+    display: grid;
+    align-content: start;
+    gap: 0.25rem;
+    min-block-size: 44px;
+    padding: 1rem 1.25rem;
+    color: inherit;
+    text-decoration: none;
+    border-radius: inherit;
+  }
+
+  &__label {
+    inline-size: fit-content;
+    color: text-color(secondary);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: help;
+  }
+
+  &__value {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__detail {
+    color: text-color(tertiary);
+    font-size: 0.875rem;
+  }
+
+  // The last scan: its edge in its outcome's color.
+  &__scan {
+    border-inline-start: 4px solid border-color(success);
+
+    &--failed {
+      border-inline-start-color: border-color(error);
+    }
+  }
+
+  &__scan-header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  &__scan-facts {
+    display: grid;
+    gap: 0.25rem;
+    color: text-color(secondary);
+    font-variant-numeric: tabular-nums;
+  }
+}

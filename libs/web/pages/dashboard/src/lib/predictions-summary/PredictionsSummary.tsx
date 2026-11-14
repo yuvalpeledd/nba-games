@@ -1,11 +1,4 @@
-import {
-  Card,
-  CardActionArea,
-  CardContent,
-  Stack,
-  Tooltip,
-  Typography,
-} from '@mui/material';
+import { Tooltip, Typography } from '@mui/material';
 import type { GameDto } from '@nba/dtos-games';
 import {
   isPredictionLocked,
@@ -74,27 +67,33 @@ function Counter({
   // Where a click goes, and the navigation's state.
   link?: { to: string; state: unknown };
 }) {
-  const content = (
-    <CardContent>
+  const body = (
+    <>
       <Tooltip title={hint} describeChild>
-        <Typography variant="overline">{label}</Typography>
+        <span className="dashboard-page__label">{label}</span>
       </Tooltip>
-      <Typography variant="h2" component="p">
-        {value}
-      </Typography>
-      <Typography variant="body2">{detail}</Typography>
-    </CardContent>
+      <span className="dashboard-page__value">{value}</span>
+      <span className="dashboard-page__detail">{detail}</span>
+    </>
   );
   return (
-    <Card variant="outlined" role="group" aria-label={label} sx={{ flex: 1 }}>
+    <div
+      className={`dashboard-page__counter${link ? ' dashboard-page__counter--link' : ''}`}
+      role="group"
+      aria-label={label}
+    >
       {link ? (
-        <CardActionArea component={RouterLink} to={link.to} state={link.state}>
-          {content}
-        </CardActionArea>
+        <RouterLink
+          className="dashboard-page__counter-body"
+          to={link.to}
+          state={link.state}
+        >
+          {body}
+        </RouterLink>
       ) : (
-        content
+        <div className="dashboard-page__counter-body">{body}</div>
       )}
-    </Card>
+    </div>
   );
 }
 
@@ -106,7 +105,10 @@ export function PredictionsSummary() {
   const predictions = usePredictions(season?.year);
   const loaded = games.data && predictions.data;
   return (
-    <Stack component="section" spacing={1} aria-labelledby="predictions">
+    <section
+      className="dashboard-page__panel dashboard-page__predictions"
+      aria-labelledby="predictions"
+    >
       <Typography id="predictions" variant="h2">
         Predictions
       </Typography>
@@ -117,7 +119,7 @@ export function PredictionsSummary() {
       ) : (
         <Counters games={games.data} predictions={predictions.data} />
       )}
-    </Stack>
+    </section>
   );
 }
 
@@ -137,7 +139,7 @@ function Counters({
   const [weekRate, weekDetail] = successRate(week, picks);
   const [seasonRate, seasonDetail] = successRate(games, picks);
   return (
-    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+    <div className="dashboard-page__counters">
       <Counter
         label="Left this week"
         hint={statHints.predictionsLeft}
@@ -157,6 +159,6 @@ function Counters({
         value={seasonRate}
         detail={seasonDetail}
       />
-    </Stack>
+    </div>
   );
 }

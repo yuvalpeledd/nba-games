@@ -29,7 +29,7 @@ For the web app: `apps/web-app` and its libs in `libs/web` (CLAUDE.md's Layout).
 - **Design system:** outly's.
   Colors only from `colors.scss` in the shell lib (`@use` it, then `text-color(secondary)`; MUI's palette comes from it through `theme.module.scss`).
   A look every MUI component of a kind shares goes in the design-system lib's partial for it (`_table.scss`, ...).
-  A page's title is `<Typography variant="h1">`.
+  A page's title is `<Typography variant="h1">`, but for the dashboard's, which opens straight on its sections.
 - **A new page:** its lib, its name in `PAGE_NAMES` and its route in `AppShell`, its entry in `app.tsx`, and a navbar item (`Navbar.tsx`) if it's a section.
 - **Pages:** a lib each, `libs/web/pages/<kebab-name>` (`@nba/web-<kebab-name>-page`): `src/lib/<PascalName>Page.tsx`, optional `<kebab-name>-page.scss`, and the components only it uses, a folder each beside it, never exported.
   Pages import components libs and core by alias, never another page.

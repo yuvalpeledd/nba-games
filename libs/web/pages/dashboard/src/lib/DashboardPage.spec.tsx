@@ -174,12 +174,13 @@ describe('DashboardPage', () => {
     });
   });
 
-  it('says hello at /, the first of the navbar', async () => {
+  it('opens at /, the first of the navbar, on the predictions without a greeting', async () => {
     renderAt('/');
 
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Hello' }),
+      await screen.findByRole('heading', { level: 2, name: 'Predictions' }),
     ).toBeTruthy();
+    expect(screen.queryByRole('heading', { level: 1 })).toBeNull();
     const nav = within(screen.getByRole('navigation', { name: 'Navigation' }));
     expect(nav.getByRole('link', { name: 'Dashboard' }).className).toContain(
       'Mui-selected',
@@ -188,7 +189,7 @@ describe('DashboardPage', () => {
 
   it("leads to the navbar's other pages, and back", async () => {
     renderAt('/');
-    await screen.findByRole('heading', { name: 'Hello' });
+    await screen.findByRole('heading', { name: 'Predictions' });
     const nav = within(screen.getByRole('navigation', { name: 'Navigation' }));
 
     fireEvent.click(nav.getByRole('link', { name: 'Games' }));
@@ -203,13 +204,17 @@ describe('DashboardPage', () => {
       'Mui-selected',
     );
     fireEvent.click(nav.getByRole('link', { name: 'Dashboard' }));
-    expect(await screen.findByRole('heading', { name: 'Hello' })).toBeTruthy();
+    expect(
+      await screen.findByRole('heading', { name: 'Predictions' }),
+    ).toBeTruthy();
   });
 
   it('sends an unknown address to the dashboard', async () => {
     renderAt('/nowhere');
 
-    expect(await screen.findByRole('heading', { name: 'Hello' })).toBeTruthy();
+    expect(
+      await screen.findByRole('heading', { name: 'Predictions' }),
+    ).toBeTruthy();
     expect(window.location.pathname).toBe('/');
   });
 });
