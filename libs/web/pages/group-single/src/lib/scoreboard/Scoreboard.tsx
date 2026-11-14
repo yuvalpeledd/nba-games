@@ -1,4 +1,5 @@
 import {
+  Chip,
   Stack,
   Table,
   TableBody,
@@ -7,7 +8,6 @@ import {
   TableHead,
   TablePagination,
   TableRow,
-  Typography,
 } from '@mui/material';
 import type { GroupDetailsDto } from '@nba/dtos-groups';
 import { statHints } from '@nba/web-core';
@@ -68,14 +68,10 @@ export function Scoreboard({
                   <TableCell>
                     {name}
                     {id === ownerId && (
-                      <Typography
-                        component="span"
-                        variant="inherit"
-                        color="text.secondary"
-                      >
+                      <>
                         {' '}
-                        · Owner
-                      </Typography>
+                        <Chip size="small" label="Owner" />
+                      </>
                     )}
                   </TableCell>
                   <TableCell align="right">{score}</TableCell>

@@ -108,8 +108,12 @@ describe('TeamSinglePage', () => {
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Boston Celtics' }),
     ).toBeTruthy();
+    expect(
+      screen
+        .getByRole('img', { name: 'Boston Celtics logo' })
+        .getAttribute('src'),
+    ).toBe('https://a.espncdn.com/i/teamlogos/nba/500/bos.png');
     for (const fact of [
-      'BOS',
       'Eastern Conference',
       'Atlantic Division',
       'Arena, Boston',

@@ -102,14 +102,17 @@ describe('GroupSinglePage', () => {
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Friday League' }),
     ).toBeTruthy();
-    expect(
-      screen.getByText(
-        'Private · Active · Owned by Dana Levi · You are a member',
-      ),
-    ).toBeTruthy();
+    for (const fact of [
+      'Private',
+      'Active',
+      'Owned by Dana Levi',
+      'You are a member',
+    ]) {
+      expect(screen.getByText(fact)).toBeTruthy();
+    }
     expect(cellsOf(screen.getByRole('table', { name: 'Scoreboard' }))).toEqual([
       ['1', 'Omer Cohen', '5'],
-      ['2', 'Dana Levi · Owner', '3'],
+      ['2', 'Dana Levi Owner', '3'],
     ]);
   });
 
@@ -140,7 +143,7 @@ describe('GroupSinglePage', () => {
       '1 Omer Cohen',
       '1 Noam Bar',
       '3 Yael Mor',
-      '4 Dana Levi · Owner',
+      '4 Dana Levi Owner',
       '5 Tal Ron',
     ]);
     fireEvent.click(

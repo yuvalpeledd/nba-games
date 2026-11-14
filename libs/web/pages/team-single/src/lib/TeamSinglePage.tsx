@@ -14,6 +14,7 @@ import {
   formatSeason,
   formatWinPct,
   statHints,
+  teamLogoUrl,
   useSeasons,
   useStandings,
   useTeams,
@@ -64,7 +65,11 @@ export function TeamSinglePage() {
     <Stack spacing={3}>
       <section className="team-single-page__hero">
         <div className="team-single-page__identity">
-          <Avatar className="team-single-page__badge">
+          <Avatar
+            className="team-single-page__logo"
+            src={teamLogoUrl(team.abbreviation)}
+            alt={`${team.name} logo`}
+          >
             {team.abbreviation}
           </Avatar>
           <div className="team-single-page__name">
