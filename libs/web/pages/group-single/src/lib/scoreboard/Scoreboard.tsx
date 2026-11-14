@@ -16,7 +16,8 @@ import { useState } from 'react';
 
 const ROWS_PER_PAGE = 5;
 
-// The group's members by score, highest first (a point per right pick; equal scores share a rank), 5 a page.
+// The group's members by score, highest first (a point per right pick; equal scores share a rank), 5 a page: a narrow,
+// dense table, as it has only three short columns.
 export function Scoreboard({
   members,
   ownerId,
@@ -47,10 +48,15 @@ export function Scoreboard({
   );
 
   return (
-    <Stack spacing={2}>
+    <Stack spacing={2} sx={{ maxWidth: 480 }}>
       {filtered.filterBar}
       <TableContainer>
-        <Table aria-label="Scoreboard">
+        <Table
+          aria-label="Scoreboard"
+          size="small"
+          // ponytail: shorter rows here only; move to _table.scss's sizeSmall if every dense table should have them.
+          sx={{ '& .MuiTableCell-body': { blockSize: 40 } }}
+        >
           <TableHead>
             <TableRow>
               {headCell('rank', '#', 'right')}

@@ -37,18 +37,21 @@ const countAndShare = (count: number, of: number) =>
   of ? `${count} (${formatWinPct(count / of)})` : '0';
 
 // Every member's pick of the game and how the group split; which team each picked only once the game begins (until
-// then the server tells only who picked), and whether it was right once it's final.
+// then the server tells only who picked), and whether it was right, and the points it scored there (`gameScore` if
+// right, 0 if wrong), once it's final.
 export function GroupPredictionsDialog({
   groupId,
   game,
   away,
   home,
+  gameScore,
   onClose,
 }: {
   groupId: string;
   game: GameDto;
   away: string;
   home: string;
+  gameScore: number;
   onClose: () => void;
 }) {
   const theme = useTheme();
@@ -61,11 +64,15 @@ export function GroupPredictionsDialog({
       : pick === PredictionPick.AWAY
         ? away
         : null;
-  const rows = (members ?? []).map((member) => ({
-    ...member,
-    pickLabel: !member.picked ? 'None' : (teamOf(member.pick) ?? 'Picked'),
-    right: scorePrediction(member, game),
-  }));
+  const rows = (members ?? []).map((member) => {
+    const right = scorePrediction(member, game);
+    return {
+      ...member,
+      pickLabel: !member.picked ? 'None' : (teamOf(member.pick) ?? 'Picked'),
+      right,
+      points: right === null ? null : right ? gameScore : 0,
+    };
+  });
   const picked = rows.filter((row) => row.picked);
   const scored = picked.filter((row) => row.right !== null);
   const shareOf = (pick: PredictionPick) =>
@@ -99,11 +106,13 @@ export function GroupPredictionsDialog({
       type: 'select',
       value: (row) => resultLabel(row.right),
     },
+    points: { label: 'Points', type: 'number', value: (row) => row.points },
   });
   const { rows: shown, headCell } = useTableSort(filtered.rows, {
     member: (row) => row.name,
     pick: (row) => row.pickLabel,
     result: (row) => resultLabel(row.right),
+    points: (row) => row.points,
   });
 
   return (
@@ -154,10 +163,16 @@ export function GroupPredictionsDialog({
                     {headCell('member', 'Member')}
                     {headCell('pick', 'Pick')}
                     {headCell('result', 'Result')}
+                    {headCell(
+                      'points',
+                      'Points',
+                      'right',
+                      statHints.groupPoints,
+                    )}
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {shown.map(({ id, name, pickLabel, right }) => (
+                  {shown.map(({ id, name, pickLabel, right, points }) => (
                     <TableRow key={id}>
                       <TableCell>{name}</TableCell>
                       <TableCell>{pickLabel}</TableCell>
@@ -177,6 +192,7 @@ export function GroupPredictionsDialog({
                           {resultLabel(right)}
                         </Typography>
                       </TableCell>
+                      <TableCell align="right">{points ?? 'N/A'}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

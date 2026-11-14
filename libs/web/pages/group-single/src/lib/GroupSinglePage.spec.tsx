@@ -154,7 +154,7 @@ describe('GroupSinglePage', () => {
     ).toEqual(['6 Lior Katz', '7 Maya Gold']);
   });
 
-  it("shows a played game's picks, who was right, and how the group split", async () => {
+  it("shows a played game's picks, who was right, the points each scored, and how the group split", async () => {
     const picks: GroupMemberPredictionDto[] = [
       {
         id: 'user-dana',
@@ -170,10 +170,12 @@ describe('GroupSinglePage', () => {
         pick: PredictionPick.AWAY,
       },
     ];
+    // A right pick of it scores 3 here.
     stubApi(
-      routes(friday, {
-        [`GET /groups/${ID}/games/${played.id}/predictions`]: picks,
-      }),
+      routes(
+        { ...friday, gameScores: [{ gameId: played.id, score: 3 }] },
+        { [`GET /groups/${ID}/games/${played.id}/predictions`]: picks },
+      ),
     );
     renderAt(`/groups/${ID}`);
 
@@ -194,9 +196,9 @@ describe('GroupSinglePage', () => {
         within(dialog).getByRole('table', { name: "Members' predictions" }),
       ),
     ).toEqual([
-      ['Dana Levi', 'Boston Celtics', 'Right'],
-      ['Noam Bar', 'None', 'N/A'],
-      ['Omer Cohen', 'New York Knicks', 'Wrong'],
+      ['Dana Levi', 'Boston Celtics', 'Right', '3'],
+      ['Noam Bar', 'None', 'N/A', 'N/A'],
+      ['Omer Cohen', 'New York Knicks', 'Wrong', '0'],
     ]);
     // Picked, then each team's share (away first), then the right ones.
     expect(
@@ -226,8 +228,8 @@ describe('GroupSinglePage', () => {
         }),
       ),
     ).toEqual([
-      ['Dana Levi', 'Picked', 'N/A'],
-      ['Omer Cohen', 'None', 'N/A'],
+      ['Dana Levi', 'Picked', 'N/A', 'N/A'],
+      ['Omer Cohen', 'None', 'N/A', 'N/A'],
     ]);
     expect(
       within(dialog).getByText(

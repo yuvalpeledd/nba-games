@@ -33,4 +33,6 @@ export const statHints = {
   groupPickShare:
     'How many of those who picked chose this team, and their share',
   groupRight: 'How many of the picks were right, and their share',
+  groupPoints:
+    "What the member's pick scored in this group: the game's score if right, 0 if wrong",
 } as const;

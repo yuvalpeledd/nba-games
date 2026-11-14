@@ -239,6 +239,7 @@ export function GroupSinglePage() {
           game={predictionsOf}
           away={nameOf(predictionsOf.awayTeamId)}
           home={nameOf(predictionsOf.homeTeamId)}
+          gameScore={gameScoreOfGame(predictionsOf)}
           onClose={() => setPredictionsOf(null)}
         />
       )}
