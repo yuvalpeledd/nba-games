@@ -16,8 +16,8 @@ import { useState } from 'react';
 
 const ROWS_PER_PAGE = 5;
 
-// The group's members by score, highest first (a point per right pick; equal scores share a rank), 5 a page: a narrow,
-// dense table, as it has only three short columns.
+// The group's members by score, highest first (a point per right pick; equal scores share a rank), 5 a page (no pager
+// while they fit one): a narrow, dense table, as it has only three short columns.
 export function Scoreboard({
   members,
   ownerId,
@@ -50,7 +50,14 @@ export function Scoreboard({
           aria-label="Scoreboard"
           size="small"
           // ponytail: shorter rows here only; move to _table.scss's sizeSmall if every dense table should have them.
-          sx={{ '& .MuiTableCell-body': { blockSize: 40 } }}
+          // The number columns (rank, score) as narrow as their content, so the member's name takes the rest.
+          sx={{
+            '& .MuiTableCell-body': { blockSize: 40 },
+            '& .MuiTableCell-alignRight': {
+              inlineSize: '1%',
+              whiteSpace: 'nowrap',
+            },
+          }}
         >
           <TableHead>
             <TableRow>
@@ -84,14 +91,16 @@ export function Scoreboard({
           </TableBody>
         </Table>
       </TableContainer>
-      <TablePagination
-        component="div"
-        count={rows.length}
-        page={shownPage}
-        rowsPerPage={ROWS_PER_PAGE}
-        rowsPerPageOptions={[]}
-        onPageChange={(_, next) => setPage(next)}
-      />
+      {rows.length > ROWS_PER_PAGE && (
+        <TablePagination
+          component="div"
+          count={rows.length}
+          page={shownPage}
+          rowsPerPage={ROWS_PER_PAGE}
+          rowsPerPageOptions={[]}
+          onPageChange={(_, next) => setPage(next)}
+        />
+      )}
     </Stack>
   );
 }

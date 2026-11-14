@@ -345,5 +345,18 @@ describe('GamesPage', () => {
         ),
       ).toBeTruthy();
     });
+
+    it("can't pick a game more than 10 days away yet", async () => {
+      const later = game('nba-nyk', 'nba-gsw', '2026-11-24');
+      stubApi(routes([...games, later]));
+      renderAt('/games');
+
+      const buttons = within(
+        await rowOf('Golden State Warriors.*New York Knicks'),
+      ).getAllByRole('button', { name: /Away|Home/ });
+      expect(
+        buttons.map((button) => (button as HTMLButtonElement).disabled),
+      ).toEqual([true, true]);
+    });
   });
 });

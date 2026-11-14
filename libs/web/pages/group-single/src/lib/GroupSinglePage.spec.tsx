@@ -111,6 +111,13 @@ describe('GroupSinglePage', () => {
       ['1', 'Omer Cohen', '5'],
       ['2', 'Dana Levi · Owner', '3'],
     ]);
+    // One page: no pager.
+    expect(
+      within(screen.getByRole('region', { name: 'Scoreboard' })).queryByRole(
+        'button',
+        { name: 'Go to next page' },
+      ),
+    ).toBeNull();
   });
 
   it('pages the scoreboard 5 at a time, equal scores sharing a rank', async () => {
